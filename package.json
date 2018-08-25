@@ -1,0 +1,15 @@
+{
+  "name": "explain-math",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "elm-test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "elm": "^0.18.0",
+    "elm-test": "^0.18.12"
+  }
+}
