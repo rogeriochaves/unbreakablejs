@@ -3,6 +3,7 @@ module ParserTest exposing (..)
 import Expect exposing (Expectation)
 import Parser exposing (..)
 import Test exposing (..)
+import Types exposing (..)
 
 
 suite : Test
@@ -20,8 +21,12 @@ suite =
             \_ ->
                 Parser.parse "1 - (3 - 2)"
                     |> Expect.equal (Ok (ESub (EInt 1) (ESub (EInt 3) (EInt 2))))
-        , test "read function execution" <|
+        , test "read single-arity symbolic function" <|
             \_ ->
                 Parser.parse "\\sqrt{5}"
-                    |> Expect.equal (Ok (EFn (Identifier "sqrt") (EInt 5)))
+                    |> Expect.equal (Ok (ESymbolicFunction (SingleArity Sqrt (EInt 5))))
+        , test "read double-arity symbolic function" <|
+            \_ ->
+                Parser.parse "\\frac{2}{3}"
+                    |> Expect.equal (Ok (ESymbolicFunction (DoubleArity Frac (EInt 2) (EInt 3))))
         ]

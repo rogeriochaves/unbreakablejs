@@ -1,6 +1,6 @@
 module Interpreter exposing (..)
 
-import Parser exposing (..)
+import Types exposing (..)
 
 
 run : Expression -> Float
@@ -24,10 +24,19 @@ run expr =
         EDiv e1 e2 ->
             run e1 / run e2
 
-        EFn id expr ->
-            case id of
-                Identifier "sqrt" ->
-                    sqrt (run expr)
+        ESymbolicFunction symbol ->
+            runSymbol symbol
 
-                _ ->
-                    Debug.crash "unknown function"
+
+runSymbol : Symbol -> Float
+runSymbol symbol =
+    case symbol of
+        SingleArity sym expr1 ->
+            case sym of
+                Sqrt ->
+                    sqrt (run expr1)
+
+        DoubleArity sym expr1 expr2 ->
+            case sym of
+                Frac ->
+                    run expr1 / run expr2

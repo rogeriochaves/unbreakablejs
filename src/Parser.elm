@@ -2,20 +2,7 @@ module Parser exposing (..)
 
 import Combine exposing (..)
 import Combine.Num exposing (int)
-
-
-type Expression
-    = EInt Int
-    | EFloat Float
-    | EAdd Expression Expression
-    | ESub Expression Expression
-    | EMul Expression Expression
-    | EDiv Expression Expression
-    | EFn Identifier Expression
-
-
-type Identifier
-    = Identifier String
+import Types exposing (..)
 
 
 int : Parser s Expression
@@ -28,9 +15,9 @@ float =
     EFloat <$> Combine.Num.float <?> "float"
 
 
-identifier : Parser s Identifier
+identifier : Parser s String
 identifier =
-    Identifier <$> regex "[_a-zA-Z][_a-zA-Z0-9]*" <?> "identifier"
+    regex "[_a-zA-Z][_a-zA-Z0-9]*" <?> "identifier"
 
 
 addop : Parser s (Expression -> Expression -> Expression)
@@ -62,7 +49,7 @@ term =
 factor : Parser s Expression
 factor =
     lazy <|
-        \() -> whitespace *> (parens expr <|> function <|> atom) <* whitespace
+        \() -> whitespace *> (parens expr <|> symbolicFunction <|> atom) <* whitespace
 
 
 atom : Parser s Expression
@@ -70,13 +57,26 @@ atom =
     choice [ float, int ]
 
 
-function : Parser s Expression
-function =
+symbolicFunction : Parser s Expression
+symbolicFunction =
+    let
+        singleArity =
+            lazy <|
+                \() ->
+                    (SingleArity <$> (identifier >>= findSymbol singleAritySymbolsMap))
+                        <*> braces expr
+
+        doubleArity =
+            lazy <|
+                \() ->
+                    (DoubleArity <$> (identifier >>= findSymbol doubleAritySymbolsMap))
+                        <*> braces expr
+                        <*> braces expr
+    in
     lazy <|
         \() ->
-            (EFn <$ string "\\")
-                <*> identifier
-                <*> braces expr
+            (ESymbolicFunction <$ string "\\")
+                <*> (singleArity <|> doubleArity)
 
 
 parse : String -> Result String Expression
