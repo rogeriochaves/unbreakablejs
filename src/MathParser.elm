@@ -39,8 +39,8 @@ operators =
 functionParensAndAtoms : Parser Expression
 functionParensAndAtoms =
     oneOf
-        [ symbolicFunction
-        , parens <| lazy (\_ -> expression)
+        [ parens <| lazy (\_ -> expression)
+        , symbolicFunction |. spaces
         , atoms |. spaces
         ]
 

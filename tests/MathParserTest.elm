@@ -29,6 +29,10 @@ suite =
             \_ ->
                 MathParser.parse "\\frac{2}{3}"
                     |> Expect.equal (Ok (ESymbolicFunction (DoubleArity Frac (EInt 2) (EInt 3))))
+        , test "symbol function aplication with other expression" <|
+            \_ ->
+                MathParser.parse "\\sqrt{9} + 2"
+                    |> Expect.equal (Ok (EAdd (ESymbolicFunction (SingleArity Sqrt (EInt 9))) (EInt 2)))
         , test "read exponentiation" <|
             \_ ->
                 MathParser.parse "2 ^ 5"

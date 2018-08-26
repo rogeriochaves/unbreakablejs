@@ -1,8 +1,8 @@
-module InterpreterTest exposing (..)
+module InterpreterTest exposing (suite)
 
 import Expect exposing (Expectation)
 import Interpreter exposing (..)
-import Parser exposing (..)
+import MathParser exposing (..)
 import Test exposing (..)
 
 
@@ -12,59 +12,59 @@ suite =
         [ describe "parsing and executing"
             [ test "sum integer numbers" <|
                 \_ ->
-                    Parser.parse "1 + 1"
+                    MathParser.parse "1 + 1"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 2)
             , test "sum float numbers" <|
                 \_ ->
-                    Parser.parse "1.5 + 1.3"
+                    MathParser.parse "1.5 + 1.3"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 2.8)
             , test "execute nested expressions" <|
                 \_ ->
-                    Parser.parse "1 - (3 - 2)"
+                    MathParser.parse "1 - (3 - 2)"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 0)
             , test "respects math priority" <|
                 \_ ->
-                    Parser.parse "2 + 3 * 2"
+                    MathParser.parse "2 + 3 * 2"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 8)
             , test "respects math priority #2" <|
                 \_ ->
-                    Parser.parse "2 * 3 + 2"
+                    MathParser.parse "2 * 3 + 2"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 8)
             , test "symbol function aplication with other expression" <|
                 \_ ->
-                    Parser.parse "\\sqrt{9} + 2"
+                    MathParser.parse "\\sqrt{9} + 2"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 5)
             , test "symbol function aplication on a expression" <|
                 \_ ->
-                    Parser.parse "\\sqrt{7 + 2}"
+                    MathParser.parse "\\sqrt{7 + 2}"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 3)
             , test "exponentiation" <|
                 \_ ->
-                    Parser.parse "2 ^ 5"
+                    MathParser.parse "2 ^ 5"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 32)
             , test "respects math priority #3" <|
                 \_ ->
-                    Parser.parse "2 * 3 ^ 5"
+                    MathParser.parse "2 * 3 ^ 5"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 486)
             ]
         , describe "symbols"
             [ test "sqrt" <|
                 \_ ->
-                    Parser.parse "\\sqrt{9}"
+                    MathParser.parse "\\sqrt{9}"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 3)
             , test "frac" <|
                 \_ ->
-                    Parser.parse "\\frac{3}{2}"
+                    MathParser.parse "\\frac{3}{2}"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 1.5)
             ]
