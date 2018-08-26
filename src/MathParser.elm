@@ -11,11 +11,11 @@ import Types exposing (..)
 digits : Parser Expression
 digits =
     number
-        { int = Just EInt
+        { int = Just Integer
         , hex = Nothing
         , octal = Nothing
         , binary = Nothing
-        , float = Just EFloat
+        , float = Just Floating
         }
 
 
@@ -30,9 +30,9 @@ identifier =
 
 operators : OperatorTable Expression
 operators =
-    [ [ infixOperator EExponentiation (symbol "^") AssocLeft ]
-    , [ infixOperator EMul (symbol "*") AssocLeft, infixOperator EDiv (symbol "/") AssocLeft ]
-    , [ infixOperator EAdd (symbol "+") AssocLeft, infixOperator ESub (symbol "-") AssocLeft ]
+    [ [ infixOperator Exponentiation (symbol "^") AssocLeft ]
+    , [ infixOperator Multiplication (symbol "*") AssocLeft, infixOperator Division (symbol "/") AssocLeft ]
+    , [ infixOperator Addition (symbol "+") AssocLeft, infixOperator Subtraction (symbol "-") AssocLeft ]
     ]
 
 
@@ -77,7 +77,7 @@ symbolicFunction =
                 ( Nothing, Nothing ) ->
                     problem ("could not find symbol " ++ name)
     in
-    succeed ESymbolicFunction
+    succeed SymbolicFunction
         |. symbol "\\"
         |= (identifier |> andThen matchArities)
 

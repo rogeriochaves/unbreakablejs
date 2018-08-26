@@ -6,28 +6,28 @@ import Types exposing (..)
 run : Expression -> Float
 run expr =
     case expr of
-        EInt val ->
+        Integer val ->
             toFloat val
 
-        EFloat val ->
+        Floating val ->
             val
 
-        EAdd e1 e2 ->
+        Addition e1 e2 ->
             run e1 + run e2
 
-        ESub e1 e2 ->
+        Subtraction e1 e2 ->
             run e1 - run e2
 
-        EMul e1 e2 ->
+        Multiplication e1 e2 ->
             run e1 * run e2
 
-        EDiv e1 e2 ->
+        Division e1 e2 ->
             run e1 / run e2
 
-        EExponentiation e1 e2 ->
+        Exponentiation e1 e2 ->
             run e1 ^ run e2
 
-        ESymbolicFunction symbol ->
+        SymbolicFunction symbol ->
             runSymbol symbol
 
 

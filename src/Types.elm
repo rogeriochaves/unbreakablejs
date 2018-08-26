@@ -5,14 +5,14 @@ import Parser exposing (..)
 
 
 type Expression
-    = EInt Int
-    | EFloat Float
-    | EAdd Expression Expression
-    | ESub Expression Expression
-    | EMul Expression Expression
-    | EDiv Expression Expression
-    | EExponentiation Expression Expression
-    | ESymbolicFunction Symbol
+    = Integer Int
+    | Floating Float
+    | Addition Expression Expression
+    | Subtraction Expression Expression
+    | Multiplication Expression Expression
+    | Division Expression Expression
+    | Exponentiation Expression Expression
+    | SymbolicFunction Symbol
 
 
 type Symbol
