@@ -12,6 +12,7 @@ type Expression
     | ESub Expression Expression
     | EMul Expression Expression
     | EDiv Expression Expression
+    | EExponentiation Expression Expression
     | ESymbolicFunction Symbol
 
 

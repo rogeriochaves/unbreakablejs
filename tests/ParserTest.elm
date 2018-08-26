@@ -29,4 +29,8 @@ suite =
             \_ ->
                 Parser.parse "\\frac{2}{3}"
                     |> Expect.equal (Ok (ESymbolicFunction (DoubleArity Frac (EInt 2) (EInt 3))))
+        , test "read exponentiation" <|
+            \_ ->
+                Parser.parse "2 ^ 5"
+                    |> Expect.equal (Ok (EExponentiation (EInt 2) (EInt 5)))
         ]

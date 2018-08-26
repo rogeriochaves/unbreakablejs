@@ -24,6 +24,9 @@ run expr =
         EDiv e1 e2 ->
             run e1 / run e2
 
+        EExponentiation e1 e2 ->
+            run e1 ^ run e2
+
         ESymbolicFunction symbol ->
             runSymbol symbol
 

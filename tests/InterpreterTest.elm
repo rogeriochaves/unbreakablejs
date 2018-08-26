@@ -45,6 +45,16 @@ suite =
                     Parser.parse "\\sqrt{7 + 2}"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok 3)
+            , test "exponentiation" <|
+                \_ ->
+                    Parser.parse "2 ^ 5"
+                        |> Result.map Interpreter.run
+                        |> Expect.equal (Ok 32)
+            , test "respects math priority #3" <|
+                \_ ->
+                    Parser.parse "2 * 3 ^ 5"
+                        |> Result.map Interpreter.run
+                        |> Expect.equal (Ok 486)
             ]
         , describe "symbols"
             [ test "sqrt" <|

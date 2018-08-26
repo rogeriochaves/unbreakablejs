@@ -36,18 +36,31 @@ mulop =
         ]
 
 
+expoop : Parser s (Expression -> Expression -> Expression)
+expoop =
+    EExponentiation <$ string "^"
+
+
 expr : Parser s Expression
 expr =
-    lazy (\() -> chainl addop term)
+    let
+        priorities =
+            { first = functionParensAndAtoms
+            , second = expoop
+            , third = mulop
+            , fourth = addop
+            }
+    in
+    chainl priorities.fourth
+        (chainl priorities.third
+            (chainl priorities.second
+                priorities.first
+            )
+        )
 
 
-term : Parser s Expression
-term =
-    lazy (\() -> chainl mulop factor)
-
-
-factor : Parser s Expression
-factor =
+functionParensAndAtoms : Parser s Expression
+functionParensAndAtoms =
     lazy <|
         \() -> whitespace *> (parens expr <|> symbolicFunction <|> atom) <* whitespace
 
