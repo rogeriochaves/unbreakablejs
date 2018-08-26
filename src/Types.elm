@@ -1,8 +1,7 @@
-module Types exposing (..)
+module Types exposing (DoubleAritySymbol(..), Expression(..), SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, singleAritySymbolsMap)
 
-import Combine exposing (..)
 import Dict
-import Utils exposing (..)
+import Parser exposing (..)
 
 
 type Expression
@@ -37,9 +36,3 @@ singleAritySymbolsMap =
 doubleAritySymbolsMap : Dict.Dict String DoubleAritySymbol
 doubleAritySymbolsMap =
     Dict.fromList [ ( "frac", Frac ) ]
-
-
-findSymbol : Dict.Dict String a -> String -> Parser s a
-findSymbol map name =
-    Dict.get name map
-        |> parserFromMaybe ("could not find symbol " ++ name)

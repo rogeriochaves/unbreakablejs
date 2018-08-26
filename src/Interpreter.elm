@@ -1,4 +1,4 @@
-module Interpreter exposing (..)
+module Interpreter exposing (run, runSymbol)
 
 import Types exposing (..)
 
