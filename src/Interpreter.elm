@@ -43,3 +43,19 @@ runSymbol symbol =
             case sym of
                 Frac ->
                     run expr1 / run expr2
+
+        Iterator sym expr1 expr2 expr3 ->
+            case sym of
+                Sum_ ->
+                    let
+                        lowerLimit =
+                            run expr1
+
+                        upperLimit =
+                            run expr2
+
+                        range =
+                            -- TODO: remove round, make sure expression is int
+                            List.range (round lowerLimit) (round upperLimit)
+                    in
+                    List.foldl (\curr total -> total + run expr3) 0 range

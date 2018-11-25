@@ -61,20 +61,29 @@ symbolicFunction =
         findSymbols name =
             ( Dict.get name singleAritySymbolsMap
             , Dict.get name doubleAritySymbolsMap
+            , Dict.get name iteratorSymbolsMap
             )
 
         matchArities name =
             case findSymbols name of
-                ( Just symbol, _ ) ->
+                ( Just symbol, _, _ ) ->
                     succeed (SingleArity symbol)
                         |= braces expression
 
-                ( Nothing, Just symbol ) ->
+                ( Nothing, Just symbol, _ ) ->
                     succeed (DoubleArity symbol)
                         |= braces expression
                         |= braces expression
 
-                ( Nothing, Nothing ) ->
+                ( Nothing, Nothing, Just symbol ) ->
+                    succeed (Iterator symbol)
+                        |= braces expression
+                        |. Parser.symbol "^"
+                        |= braces expression
+                        |. spaces
+                        |= expression
+
+                ( Nothing, Nothing, Nothing ) ->
                     problem ("could not find symbol " ++ name)
     in
     succeed SymbolicFunction

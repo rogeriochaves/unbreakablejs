@@ -1,4 +1,4 @@
-module Types exposing (DoubleAritySymbol(..), Expression(..), SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, singleAritySymbolsMap)
+module Types exposing (DoubleAritySymbol(..), Expression(..), IteratorSymbol(..), SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
 
 import Dict
 import Parser exposing (..)
@@ -18,6 +18,7 @@ type Expression
 type Symbol
     = SingleArity SingleAritySymbol Expression
     | DoubleArity DoubleAritySymbol Expression Expression
+    | Iterator IteratorSymbol Expression Expression Expression
 
 
 type SingleAritySymbol
@@ -28,6 +29,10 @@ type DoubleAritySymbol
     = Frac
 
 
+type IteratorSymbol
+    = Sum_
+
+
 singleAritySymbolsMap : Dict.Dict String SingleAritySymbol
 singleAritySymbolsMap =
     Dict.fromList [ ( "sqrt", Sqrt ) ]
@@ -36,3 +41,8 @@ singleAritySymbolsMap =
 doubleAritySymbolsMap : Dict.Dict String DoubleAritySymbol
 doubleAritySymbolsMap =
     Dict.fromList [ ( "frac", Frac ) ]
+
+
+iteratorSymbolsMap : Dict.Dict String IteratorSymbol
+iteratorSymbolsMap =
+    Dict.fromList [ ( "sum_", Sum_ ) ]
