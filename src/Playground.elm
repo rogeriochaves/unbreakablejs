@@ -1,22 +1,20 @@
 module Playground exposing (main)
 
 import Browser
+import Dict
 import Html exposing (..)
+import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Keyed
 import Interpreter
 import MathParser
 
 
 main : Program () Model Msg
 main =
-    Browser.document
+    Browser.element
         { init = init
-        , view =
-            \model ->
-                { title = "Explain Math Playground"
-                , body =
-                    [ view model ]
-                }
+        , view = view
         , update = update
         , subscriptions = always Sub.none
         }
@@ -37,12 +35,29 @@ init flags =
     ( { input = "", result = "" }, Cmd.none )
 
 
+emptyLatexState =
+    { counters = Dict.fromList [ ( "s1", 0 ), ( "s2", 0 ), ( "s3", 0 ), ( "tno", 0 ), ( "eqno", 0 ) ]
+    , crossReferences = Dict.empty
+    , dictionary = Dict.empty
+    , tableOfContents = []
+    , macroDictionary = Dict.empty
+    }
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text "latex code input" ]
+        [ h1 [] [ text "Explain Math" ]
+        , h2 [] [ text "latex code input" ]
         , textarea [ onInput UpdateInput ] [ text model.input ]
-        , h1 [] [ text "result" ]
+        , h2 [] [ text "latex output" ]
+        , div []
+            [ Html.Keyed.node "div"
+                []
+                [ ( model.input, div [ class "raw-math" ] [ text <| "$$\n" ++ model.input ++ "\n$$" ] )
+                ]
+            ]
+        , h2 [] [ text "result" ]
         , text model.result
         ]
 
