@@ -45,6 +45,20 @@ functionParensAndAtoms =
         ]
 
 
+program : Parser Types.Program
+program =
+    loop []
+        (\expressions ->
+            oneOf
+                [ succeed (Done expressions)
+                    |. symbol "EOF"
+                , succeed (\expr -> Loop (expressions ++ [ expr ]))
+                    |= expression
+                    |. spaces
+                ]
+        )
+
+
 expression : Parser Expression
 expression =
     buildExpressionParser operators (lazy <| \_ -> functionParensAndAtoms)
@@ -95,6 +109,6 @@ type alias Error =
     List DeadEnd
 
 
-parse : String -> Result Error Expression
+parse : String -> Result Error Types.Program
 parse string =
-    run expression string
+    run program (string ++ "\nEOF")

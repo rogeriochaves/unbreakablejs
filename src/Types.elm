@@ -1,7 +1,11 @@
-module Types exposing (DoubleAritySymbol(..), Expression(..), IteratorSymbol(..), SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
+module Types exposing (DoubleAritySymbol(..), Expression(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
 
 import Dict
 import Parser exposing (..)
+
+
+type alias Program =
+    List Expression
 
 
 type Expression

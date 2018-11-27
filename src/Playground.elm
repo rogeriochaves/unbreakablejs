@@ -51,14 +51,22 @@ view model =
         , h2 [] [ text "latex code input" ]
         , textarea [ onInput UpdateInput ] [ text model.input ]
         , h2 [] [ text "latex output" ]
-        , div []
-            [ Html.Keyed.node "div"
-                []
-                [ ( model.input, div [ class "raw-math" ] [ text <| "$$\n" ++ model.input ++ "\n$$" ] )
-                ]
-            ]
+        , renderLatex model
         , h2 [] [ text "result" ]
         , text model.result
+        ]
+
+
+renderLatex model =
+    let
+        convertedText =
+            "$$\n" ++ String.replace "\n" "\\\\" model.input ++ "\n$$"
+    in
+    div []
+        [ Html.Keyed.node "div"
+            []
+            [ ( model.input, div [ class "raw-math" ] [ text <| convertedText ] )
+            ]
         ]
 
 
