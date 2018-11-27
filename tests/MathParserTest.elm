@@ -63,12 +63,29 @@ suite =
                 MathParser.parse "1 + 1\n2 + 2[1$51"
                     |> isErr
                     |> Expect.true "it should break if anything is not parseable"
-        , skip <|
-            test "only one expression per line" <|
-                \_ ->
-                    MathParser.parse "1 + 1 2 + 2"
-                        |> isErr
-                        |> Expect.true "it should break there is no line break between expressions"
+        , test "only one expression per line" <|
+            \_ ->
+                MathParser.parse "1 + 1 2 + 2"
+                    |> isErr
+                    |> Expect.true "it should break there is no line break between expressions"
+        , test "allow multiple line breaks" <|
+            \_ ->
+                MathParser.parse "1 + 1\n\n2 + 2\n"
+                    |> Expect.equal
+                        (Ok
+                            [ Addition (Integer 1) (Integer 1)
+                            , Addition (Integer 2) (Integer 2)
+                            ]
+                        )
+        , test "allow empty lines and trailing spaces" <|
+            \_ ->
+                MathParser.parse "1 + 1 \n \n2 + 2\n"
+                    |> Expect.equal
+                        (Ok
+                            [ Addition (Integer 1) (Integer 1)
+                            , Addition (Integer 2) (Integer 2)
+                            ]
+                        )
         ]
 
 

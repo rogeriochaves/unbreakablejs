@@ -30,9 +30,15 @@ identifier =
 
 operators : OperatorTable Expression
 operators =
-    [ [ infixOperator Exponentiation (symbol "^") AssocLeft ]
-    , [ infixOperator Multiplication (symbol "*") AssocLeft, infixOperator Division (symbol "/") AssocLeft ]
-    , [ infixOperator Addition (symbol "+") AssocLeft, infixOperator Subtraction (symbol "-") AssocLeft ]
+    let
+        symb sign =
+            succeed identity
+                |. backtrackable spaces
+                |= symbol sign
+    in
+    [ [ infixOperator Exponentiation (symb "^") AssocLeft ]
+    , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
+    , [ infixOperator Addition (symb "+") AssocLeft, infixOperator Subtraction (symb "-") AssocLeft ]
     ]
 
 
@@ -40,8 +46,8 @@ functionParensAndAtoms : Parser Expression
 functionParensAndAtoms =
     oneOf
         [ parens <| lazy (\_ -> expression)
-        , symbolicFunction |. spaces
-        , atoms |. spaces
+        , symbolicFunction
+        , atoms
         ]
 
 
@@ -54,6 +60,8 @@ program =
                     |. symbol "EOF"
                 , succeed (\expr -> Loop (expressions ++ [ expr ]))
                     |= expression
+                    |. chompWhile (\c -> c == ' ')
+                    |. chompIf (\c -> c == '\n')
                     |. spaces
                 ]
         )
