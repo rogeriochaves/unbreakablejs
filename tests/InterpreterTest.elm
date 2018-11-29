@@ -67,11 +67,16 @@ suite =
                     MathParser.parse "\\frac{3}{2}"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok [ 1.5 ])
-            , test "sum" <|
+            , test "summation" <|
                 \_ ->
-                    MathParser.parse "\\sum_{1}^{3} 5"
+                    MathParser.parse "\\sum_{x=1}^{3} 5"
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok [ 15 ])
+            , test "summation using the variable" <|
+                \_ ->
+                    MathParser.parse "\\sum_{x=1}^{3} x + 1"
+                        |> Result.map Interpreter.run
+                        |> Expect.equal (Ok [ 9 ])
             ]
         , test "multiple expressions" <|
             \_ ->

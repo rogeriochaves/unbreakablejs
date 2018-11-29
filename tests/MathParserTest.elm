@@ -31,10 +31,10 @@ suite =
                     |> Expect.equal (Ok [ SymbolicFunction (DoubleArity Frac (Integer 2) (Integer 3)) ])
 
         -- https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits#Sums_and_products
-        , test "read triple arity symbolic function with upper and lower limit and expresion as a body" <|
+        , test "read iterator functions" <|
             \_ ->
-                MathParser.parse "\\sum_{1}^{3} 5"
-                    |> Expect.equal (Ok [ SymbolicFunction (Iterator Sum_ (Integer 1) (Integer 3) (Integer 5)) ])
+                MathParser.parse "\\sum_{x = 1}^{3} 5"
+                    |> Expect.equal (Ok [ SymbolicFunction (Iterator Sum_ "x" (Integer 1) (Integer 3) (Integer 5)) ])
         , test "read symbol function aplication with other expression" <|
             \_ ->
                 MathParser.parse "\\sqrt{9} + 2"

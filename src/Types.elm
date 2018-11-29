@@ -24,7 +24,7 @@ type Expression
 type Symbol
     = SingleArity SingleAritySymbol Expression
     | DoubleArity DoubleAritySymbol Expression Expression
-    | Iterator IteratorSymbol Expression Expression Expression
+    | Iterator IteratorSymbol String Expression Expression Expression
 
 
 type SingleAritySymbol

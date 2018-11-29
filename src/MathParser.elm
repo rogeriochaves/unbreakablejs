@@ -54,7 +54,13 @@ functionParensAndAtoms =
 
 equation : Parser Expression
 equation =
-    succeed (\id expr -> Equation (Identifier id) expr)
+    succeed (\( id, expr ) -> Equation (Identifier id) expr)
+        |= assignment
+
+
+assignment : Parser ( String, Expression )
+assignment =
+    succeed (\id expr -> ( id, expr ))
         |= backtrackable identifier
         |. backtrackable spaces
         |. symbol "="
@@ -109,8 +115,8 @@ symbolicFunction =
                         |= braces expression
 
                 ( Nothing, Nothing, Just symbol ) ->
-                    succeed (Iterator symbol)
-                        |= braces expression
+                    succeed (\( id, expr ) -> Iterator symbol id expr)
+                        |= braces assignment
                         |. Parser.symbol "^"
                         |= braces expression
                         |. spaces

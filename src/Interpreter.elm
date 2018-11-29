@@ -45,6 +45,11 @@ getExpressionValue state =
     runExpression state >> Tuple.second
 
 
+setVariable : String -> Float -> State -> State
+setVariable name value state =
+    { state | variables = Dict.insert name value state.variables }
+
+
 runExpression : State -> Expression -> Result
 runExpression state expr =
     case expr of
@@ -83,7 +88,7 @@ runExpression state expr =
             in
             case identifier of
                 Identifier name ->
-                    ( { state | variables = Dict.insert name result state.variables }, result )
+                    ( setVariable name result state, result )
 
                 _ ->
                     -- TODO: break here
@@ -103,7 +108,7 @@ runSymbol state symbol =
                 Frac ->
                     getExpressionValue state expr1 / getExpressionValue state expr2
 
-        Iterator sym expr1 expr2 expr3 ->
+        Iterator sym identifier expr1 expr2 expr3 ->
             case sym of
                 Sum_ ->
                     let
@@ -116,5 +121,12 @@ runSymbol state symbol =
                         range =
                             -- TODO: remove round, make sure expression is int
                             List.range (round lowerLimit) (round upperLimit)
+
+                        iterate curr total =
+                            let
+                                state_ =
+                                    setVariable identifier (toFloat curr) state
+                            in
+                            total + getExpressionValue state_ expr3
                     in
-                    List.foldl (\curr total -> total + getExpressionValue state expr3) 0 range
+                    List.foldl iterate 0 range
