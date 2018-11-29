@@ -92,7 +92,7 @@ suite =
             \_ ->
                 MathParser.parse "x = 1 + 1"
                     |> Expect.equal
-                        (Ok [ Equation (Identifier "x") (Addition (Integer 1) (Integer 1)) ])
+                        (Ok [ Equation "x" (Addition (Integer 1) (Integer 1)) ])
         , test "parses expression with variables" <|
             \_ ->
                 MathParser.parse "x + 1"

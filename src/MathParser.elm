@@ -54,7 +54,7 @@ functionParensAndAtoms =
 
 equation : Parser Expression
 equation =
-    succeed (\( id, expr ) -> Equation (Identifier id) expr)
+    succeed (\( id, expr ) -> Equation id expr)
         |= assignment
 
 

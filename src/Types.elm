@@ -18,7 +18,7 @@ type Expression
     | Multiplication Expression Expression
     | Division Expression Expression
     | Exponentiation Expression Expression
-    | Equation Expression Expression
+    | Equation String Expression
 
 
 type Symbol

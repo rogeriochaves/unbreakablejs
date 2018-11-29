@@ -86,13 +86,7 @@ runExpression state expr =
                 result =
                     getExpressionValue state e
             in
-            case identifier of
-                Identifier name ->
-                    ( setVariable name result state, result )
-
-                _ ->
-                    -- TODO: break here
-                    ( state, result )
+            ( setVariable identifier result state, result )
 
 
 runSymbol : State -> Symbol -> Float
