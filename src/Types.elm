@@ -11,12 +11,14 @@ type alias Program =
 type Expression
     = Integer Int
     | Floating Float
+    | SymbolicFunction Symbol
+    | Identifier String
     | Addition Expression Expression
     | Subtraction Expression Expression
     | Multiplication Expression Expression
     | Division Expression Expression
     | Exponentiation Expression Expression
-    | SymbolicFunction Symbol
+    | Equation Expression Expression
 
 
 type Symbol

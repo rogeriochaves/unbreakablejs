@@ -49,43 +49,55 @@ suite =
             \_ ->
                 MathParser.parse "2 ^ 5"
                     |> Expect.equal (Ok [ Exponentiation (Integer 2) (Integer 5) ])
-        , test "parses multiple expressions" <|
+        , describe "multiple lines"
+            [ test "parses multiple expressions" <|
+                \_ ->
+                    MathParser.parse "1 + 1\n2 + 2"
+                        |> Expect.equal
+                            (Ok
+                                [ Addition (Integer 1) (Integer 1)
+                                , Addition (Integer 2) (Integer 2)
+                                ]
+                            )
+            , test "breaks for weird things after the end" <|
+                \_ ->
+                    MathParser.parse "1 + 1\n2 + 2[1$51"
+                        |> isErr
+                        |> Expect.true "it should break if anything is not parseable"
+            , test "only one expression per line" <|
+                \_ ->
+                    MathParser.parse "1 + 1 2 + 2"
+                        |> isErr
+                        |> Expect.true "it should break there is no line break between expressions"
+            , test "allow multiple line breaks" <|
+                \_ ->
+                    MathParser.parse "1 + 1\n\n2 + 2\n"
+                        |> Expect.equal
+                            (Ok
+                                [ Addition (Integer 1) (Integer 1)
+                                , Addition (Integer 2) (Integer 2)
+                                ]
+                            )
+            , test "allow empty lines and trailing spaces" <|
+                \_ ->
+                    MathParser.parse "1 + 1 \n \n2 + 2\n"
+                        |> Expect.equal
+                            (Ok
+                                [ Addition (Integer 1) (Integer 1)
+                                , Addition (Integer 2) (Integer 2)
+                                ]
+                            )
+            ]
+        , test "parses simple equation" <|
             \_ ->
-                MathParser.parse "1 + 1\n2 + 2"
+                MathParser.parse "x = 1 + 1"
                     |> Expect.equal
-                        (Ok
-                            [ Addition (Integer 1) (Integer 1)
-                            , Addition (Integer 2) (Integer 2)
-                            ]
-                        )
-        , test "breaks for weird things after the end" <|
+                        (Ok [ Equation (Identifier "x") (Addition (Integer 1) (Integer 1)) ])
+        , test "parses expression with variables" <|
             \_ ->
-                MathParser.parse "1 + 1\n2 + 2[1$51"
-                    |> isErr
-                    |> Expect.true "it should break if anything is not parseable"
-        , test "only one expression per line" <|
-            \_ ->
-                MathParser.parse "1 + 1 2 + 2"
-                    |> isErr
-                    |> Expect.true "it should break there is no line break between expressions"
-        , test "allow multiple line breaks" <|
-            \_ ->
-                MathParser.parse "1 + 1\n\n2 + 2\n"
+                MathParser.parse "x + 1"
                     |> Expect.equal
-                        (Ok
-                            [ Addition (Integer 1) (Integer 1)
-                            , Addition (Integer 2) (Integer 2)
-                            ]
-                        )
-        , test "allow empty lines and trailing spaces" <|
-            \_ ->
-                MathParser.parse "1 + 1 \n \n2 + 2\n"
-                    |> Expect.equal
-                        (Ok
-                            [ Addition (Integer 1) (Integer 1)
-                            , Addition (Integer 2) (Integer 2)
-                            ]
-                        )
+                        (Ok [ Addition (Identifier "x") (Integer 1) ])
         ]
 
 

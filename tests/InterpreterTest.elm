@@ -78,4 +78,16 @@ suite =
                 MathParser.parse "1 + 1\n2 + 2"
                     |> Result.map Interpreter.run
                     |> Expect.equal (Ok [ 2, 4 ])
+        , describe "equations" <|
+            [ test "parses a simple equation and return the result of the variabl" <|
+                \_ ->
+                    MathParser.parse "x = 2 + 2"
+                        |> Result.map Interpreter.run
+                        |> Expect.equal (Ok [ 4 ])
+            , test "saves the value to the variable" <|
+                \_ ->
+                    MathParser.parse "x = 2 + 2\nx + 1"
+                        |> Result.map Interpreter.run
+                        |> Expect.equal (Ok [ 4, 5 ])
+            ]
         ]

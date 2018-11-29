@@ -47,8 +47,19 @@ functionParensAndAtoms =
     oneOf
         [ parens <| lazy (\_ -> expression)
         , symbolicFunction
+        , equation
         , atoms
         ]
+
+
+equation : Parser Expression
+equation =
+    succeed (\id expr -> Equation (Identifier id) expr)
+        |= backtrackable identifier
+        |. backtrackable spaces
+        |. symbol "="
+        |. spaces
+        |= expression
 
 
 program : Parser Types.Program
@@ -74,7 +85,7 @@ expression =
 
 atoms : Parser Expression
 atoms =
-    oneOf [ digits ]
+    oneOf [ map Identifier identifier, digits ]
 
 
 symbolicFunction : Parser Expression
