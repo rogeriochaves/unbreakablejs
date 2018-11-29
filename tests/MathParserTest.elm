@@ -88,16 +88,40 @@ suite =
                                 ]
                             )
             ]
-        , test "parses simple equation" <|
-            \_ ->
-                MathParser.parse "x = 1 + 1"
-                    |> Expect.equal
-                        (Ok [ Equation "x" (Addition (Integer 1) (Integer 1)) ])
-        , test "parses expression with variables" <|
-            \_ ->
-                MathParser.parse "x + 1"
-                    |> Expect.equal
-                        (Ok [ Addition (Identifier "x") (Integer 1) ])
+        , describe "equations"
+            [ test "parses simple equation" <|
+                \_ ->
+                    MathParser.parse "x = 1 + 1"
+                        |> Expect.equal
+                            (Ok [ Equation "x" (Addition (Integer 1) (Integer 1)) ])
+            , test "does not allow nested equations" <|
+                \_ ->
+                    MathParser.parse "x = 1 + (x = 2)"
+                        |> isErr
+                        |> Expect.true "nested equations"
+            , test "parses expression with variables" <|
+                \_ ->
+                    MathParser.parse "x + 1"
+                        |> Expect.equal
+                            (Ok [ Addition (Identifier "x") (Integer 1) ])
+            ]
+        , describe "functions"
+            [ test "parses function declaration" <|
+                \_ ->
+                    MathParser.parse "f(x) = x + 1"
+                        |> Expect.equal
+                            (Ok [ FunctionDeclaration "f" (FunctionSchema "x" (Addition (Identifier "x") (Integer 1))) ])
+            , test "does not allow nested function declarations" <|
+                \_ ->
+                    MathParser.parse "fn(x) = fn(y) = 1"
+                        |> isErr
+                        |> Expect.true "nested functions"
+            , test "parses function call" <|
+                \_ ->
+                    MathParser.parse "f(5)"
+                        |> Expect.equal
+                            (Ok [ FunctionCall "f" (Integer 5) ])
+            ]
         ]
 
 

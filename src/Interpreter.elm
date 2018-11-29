@@ -6,12 +6,14 @@ import Types exposing (..)
 
 type alias State =
     { variables : Dict String Float
+    , functions : Dict String FunctionSchema
     }
 
 
 newState : State
 newState =
     { variables = Dict.empty
+    , functions = Dict.empty
     }
 
 
@@ -50,6 +52,11 @@ setVariable name value state =
     { state | variables = Dict.insert name value state.variables }
 
 
+setFunction : String -> FunctionSchema -> State -> State
+setFunction name functionSchema state =
+    { state | functions = Dict.insert name functionSchema state.functions }
+
+
 runExpression : State -> Expression -> Result
 runExpression state expr =
     case expr of
@@ -81,12 +88,34 @@ runExpression state expr =
         SymbolicFunction symbol ->
             ( state, runSymbol state symbol )
 
-        Equation identifier e ->
+        Equation variableName e ->
             let
                 result =
                     getExpressionValue state e
             in
-            ( setVariable identifier result state, result )
+            ( setVariable variableName result state, result )
+
+        FunctionDeclaration name schema ->
+            ( setFunction name schema state, 0 )
+
+        FunctionCall name param ->
+            let
+                callFunction (FunctionSchema paramName body) =
+                    let
+                        param_ =
+                            getExpressionValue state param
+
+                        state_ =
+                            setVariable paramName param_ state
+                    in
+                    getExpressionValue state_ body
+            in
+            -- TODO: break if function is not available
+            ( state
+            , Dict.get name state.functions
+                |> Maybe.map callFunction
+                |> Maybe.withDefault 0
+            )
 
 
 runSymbol : State -> Symbol -> Float

@@ -1,4 +1,4 @@
-module Types exposing (DoubleAritySymbol(..), Expression(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
+module Types exposing (DoubleAritySymbol(..), Expression(..), FunctionSchema(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
 
 import Dict
 import Parser exposing (..)
@@ -19,6 +19,12 @@ type Expression
     | Division Expression Expression
     | Exponentiation Expression Expression
     | Equation String Expression
+    | FunctionDeclaration String FunctionSchema
+    | FunctionCall String Expression
+
+
+type FunctionSchema
+    = FunctionSchema String Expression
 
 
 type Symbol

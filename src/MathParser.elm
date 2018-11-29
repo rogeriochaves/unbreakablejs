@@ -28,6 +28,13 @@ identifier =
         }
 
 
+functionCall : Parser Expression
+functionCall =
+    succeed FunctionCall
+        |= backtrackable identifier
+        |= backtrackable (parens expression)
+
+
 operators : OperatorTable Expression
 operators =
     let
@@ -40,16 +47,6 @@ operators =
     , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
     , [ infixOperator Addition (symb "+") AssocLeft, infixOperator Subtraction (symb "-") AssocLeft ]
     ]
-
-
-functionParensAndAtoms : Parser Expression
-functionParensAndAtoms =
-    oneOf
-        [ parens <| lazy (\_ -> expression)
-        , symbolicFunction
-        , equation
-        , atoms
-        ]
 
 
 equation : Parser Expression
@@ -68,6 +65,17 @@ assignment =
         |= expression
 
 
+functionDeclaration : Parser Expression
+functionDeclaration =
+    succeed (\name param body -> FunctionDeclaration name (FunctionSchema param body))
+        |= backtrackable identifier
+        |= backtrackable (parens identifier)
+        |. backtrackable spaces
+        |. backtrackable (symbol "=")
+        |. spaces
+        |= expression
+
+
 program : Parser Types.Program
 program =
     loop []
@@ -76,7 +84,7 @@ program =
                 [ succeed (Done expressions)
                     |. symbol "EOF"
                 , succeed (\expr -> Loop (expressions ++ [ expr ]))
-                    |= expression
+                    |= expressionWithDeclarations
                     |. chompWhile (\c -> c == ' ')
                     |. chompIf (\c -> c == '\n')
                     |. spaces
@@ -86,7 +94,36 @@ program =
 
 expression : Parser Expression
 expression =
-    buildExpressionParser operators (lazy <| \_ -> functionParensAndAtoms)
+    buildExpressionParser operators
+        (lazy <| \_ -> expressionParsers False)
+
+
+expressionWithDeclarations : Parser Expression
+expressionWithDeclarations =
+    buildExpressionParser operators
+        (lazy <| \_ -> expressionParsers True)
+
+
+expressionParsers : Bool -> Parser Expression
+expressionParsers withDeclarations =
+    let
+        declarations =
+            [ functionDeclaration
+            , equation
+            ]
+
+        expressions =
+            [ parens <| lazy (\_ -> expression)
+            , symbolicFunction
+            , functionCall
+            , atoms
+            ]
+    in
+    if withDeclarations then
+        oneOf (declarations ++ expressions)
+
+    else
+        oneOf expressions
 
 
 atoms : Parser Expression

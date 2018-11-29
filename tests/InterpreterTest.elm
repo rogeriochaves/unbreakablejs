@@ -95,4 +95,12 @@ suite =
                         |> Result.map Interpreter.run
                         |> Expect.equal (Ok [ 4, 5 ])
             ]
+        , describe "functions"
+            [ test "declares a simple function" <|
+                \_ ->
+                    MathParser.parse "f(x) = x + 1\nf(5)"
+                        |> Result.map Interpreter.run
+                        -- TODO: function declarations shouldn return anything
+                        |> Expect.equal (Ok [ 0, 6 ])
+            ]
         ]
