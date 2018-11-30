@@ -167,10 +167,6 @@ symbolicFunction =
         |= (identifier |> andThen matchArities)
 
 
-type alias Error =
-    List DeadEnd
-
-
 parse : String -> Result Error Types.Program
 parse string =
     run program (string ++ "\nEOF")

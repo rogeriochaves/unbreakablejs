@@ -1,4 +1,4 @@
-module Types exposing (DoubleAritySymbol(..), Expression(..), FunctionSchema(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
+module Types exposing (DoubleAritySymbol(..), Error, Expression(..), FunctionSchema(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
 
 import Dict
 import Parser exposing (..)
@@ -6,6 +6,10 @@ import Parser exposing (..)
 
 type alias Program =
     List Expression
+
+
+type alias Error =
+    List DeadEnd
 
 
 type Expression
