@@ -1,7 +1,8 @@
-module Interpreter exposing (ReturnValue(..), run, runSymbol)
+module Interpreter exposing (run, runSymbol)
 
 import Dict exposing (Dict)
 import Parser exposing (DeadEnd, Problem(..))
+import Return exposing (throwError)
 import Types exposing (..)
 
 
@@ -18,17 +19,11 @@ newState =
     }
 
 
-type ReturnValue
-    = NumVal Float
-    | VoidVal
-    | ErrorVal DeadEnd
-
-
 type alias LineResult =
-    ( State, ReturnValue )
+    ( State, Return.Value )
 
 
-run : Types.Program -> Result Error (List ReturnValue)
+run : Types.Program -> Result Error (List Return.Value)
 run expressions =
     let
         iterate : Expression -> Result Error (List LineResult) -> Result Error (List LineResult)
@@ -40,13 +35,13 @@ run expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( newState, VoidVal )
+                        |> Maybe.withDefault ( newState, Return.Void )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
             in
             case Tuple.second lineResult of
-                ErrorVal error ->
+                Return.Error error ->
                     Err [ error ]
 
                 _ ->
@@ -61,14 +56,14 @@ runExpression : State -> Expression -> LineResult
 runExpression state expr =
     case expr of
         Integer val ->
-            ( state, NumVal (toFloat val) )
+            ( state, Return.Num (toFloat val) )
 
         Floating val ->
-            ( state, NumVal val )
+            ( state, Return.Num val )
 
         Identifier name ->
             -- TODO: break if variable is not available
-            ( state, Dict.get name state.variables |> Maybe.withDefault 0 |> NumVal )
+            ( state, Dict.get name state.variables |> Maybe.withDefault 0 |> Return.Num )
 
         Addition e1 e2 ->
             ( state, applyExpressions state e1 (+) e2 )
@@ -90,23 +85,23 @@ runExpression state expr =
 
         Equation variableName e ->
             case getExpressionValue state e of
-                NumVal num ->
-                    ( setVariable variableName num state, VoidVal )
+                Return.Num num ->
+                    ( setVariable variableName num state, Return.Void )
 
-                VoidVal ->
+                Return.Void ->
                     ( state, throwError ("Cannot set variable" ++ variableName ++ "to void") )
 
-                ErrorVal error ->
-                    ( state, ErrorVal error )
+                Return.Error error ->
+                    ( state, Return.Error error )
 
         FunctionDeclaration name schema ->
-            ( setFunction name schema state, VoidVal )
+            ( setFunction name schema state, Return.Void )
 
         FunctionCall name param ->
             let
                 callFunction (FunctionSchema paramName body) =
                     getExpressionValue state param
-                        |> returnAndThen
+                        |> Return.andThen
                             (\param_ ->
                                 getExpressionValue (setVariable paramName param_ state) body
                             )
@@ -115,7 +110,7 @@ runExpression state expr =
             ( state
             , Dict.get name state.functions
                 |> Maybe.map callFunction
-                |> Maybe.withDefault (NumVal 0)
+                |> Maybe.withDefault (Return.Num 0)
             )
 
 
@@ -136,7 +131,7 @@ runSymbol state symbol =
             case sym of
                 Sum_ ->
                     ( state
-                    , returnAndThen2
+                    , Return.andThen2
                         (\lowerLimit upperLimit ->
                             let
                                 range =
@@ -147,7 +142,7 @@ runSymbol state symbol =
                                         state_ =
                                             setVariable identifier (toFloat curr) state
                                     in
-                                    map2NumReturn (\result total_ -> total_ + result) (getExpressionValue state_ expr3) total
+                                    Return.map2 (\result total_ -> total_ + result) (getExpressionValue state_ expr3) total
                             in
                             if lowerLimit /= toFloat (round lowerLimit) then
                                 throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
@@ -156,14 +151,14 @@ runSymbol state symbol =
                                 throwError ("Error on sum_: cannot use " ++ String.fromFloat upperLimit ++ " as an upper limit, it has to be an integer higher than lower limit")
 
                             else
-                                List.foldl iterate (NumVal 0) range
+                                List.foldl iterate (Return.Num 0) range
                         )
                         (getExpressionValue state expr1)
                         (getExpressionValue state expr2)
                     )
 
 
-getExpressionValue : State -> Expression -> ReturnValue
+getExpressionValue : State -> Expression -> Return.Value
 getExpressionValue state =
     runExpression state >> Tuple.second
 
@@ -178,80 +173,11 @@ setFunction name functionSchema state =
     { state | functions = Dict.insert name functionSchema state.functions }
 
 
-throwError : String -> ReturnValue
-throwError error =
-    ErrorVal { row = 0, col = 0, problem = Problem error }
-
-
-mapNumReturn : (Float -> Float) -> ReturnValue -> ReturnValue
-mapNumReturn fn returnVal =
-    case returnVal of
-        NumVal float ->
-            NumVal <| fn float
-
-        VoidVal ->
-            throwError "Cannot apply function to void"
-
-        ErrorVal _ ->
-            returnVal
-
-
-map2NumReturn : (Float -> Float -> Float) -> ReturnValue -> ReturnValue -> ReturnValue
-map2NumReturn fn returnVal returnVal2 =
-    case ( returnVal, returnVal2 ) of
-        ( NumVal float1, NumVal float2 ) ->
-            NumVal <| fn float1 float2
-
-        ( ErrorVal _, _ ) ->
-            returnVal
-
-        ( _, ErrorVal _ ) ->
-            returnVal2
-
-        ( VoidVal, _ ) ->
-            throwError "Cannot apply function to void"
-
-        ( _, VoidVal ) ->
-            throwError "Cannot apply function to void"
-
-
-applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> ReturnValue
+applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> Return.Value
 applyExpressions state e1 fn e2 =
-    map2NumReturn fn (getExpressionValue state e1) (getExpressionValue state e2)
+    Return.map2 fn (getExpressionValue state e1) (getExpressionValue state e2)
 
 
-applyExpression : State -> (Float -> Float) -> Expression -> ReturnValue
+applyExpression : State -> (Float -> Float) -> Expression -> Return.Value
 applyExpression state fn e1 =
-    mapNumReturn fn (getExpressionValue state e1)
-
-
-returnAndThen : (Float -> ReturnValue) -> ReturnValue -> ReturnValue
-returnAndThen fn returnVal =
-    case returnVal of
-        NumVal float ->
-            fn float
-
-        VoidVal ->
-            throwError "Cannot apply function to void"
-
-        ErrorVal _ ->
-            returnVal
-
-
-returnAndThen2 : (Float -> Float -> ReturnValue) -> ReturnValue -> ReturnValue -> ReturnValue
-returnAndThen2 fn returnVal returnVal2 =
-    case ( returnVal, returnVal2 ) of
-        ( NumVal float1, NumVal float2 ) ->
-            fn float1 float2
-
-        ( ErrorVal _, _ ) ->
-            returnVal
-
-        ( _, ErrorVal _ ) ->
-            returnVal2
-
-        ( VoidVal, _ ) ->
-            throwError "Cannot apply function to void"
-
-        ( _, VoidVal ) ->
-            throwError "Cannot apply function to void"
+    Return.map fn (getExpressionValue state e1)

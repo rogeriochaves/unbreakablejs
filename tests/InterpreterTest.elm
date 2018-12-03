@@ -4,6 +4,7 @@ import Expect exposing (Expectation)
 import Interpreter exposing (..)
 import MathParser exposing (..)
 import Parser exposing (Problem(..))
+import Return
 import Test exposing (..)
 
 
@@ -15,69 +16,69 @@ suite =
                 \_ ->
                     MathParser.parse "1 + 1"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 2 ])
+                        |> Expect.equal (Ok [ Return.Num 2 ])
             , test "sum float numbers" <|
                 \_ ->
                     MathParser.parse "1.5 + 1.3"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 2.8 ])
+                        |> Expect.equal (Ok [ Return.Num 2.8 ])
             , test "execute nested expressions" <|
                 \_ ->
                     MathParser.parse "1 - (3 - 2)"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 0 ])
+                        |> Expect.equal (Ok [ Return.Num 0 ])
             , test "respects math priority" <|
                 \_ ->
                     MathParser.parse "2 + 3 * 2"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 8 ])
+                        |> Expect.equal (Ok [ Return.Num 8 ])
             , test "respects math priority #2" <|
                 \_ ->
                     MathParser.parse "2 * 3 + 2"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 8 ])
+                        |> Expect.equal (Ok [ Return.Num 8 ])
             , test "symbol function aplication with other expression" <|
                 \_ ->
                     MathParser.parse "\\sqrt{9} + 2"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 5 ])
+                        |> Expect.equal (Ok [ Return.Num 5 ])
             , test "symbol function aplication on a expression" <|
                 \_ ->
                     MathParser.parse "\\sqrt{7 + 2}"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 3 ])
+                        |> Expect.equal (Ok [ Return.Num 3 ])
             , test "exponentiation" <|
                 \_ ->
                     MathParser.parse "2 ^ 5"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 32 ])
+                        |> Expect.equal (Ok [ Return.Num 32 ])
             , test "respects math priority #3" <|
                 \_ ->
                     MathParser.parse "2 * 3 ^ 5"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 486 ])
+                        |> Expect.equal (Ok [ Return.Num 486 ])
             ]
         , describe "symbols"
             [ test "sqrt" <|
                 \_ ->
                     MathParser.parse "\\sqrt{9}"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 3 ])
+                        |> Expect.equal (Ok [ Return.Num 3 ])
             , test "frac" <|
                 \_ ->
                     MathParser.parse "\\frac{3}{2}"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 1.5 ])
+                        |> Expect.equal (Ok [ Return.Num 1.5 ])
             , test "summation" <|
                 \_ ->
                     MathParser.parse "\\sum_{x=1}^{3} 5"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 15 ])
+                        |> Expect.equal (Ok [ Return.Num 15 ])
             , test "summation using the variable" <|
                 \_ ->
                     MathParser.parse "\\sum_{x=1}^{3} x + 1"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ NumVal 9 ])
+                        |> Expect.equal (Ok [ Return.Num 9 ])
             , test "summation with a float upper limit should break" <|
                 \_ ->
                     MathParser.parse "\\sum_{x=1}^{3.9} 5"
@@ -119,18 +120,18 @@ suite =
             \_ ->
                 MathParser.parse "1 + 1\n2 + 2"
                     |> Result.andThen Interpreter.run
-                    |> Expect.equal (Ok [ NumVal 2, NumVal 4 ])
+                    |> Expect.equal (Ok [ Return.Num 2, Return.Num 4 ])
         , describe "equations" <|
             [ test "parses a simple equation and return void" <|
                 \_ ->
                     MathParser.parse "x = 2 + 2"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ VoidVal ])
+                        |> Expect.equal (Ok [ Return.Void ])
             , test "saves the value to the variable" <|
                 \_ ->
                     MathParser.parse "x = 2 + 2\nx + 1"
                         |> Result.andThen Interpreter.run
-                        |> Expect.equal (Ok [ VoidVal, NumVal 5 ])
+                        |> Expect.equal (Ok [ Return.Void, Return.Num 5 ])
             ]
         , describe "functions"
             [ test "declares a simple function" <|
@@ -138,6 +139,6 @@ suite =
                     MathParser.parse "f(x) = x + 1\nf(5)"
                         |> Result.andThen Interpreter.run
                         -- TODO: function declarations shouldn return anything
-                        |> Expect.equal (Ok [ VoidVal, NumVal 6 ])
+                        |> Expect.equal (Ok [ Return.Void, Return.Num 6 ])
             ]
         ]
