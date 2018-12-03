@@ -132,13 +132,36 @@ suite =
                     MathParser.parse "x = 2 + 2\nx + 1"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal (Ok [ Return.Void, Return.Num 5 ])
+            , test "return errors from undefined variables" <|
+                \_ ->
+                    MathParser.parse "y"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "y is not defined"
+                                  }
+                                ]
+                            )
             ]
         , describe "functions"
             [ test "declares a simple function" <|
                 \_ ->
                     MathParser.parse "f(x) = x + 1\nf(5)"
                         |> Result.andThen Interpreter.run
-                        -- TODO: function declarations shouldn return anything
                         |> Expect.equal (Ok [ Return.Void, Return.Num 6 ])
+            , test "return errors from undefined functions" <|
+                \_ ->
+                    MathParser.parse "f(x)"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "f is not defined"
+                                  }
+                                ]
+                            )
             ]
         ]

@@ -62,8 +62,11 @@ runExpression state expr =
             ( state, Return.Num val )
 
         Identifier name ->
-            -- TODO: break if variable is not available
-            ( state, Dict.get name state.variables |> Maybe.withDefault 0 |> Return.Num )
+            ( state
+            , Dict.get name state.variables
+                |> Maybe.map Return.Num
+                |> Maybe.withDefault (throwError (name ++ " is not defined"))
+            )
 
         Addition e1 e2 ->
             ( state, applyExpressions state e1 (+) e2 )
@@ -106,11 +109,10 @@ runExpression state expr =
                                 getExpressionValue (setVariable paramName param_ state) body
                             )
             in
-            -- TODO: break if function is not available
             ( state
             , Dict.get name state.functions
                 |> Maybe.map callFunction
-                |> Maybe.withDefault (Return.Num 0)
+                |> Maybe.withDefault (throwError (name ++ " is not defined"))
             )
 
 
@@ -142,7 +144,8 @@ runSymbol state symbol =
                                         state_ =
                                             setVariable identifier (toFloat curr) state
                                     in
-                                    Return.map2 (\result total_ -> total_ + result) (getExpressionValue state_ expr3) total
+                                    total
+                                        |> Return.map2 (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
                             in
                             if lowerLimit /= toFloat (round lowerLimit) then
                                 throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
@@ -175,9 +178,10 @@ setFunction name functionSchema state =
 
 applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> Return.Value
 applyExpressions state e1 fn e2 =
-    Return.map2 fn (getExpressionValue state e1) (getExpressionValue state e2)
+    getExpressionValue state e2
+        |> Return.map2 fn (getExpressionValue state e1)
 
 
 applyExpression : State -> (Float -> Float) -> Expression -> Return.Value
-applyExpression state fn e1 =
-    Return.map fn (getExpressionValue state e1)
+applyExpression state fn =
+    Return.map fn << getExpressionValue state
