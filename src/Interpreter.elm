@@ -54,10 +54,6 @@ run expressions =
 
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
-    let
-        apply =
-            applyExpressions state
-    in
     case expr of
         Integer val ->
             ( state, Return.Num (toFloat val) )
@@ -69,26 +65,26 @@ runExpression state expr =
             ( state
             , Dict.get name state.variables
                 |> Maybe.map Return.Num
-                |> Maybe.withDefault (Return.Expression (Identifier name))
+                |> Maybe.withDefault (throwError (name ++ " is not defined"))
             )
 
         Addition e1 e2 ->
-            apply Addition e1 (+) e2
+            ( state, applyExpressions state e1 (+) e2 )
 
         Subtraction e1 e2 ->
-            apply Subtraction e1 (-) e2
+            ( state, applyExpressions state e1 (-) e2 )
 
         Multiplication e1 e2 ->
-            apply Multiplication e1 (*) e2
+            ( state, applyExpressions state e1 (*) e2 )
 
         Division e1 e2 ->
-            apply Division e1 (/) e2
+            ( state, applyExpressions state e1 (/) e2 )
 
         Exponentiation e1 e2 ->
-            apply Exponentiation e1 (^) e2
+            ( state, applyExpressions state e1 (^) e2 )
 
         SymbolicFunction symbol ->
-            runSymbol state expr symbol
+            runSymbol state symbol
 
         Equation variableName e ->
             case getExpressionValue state e of
@@ -101,9 +97,6 @@ runExpression state expr =
                 Return.Error error ->
                     ( state, Return.Error error )
 
-                Return.Expression _ ->
-                    Debug.todo "not implemented"
-
         FunctionDeclaration name schema ->
             ( setFunction name schema state, Return.Void )
 
@@ -111,7 +104,7 @@ runExpression state expr =
             let
                 callFunction (FunctionSchema paramName body) =
                     getExpressionValue state param
-                        |> Return.andThen expr
+                        |> Return.andThen
                             (\param_ ->
                                 getExpressionValue (setVariable paramName param_ state) body
                             )
@@ -123,24 +116,24 @@ runExpression state expr =
             )
 
 
-runSymbol : State -> Expression -> Symbol -> LineResult
-runSymbol state currentExpr symbol =
+runSymbol : State -> Symbol -> LineResult
+runSymbol state symbol =
     case symbol of
         SingleArity sym expr1 ->
             case sym of
                 Sqrt ->
-                    applyExpression state currentExpr sqrt expr1
+                    ( state, applyExpression state sqrt expr1 )
 
         DoubleArity sym expr1 expr2 ->
             case sym of
                 Frac ->
-                    applyExpressions state (\e1 -> SymbolicFunction << DoubleArity sym e1) expr1 (/) expr2
+                    ( state, applyExpressions state expr1 (/) expr2 )
 
         Iterator sym identifier expr1 expr2 expr3 ->
             case sym of
                 Sum_ ->
                     ( state
-                    , Return.andThen2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3)
+                    , Return.andThen2
                         (\lowerLimit upperLimit ->
                             let
                                 range =
@@ -152,7 +145,7 @@ runSymbol state currentExpr symbol =
                                             setVariable identifier (toFloat curr) state
                                     in
                                     total
-                                        |> Return.map2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3) (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
+                                        |> Return.map2 (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
                             in
                             if lowerLimit /= toFloat (round lowerLimit) then
                                 throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
@@ -183,17 +176,12 @@ setFunction name functionSchema state =
     { state | functions = Dict.insert name functionSchema state.functions }
 
 
-applyExpressions : State -> (Expression -> Expression -> Expression) -> Expression -> (Float -> Float -> Float) -> Expression -> ( State, Return.Value )
-applyExpressions state current e1 fn e2 =
-    ( state
-    , getExpressionValue state e2
-        |> Return.map2 current fn (getExpressionValue state e1)
-    )
+applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> Return.Value
+applyExpressions state e1 fn e2 =
+    getExpressionValue state e2
+        |> Return.map2 fn (getExpressionValue state e1)
 
 
-applyExpression : State -> Expression -> (Float -> Float) -> Expression -> ( State, Return.Value )
-applyExpression state current fn expr =
-    ( state
-    , getExpressionValue state expr
-        |> Return.map current fn
-    )
+applyExpression : State -> (Float -> Float) -> Expression -> Return.Value
+applyExpression state fn =
+    Return.map fn << getExpressionValue state
