@@ -88,17 +88,17 @@ suite =
                                 ]
                             )
             ]
-        , describe "equations"
-            [ test "parses simple equation" <|
+        , describe "assignments"
+            [ test "parses simple assignment" <|
                 \_ ->
                     MathParser.parse "x = 1 + 1"
                         |> Expect.equal
-                            (Ok [ Equation "x" (InfixFunction Addition (Number 1) (Number 1)) ])
-            , test "does not allow nested equations" <|
+                            (Ok [ Assignment "x" (InfixFunction Addition (Number 1) (Number 1)) ])
+            , test "does not allow nested assignments" <|
                 \_ ->
                     MathParser.parse "x = 1 + (x = 2)"
                         |> isErr
-                        |> Expect.true "nested equations"
+                        |> Expect.true "nested assignments"
             , test "parses expression with variables" <|
                 \_ ->
                     MathParser.parse "x + 1"

@@ -17,7 +17,7 @@ type Expression
     | SymbolicFunction Symbol
     | Identifier String
     | InfixFunction Infix Expression Expression
-    | Equation String Expression
+    | Assignment String Expression
     | FunctionDeclaration String FunctionSchema
     | FunctionCall String Expression
 

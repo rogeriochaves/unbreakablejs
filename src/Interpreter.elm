@@ -71,7 +71,7 @@ runExpression state expr =
         SymbolicFunction symbol ->
             runSymbol state symbol
 
-        Equation variableName e ->
+        Assignment variableName e ->
             case getExpressionValue state e of
                 Return.Num num ->
                     ( setVariable variableName num state, Return.Void )

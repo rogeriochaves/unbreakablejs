@@ -52,14 +52,14 @@ operators =
     ]
 
 
-equation : Parser Expression
-equation =
-    succeed (\( id, expr ) -> Equation id expr)
-        |= assignment
-
-
-assignment : Parser ( String, Expression )
+assignment : Parser Expression
 assignment =
+    succeed (\( id, expr ) -> Assignment id expr)
+        |= assignmentParser
+
+
+assignmentParser : Parser ( String, Expression )
+assignmentParser =
     succeed (\id expr -> ( id, expr ))
         |= backtrackable identifier
         |. backtrackable spaces
@@ -112,7 +112,7 @@ expressionParsers withDeclarations =
     let
         declarations =
             [ functionDeclaration
-            , equation
+            , assignment
             ]
 
         expressions =
@@ -156,7 +156,7 @@ symbolicFunction =
 
                 ( Nothing, Nothing, Just symbol ) ->
                     succeed (\( id, expr ) -> Iterator symbol id expr)
-                        |= braces assignment
+                        |= braces assignmentParser
                         |. Parser.symbol "^"
                         |= braces expression
                         |. spaces

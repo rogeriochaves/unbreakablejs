@@ -121,8 +121,8 @@ suite =
                 MathParser.parse "1 + 1\n2 + 2"
                     |> Result.andThen Interpreter.run
                     |> Expect.equal (Ok [ Return.Num 2, Return.Num 4 ])
-        , describe "equations" <|
-            [ test "parses a simple equation and return void" <|
+        , describe "assignments" <|
+            [ test "parses a simple assignment and return void" <|
                 \_ ->
                     MathParser.parse "x = 2 + 2"
                         |> Result.andThen Interpreter.run
