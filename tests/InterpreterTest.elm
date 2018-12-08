@@ -6,6 +6,7 @@ import MathParser exposing (..)
 import Parser exposing (Problem(..))
 import Return
 import Test exposing (..)
+import Types exposing (..)
 
 
 suite : Test
@@ -132,18 +133,18 @@ suite =
                     MathParser.parse "x = 2 + 2\nx + 1"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal (Ok [ Return.Void, Return.Num 5 ])
-            , test "return errors from undefined variables" <|
+            , test "returns unapplied expression if the variable is not defined" <|
                 \_ ->
-                    MathParser.parse "y"
+                    MathParser.parse "x + 1"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "y is not defined"
-                                  }
-                                ]
-                            )
+                            (Ok [ Return.Expression (Addition (Identifier "x") (Floating 1)) ])
+            , test "applies the parts that can be calculated" <|
+                \_ ->
+                    MathParser.parse "x + (1 + 1)"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Ok [ Return.Expression (Addition (Identifier "x") (Floating 2)) ])
             ]
         , describe "functions"
             [ test "declares a simple function" <|
