@@ -1,4 +1,4 @@
-module Types exposing (DoubleAritySymbol(..), Error, Expression(..), FunctionSchema(..), IteratorSymbol(..), Program, SingleAritySymbol(..), Symbol(..), doubleAritySymbolsMap, iteratorSymbolsMap, singleAritySymbolsMap)
+module Types exposing (..)
 
 import Dict
 import Parser exposing (..)
@@ -13,18 +13,21 @@ type alias Error =
 
 
 type Expression
-    = Integer Int
-    | Floating Float
+    = Number Float
     | SymbolicFunction Symbol
     | Identifier String
-    | Addition Expression Expression
-    | Subtraction Expression Expression
-    | Multiplication Expression Expression
-    | Division Expression Expression
-    | Exponentiation Expression Expression
+    | InfixFunction Infix Expression Expression
     | Equation String Expression
     | FunctionDeclaration String FunctionSchema
     | FunctionCall String Expression
+
+
+type Infix
+    = Addition
+    | Subtraction
+    | Multiplication
+    | Division
+    | Exponentiation
 
 
 type FunctionSchema

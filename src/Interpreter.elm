@@ -55,10 +55,7 @@ run expressions =
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
     case expr of
-        Integer val ->
-            ( state, Return.Num (toFloat val) )
-
-        Floating val ->
+        Number val ->
             ( state, Return.Num val )
 
         Identifier name ->
@@ -68,20 +65,8 @@ runExpression state expr =
                 |> Maybe.withDefault (throwError (name ++ " is not defined"))
             )
 
-        Addition e1 e2 ->
-            ( state, applyExpressions state e1 (+) e2 )
-
-        Subtraction e1 e2 ->
-            ( state, applyExpressions state e1 (-) e2 )
-
-        Multiplication e1 e2 ->
-            ( state, applyExpressions state e1 (*) e2 )
-
-        Division e1 e2 ->
-            ( state, applyExpressions state e1 (/) e2 )
-
-        Exponentiation e1 e2 ->
-            ( state, applyExpressions state e1 (^) e2 )
+        InfixFunction func e1 e2 ->
+            runInfix state func e1 e2
 
         SymbolicFunction symbol ->
             runSymbol state symbol
@@ -116,18 +101,41 @@ runExpression state expr =
             )
 
 
+runInfix : State -> Infix -> Expression -> Expression -> LineResult
+runInfix state func e1 e2 =
+    let
+        operator =
+            case func of
+                Addition ->
+                    (+)
+
+                Subtraction ->
+                    (-)
+
+                Multiplication ->
+                    (*)
+
+                Division ->
+                    (/)
+
+                Exponentiation ->
+                    (^)
+    in
+    applyExpressions state e1 operator e2
+
+
 runSymbol : State -> Symbol -> LineResult
 runSymbol state symbol =
     case symbol of
         SingleArity sym expr1 ->
             case sym of
                 Sqrt ->
-                    ( state, applyExpression state sqrt expr1 )
+                    applyExpression state sqrt expr1
 
         DoubleArity sym expr1 expr2 ->
             case sym of
                 Frac ->
-                    ( state, applyExpressions state expr1 (/) expr2 )
+                    applyExpressions state expr1 (/) expr2
 
         Iterator sym identifier expr1 expr2 expr3 ->
             case sym of
@@ -176,12 +184,14 @@ setFunction name functionSchema state =
     { state | functions = Dict.insert name functionSchema state.functions }
 
 
-applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> Return.Value
+applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> LineResult
 applyExpressions state e1 fn e2 =
-    getExpressionValue state e2
+    ( state
+    , getExpressionValue state e2
         |> Return.map2 fn (getExpressionValue state e1)
+    )
 
 
-applyExpression : State -> (Float -> Float) -> Expression -> Return.Value
-applyExpression state fn =
-    Return.map fn << getExpressionValue state
+applyExpression : State -> (Float -> Float) -> Expression -> LineResult
+applyExpression state fn expr =
+    ( state, Return.map fn <| getExpressionValue state expr )

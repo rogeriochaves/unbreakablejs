@@ -11,11 +11,11 @@ import Types exposing (..)
 digits : Parser Expression
 digits =
     number
-        { int = Just Integer
+        { int = Just (toFloat >> Number)
         , hex = Nothing
         , octal = Nothing
         , binary = Nothing
-        , float = Just Floating
+        , float = Just Number
         }
 
 
@@ -42,10 +42,13 @@ operators =
             succeed identity
                 |. backtrackable spaces
                 |= symbol sign
+
+        infixOp op =
+            infixOperator (InfixFunction op)
     in
-    [ [ infixOperator Exponentiation (symb "^") AssocLeft ]
-    , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
-    , [ infixOperator Addition (symb "+") AssocLeft, infixOperator Subtraction (symb "-") AssocLeft ]
+    [ [ infixOp Exponentiation (symb "^") AssocLeft ]
+    , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
+    , [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
     ]
 
 

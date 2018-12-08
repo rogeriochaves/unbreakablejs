@@ -9,54 +9,54 @@ import Types exposing (..)
 suite : Test
 suite =
     describe "MathParser suite"
-        [ test "read integer number" <|
+        [ test "read int numbers" <|
             \_ ->
                 MathParser.parse "1 + 1"
-                    |> Expect.equal (Ok [ Addition (Integer 1) (Integer 1) ])
+                    |> Expect.equal (Ok [ InfixFunction Addition (Number 1) (Number 1) ])
         , test "read float numbers" <|
             \_ ->
                 MathParser.parse "1.5 + 1.3"
-                    |> Expect.equal (Ok [ Addition (Floating 1.5) (Floating 1.3) ])
+                    |> Expect.equal (Ok [ InfixFunction Addition (Number 1.5) (Number 1.3) ])
         , test "read nested operations" <|
             \_ ->
                 MathParser.parse "1 - (3 - 2)"
-                    |> Expect.equal (Ok [ Subtraction (Integer 1) (Subtraction (Integer 3) (Integer 2)) ])
+                    |> Expect.equal (Ok [ InfixFunction Subtraction (Number 1) (InfixFunction Subtraction (Number 3) (Number 2)) ])
         , test "read single-arity symbolic function" <|
             \_ ->
                 MathParser.parse "\\sqrt{5}"
-                    |> Expect.equal (Ok [ SymbolicFunction (SingleArity Sqrt (Integer 5)) ])
+                    |> Expect.equal (Ok [ SymbolicFunction (SingleArity Sqrt (Number 5)) ])
         , test "read double-arity symbolic function" <|
             \_ ->
                 MathParser.parse "\\frac{2}{3}"
-                    |> Expect.equal (Ok [ SymbolicFunction (DoubleArity Frac (Integer 2) (Integer 3)) ])
+                    |> Expect.equal (Ok [ SymbolicFunction (DoubleArity Frac (Number 2) (Number 3)) ])
 
         -- https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits#Sums_and_products
         , test "read iterator functions" <|
             \_ ->
                 MathParser.parse "\\sum_{x = 1}^{3} 5"
-                    |> Expect.equal (Ok [ SymbolicFunction (Iterator Sum_ "x" (Integer 1) (Integer 3) (Integer 5)) ])
+                    |> Expect.equal (Ok [ SymbolicFunction (Iterator Sum_ "x" (Number 1) (Number 3) (Number 5)) ])
         , test "read symbol function aplication with other expression" <|
             \_ ->
                 MathParser.parse "\\sqrt{9} + 2"
                     |> Expect.equal
                         (Ok
-                            [ Addition
-                                (SymbolicFunction (SingleArity Sqrt (Integer 9)))
-                                (Integer 2)
+                            [ InfixFunction Addition
+                                (SymbolicFunction (SingleArity Sqrt (Number 9)))
+                                (Number 2)
                             ]
                         )
         , test "read exponentiation" <|
             \_ ->
                 MathParser.parse "2 ^ 5"
-                    |> Expect.equal (Ok [ Exponentiation (Integer 2) (Integer 5) ])
+                    |> Expect.equal (Ok [ InfixFunction Exponentiation (Number 2) (Number 5) ])
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->
                     MathParser.parse "1 + 1\n2 + 2"
                         |> Expect.equal
                             (Ok
-                                [ Addition (Integer 1) (Integer 1)
-                                , Addition (Integer 2) (Integer 2)
+                                [ InfixFunction Addition (Number 1) (Number 1)
+                                , InfixFunction Addition (Number 2) (Number 2)
                                 ]
                             )
             , test "breaks for weird things after the end" <|
@@ -74,8 +74,8 @@ suite =
                     MathParser.parse "1 + 1\n\n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ Addition (Integer 1) (Integer 1)
-                                , Addition (Integer 2) (Integer 2)
+                                [ InfixFunction Addition (Number 1) (Number 1)
+                                , InfixFunction Addition (Number 2) (Number 2)
                                 ]
                             )
             , test "allow empty lines and trailing spaces" <|
@@ -83,8 +83,8 @@ suite =
                     MathParser.parse "1 + 1 \n \n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ Addition (Integer 1) (Integer 1)
-                                , Addition (Integer 2) (Integer 2)
+                                [ InfixFunction Addition (Number 1) (Number 1)
+                                , InfixFunction Addition (Number 2) (Number 2)
                                 ]
                             )
             ]
@@ -93,7 +93,7 @@ suite =
                 \_ ->
                     MathParser.parse "x = 1 + 1"
                         |> Expect.equal
-                            (Ok [ Equation "x" (Addition (Integer 1) (Integer 1)) ])
+                            (Ok [ Equation "x" (InfixFunction Addition (Number 1) (Number 1)) ])
             , test "does not allow nested equations" <|
                 \_ ->
                     MathParser.parse "x = 1 + (x = 2)"
@@ -103,14 +103,14 @@ suite =
                 \_ ->
                     MathParser.parse "x + 1"
                         |> Expect.equal
-                            (Ok [ Addition (Identifier "x") (Integer 1) ])
+                            (Ok [ InfixFunction Addition (Identifier "x") (Number 1) ])
             ]
         , describe "functions"
             [ test "parses function declaration" <|
                 \_ ->
                     MathParser.parse "f(x) = x + 1"
                         |> Expect.equal
-                            (Ok [ FunctionDeclaration "f" (FunctionSchema "x" (Addition (Identifier "x") (Integer 1))) ])
+                            (Ok [ FunctionDeclaration "f" (FunctionSchema "x" (InfixFunction Addition (Identifier "x") (Number 1))) ])
             , test "does not allow nested function declarations" <|
                 \_ ->
                     MathParser.parse "fn(x) = fn(y) = 1"
@@ -120,7 +120,7 @@ suite =
                 \_ ->
                     MathParser.parse "f(5)"
                         |> Expect.equal
-                            (Ok [ FunctionCall "f" (Integer 5) ])
+                            (Ok [ FunctionCall "f" (Number 5) ])
             ]
         ]
 
