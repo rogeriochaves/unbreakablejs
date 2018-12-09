@@ -62,7 +62,7 @@ runExpression state expr =
             ( state
             , Dict.get name state.variables
                 |> Maybe.map Return.Num
-                |> Maybe.withDefault (throwError (name ++ " is not defined"))
+                |> Maybe.withDefault (Return.Expression (Identifier name))
             )
 
         InfixFunction func e1 e2 ->
@@ -82,6 +82,9 @@ runExpression state expr =
                 Return.Error error ->
                     ( state, Return.Error error )
 
+                Return.Expression _ ->
+                    Debug.todo "not implemented"
+
         FunctionDeclaration name schema ->
             ( setFunction name schema state, Return.Void )
 
@@ -89,7 +92,7 @@ runExpression state expr =
             let
                 callFunction (FunctionSchema paramName body) =
                     getExpressionValue state param
-                        |> Return.andThen
+                        |> Return.andThen (FunctionCall name)
                             (\param_ ->
                                 getExpressionValue (setVariable paramName param_ state) body
                             )
@@ -121,7 +124,7 @@ runInfix state func e1 e2 =
                 Exponentiation ->
                     (^)
     in
-    applyExpressions state e1 operator e2
+    applyExpressions state (InfixFunction func) e1 operator e2
 
 
 runSymbol : State -> Symbol -> LineResult
@@ -130,18 +133,18 @@ runSymbol state symbol =
         SingleArity sym expr1 ->
             case sym of
                 Sqrt ->
-                    applyExpression state sqrt expr1
+                    applyExpression state (SymbolicFunction << SingleArity sym) sqrt expr1
 
         DoubleArity sym expr1 expr2 ->
             case sym of
                 Frac ->
-                    applyExpressions state expr1 (/) expr2
+                    applyExpressions state (\e1 -> SymbolicFunction << DoubleArity sym e1) expr1 (/) expr2
 
         Iterator sym identifier expr1 expr2 expr3 ->
             case sym of
                 Sum_ ->
                     ( state
-                    , Return.andThen2
+                    , Return.andThen2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3)
                         (\lowerLimit upperLimit ->
                             let
                                 range =
@@ -153,7 +156,7 @@ runSymbol state symbol =
                                             setVariable identifier (toFloat curr) state
                                     in
                                     total
-                                        |> Return.map2 (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
+                                        |> Return.map2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3) (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
                             in
                             if lowerLimit /= toFloat (round lowerLimit) then
                                 throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
@@ -184,14 +187,14 @@ setFunction name functionSchema state =
     { state | functions = Dict.insert name functionSchema state.functions }
 
 
-applyExpressions : State -> Expression -> (Float -> Float -> Float) -> Expression -> LineResult
-applyExpressions state e1 fn e2 =
+applyExpressions : State -> (Expression -> Expression -> Expression) -> Expression -> (Float -> Float -> Float) -> Expression -> LineResult
+applyExpressions state builder e1 fn e2 =
     ( state
     , getExpressionValue state e2
-        |> Return.map2 fn (getExpressionValue state e1)
+        |> Return.map2 builder fn (getExpressionValue state e1)
     )
 
 
-applyExpression : State -> (Float -> Float) -> Expression -> LineResult
-applyExpression state fn expr =
-    ( state, Return.map fn <| getExpressionValue state expr )
+applyExpression : State -> (Expression -> Expression) -> (Float -> Float) -> Expression -> LineResult
+applyExpression state builder fn expr =
+    ( state, Return.map builder fn <| getExpressionValue state expr )

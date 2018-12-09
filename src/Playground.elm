@@ -78,7 +78,7 @@ update msg model =
                 | input = input
                 , result =
                     MathParser.parse input
-                        |> Result.map Interpreter.run
+                        |> Result.andThen Interpreter.run
                         |> Debug.toString
               }
             , Cmd.none
