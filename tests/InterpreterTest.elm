@@ -138,13 +138,13 @@ suite =
                     MathParser.parse "x + 1"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal
-                            (Ok [ Return.Expression (InfixFunction Addition (Identifier "x") (Number 1)) ])
+                            (Ok [ Return.Expression (DoubleArityApplication Addition (Variable "x") (Number 1)) ])
             , test "applies the parts that can be calculated" <|
                 \_ ->
                     MathParser.parse "x + (1 + 1)"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal
-                            (Ok [ Return.Expression (InfixFunction Addition (Identifier "x") (Number 2)) ])
+                            (Ok [ Return.Expression (DoubleArityApplication Addition (Variable "x") (Number 2)) ])
             ]
         , describe "functions"
             [ test "declares a simple function" <|

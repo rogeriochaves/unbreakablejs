@@ -1,4 +1,4 @@
-module Interpreter exposing (run, runSymbol)
+module Interpreter exposing (run)
 
 import Dict exposing (Dict)
 import Parser exposing (DeadEnd, Problem(..))
@@ -8,7 +8,7 @@ import Types exposing (..)
 
 type alias State =
     { variables : Dict String Float
-    , functions : Dict String FunctionSchema
+    , functions : Dict String ( String, Expression )
     }
 
 
@@ -58,41 +58,52 @@ runExpression state expr =
         Number val ->
             ( state, Return.Num val )
 
-        Identifier name ->
+        Variable name ->
             ( state
             , Dict.get name state.variables
                 |> Maybe.map Return.Num
-                |> Maybe.withDefault (Return.Expression (Identifier name))
+                |> Maybe.withDefault (Return.Expression (Variable name))
             )
 
-        InfixFunction func e1 e2 ->
-            runInfix state func e1 e2
+        Abstraction name e ->
+            -- TODO evaluate body
+            ( state, Return.Expression (Abstraction name e) )
 
-        SymbolicFunction symbol ->
-            runSymbol state symbol
+        SingleArityApplication func e ->
+            runSingleArity state func e
 
-        Assignment variableName e ->
-            case getExpressionValue state e of
+        DoubleArityApplication func e1 e2 ->
+            runDoubleArity state func e1 e2
+
+        TripleArityApplication func e1 e2 e3 ->
+            runTripleArity state func e1 e2 e3
+
+
+runSingleArity : State -> SingleArity -> Expression -> LineResult
+runSingleArity state func expr =
+    case func of
+        Assignment name ->
+            case getExpressionValue state expr of
                 Return.Num num ->
-                    ( setVariable variableName num state, Return.Void )
+                    ( setVariable name num state, Return.Void )
 
                 Return.Void ->
-                    ( state, throwError ("Cannot set variable" ++ variableName ++ "to void") )
+                    ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
 
                 Return.Error error ->
                     ( state, Return.Error error )
 
+                Return.Expression (Abstraction params body) ->
+                    ( setFunction name params body state, Return.Void )
+
                 Return.Expression _ ->
                     Debug.todo "not implemented"
 
-        FunctionDeclaration name schema ->
-            ( setFunction name schema state, Return.Void )
-
-        FunctionCall name param ->
+        NamedFunction name ->
             let
-                callFunction (FunctionSchema paramName body) =
-                    getExpressionValue state param
-                        |> Return.andThen (FunctionCall name)
+                callFunction ( paramName, body ) =
+                    getExpressionValue state expr
+                        |> Return.andThen (SingleArityApplication (NamedFunction name))
                             (\param_ ->
                                 getExpressionValue (setVariable paramName param_ state) body
                             )
@@ -103,9 +114,12 @@ runExpression state expr =
                 |> Maybe.withDefault (throwError (name ++ " is not defined"))
             )
 
+        Sqrt ->
+            applyExpression state (SingleArityApplication func) sqrt expr
 
-runInfix : State -> Infix -> Expression -> Expression -> LineResult
-runInfix state func e1 e2 =
+
+runDoubleArity : State -> DoubleArity -> Expression -> Expression -> LineResult
+runDoubleArity state func e1 e2 =
     let
         operator =
             case func of
@@ -123,53 +137,44 @@ runInfix state func e1 e2 =
 
                 Exponentiation ->
                     (^)
-    in
-    applyExpressions state (InfixFunction func) e1 operator e2
 
-
-runSymbol : State -> Symbol -> LineResult
-runSymbol state symbol =
-    case symbol of
-        SingleArity sym expr1 ->
-            case sym of
-                Sqrt ->
-                    applyExpression state (SymbolicFunction << SingleArity sym) sqrt expr1
-
-        DoubleArity sym expr1 expr2 ->
-            case sym of
                 Frac ->
-                    applyExpressions state (\e1 -> SymbolicFunction << DoubleArity sym e1) expr1 (/) expr2
+                    (/)
+    in
+    applyExpressions state (DoubleArityApplication func) e1 operator e2
 
-        Iterator sym identifier expr1 expr2 expr3 ->
-            case sym of
-                Sum_ ->
-                    ( state
-                    , Return.andThen2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3)
-                        (\lowerLimit upperLimit ->
+
+runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> LineResult
+runTripleArity state func expr1 expr2 expr3 =
+    case func of
+        Sum_ identifier ->
+            ( state
+            , Return.andThen2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3)
+                (\lowerLimit upperLimit ->
+                    let
+                        range =
+                            List.range (round lowerLimit) (round upperLimit)
+
+                        iterate curr total =
                             let
-                                range =
-                                    List.range (round lowerLimit) (round upperLimit)
-
-                                iterate curr total =
-                                    let
-                                        state_ =
-                                            setVariable identifier (toFloat curr) state
-                                    in
-                                    total
-                                        |> Return.map2 (\e1 e2 -> SymbolicFunction <| Iterator sym identifier e1 e2 expr3) (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
+                                state_ =
+                                    setVariable identifier (toFloat curr) state
                             in
-                            if lowerLimit /= toFloat (round lowerLimit) then
-                                throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
+                            total
+                                |> Return.map2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3) (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
+                    in
+                    if lowerLimit /= toFloat (round lowerLimit) then
+                        throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
 
-                            else if upperLimit /= toFloat (round upperLimit) || upperLimit < lowerLimit then
-                                throwError ("Error on sum_: cannot use " ++ String.fromFloat upperLimit ++ " as an upper limit, it has to be an integer higher than lower limit")
+                    else if upperLimit /= toFloat (round upperLimit) || upperLimit < lowerLimit then
+                        throwError ("Error on sum_: cannot use " ++ String.fromFloat upperLimit ++ " as an upper limit, it has to be an integer higher than lower limit")
 
-                            else
-                                List.foldl iterate (Return.Num 0) range
-                        )
-                        (getExpressionValue state expr1)
-                        (getExpressionValue state expr2)
-                    )
+                    else
+                        List.foldl iterate (Return.Num 0) range
+                )
+                (getExpressionValue state expr1)
+                (getExpressionValue state expr2)
+            )
 
 
 getExpressionValue : State -> Expression -> Return.Value
@@ -182,9 +187,9 @@ setVariable name value state =
     { state | variables = Dict.insert name value state.variables }
 
 
-setFunction : String -> FunctionSchema -> State -> State
-setFunction name functionSchema state =
-    { state | functions = Dict.insert name functionSchema state.functions }
+setFunction : String -> String -> Expression -> State -> State
+setFunction name param body state =
+    { state | functions = Dict.insert name ( param, body ) state.functions }
 
 
 applyExpressions : State -> (Expression -> Expression -> Expression) -> Expression -> (Float -> Float -> Float) -> Expression -> LineResult
