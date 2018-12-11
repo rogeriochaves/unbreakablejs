@@ -116,6 +116,12 @@ suite =
                                   }
                                 ]
                             )
+            , test "summation with undefined variables" <|
+                \_ ->
+                    MathParser.parse "\\sum_{x=1}^{7} y + (1 + 1)"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Ok [ Return.Expression (TripleArityApplication (Sum_ "x") (Number 1) (Number 7) (DoubleArityApplication Addition (Variable "y") (Number 2))) ])
             ]
         , test "multiple expressions" <|
             \_ ->
@@ -145,6 +151,18 @@ suite =
                         |> Result.andThen Interpreter.run
                         |> Expect.equal
                             (Ok [ Return.Expression (DoubleArityApplication Addition (Variable "x") (Number 2)) ])
+            , test "parses assignment with undefined variables" <|
+                \_ ->
+                    MathParser.parse "x = y + (1 + 1)"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Ok
+                                [ Return.Expression
+                                    (SingleArityApplication (Assignment "x")
+                                        (DoubleArityApplication Addition (Variable "y") (Number 2))
+                                    )
+                                ]
+                            )
             ]
         , describe "functions"
             [ test "declares a simple function" <|
@@ -152,16 +170,22 @@ suite =
                     MathParser.parse "f(x) = x + 1\nf(5)"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal (Ok [ Return.Void, Return.Num 6 ])
-            , test "return errors from undefined functions" <|
+            , test "return unapplied expression if function is not defined" <|
                 \_ ->
                     MathParser.parse "f(x)"
                         |> Result.andThen Interpreter.run
                         |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "f is not defined"
-                                  }
+                            (Ok
+                                [ Return.Expression (SingleArityApplication (NamedFunction "f") (Variable "x"))
+                                ]
+                            )
+            , test "return unapplied expression if function is not defined, but evaluate the params" <|
+                \_ ->
+                    MathParser.parse "f(1 + 1)"
+                        |> Result.andThen Interpreter.run
+                        |> Expect.equal
+                            (Ok
+                                [ Return.Expression (SingleArityApplication (NamedFunction "f") (Number 2))
                                 ]
                             )
             ]

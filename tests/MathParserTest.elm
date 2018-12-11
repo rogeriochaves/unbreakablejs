@@ -119,6 +119,10 @@ suite =
                 \_ ->
                     MathParser.parse "x + 1"
                         |> isEq (DoubleArityApplication Addition (Variable "x") (Number 1))
+            , test "parses assignment with variables" <|
+                \_ ->
+                    MathParser.parse "x = y + 1"
+                        |> isEq (SingleArityApplication (Assignment "x") (DoubleArityApplication Addition (Variable "y") (Number 1)))
             ]
         , describe "functions"
             [ test "parses function declaration" <|

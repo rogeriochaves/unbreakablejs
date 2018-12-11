@@ -1,4 +1,4 @@
-module Return exposing (Value(..), andThen, andThen2, map, map2, throwError)
+module Return exposing (Value(..), andThenNum, andThenNum2, mapNum, mapNum2, orElse, reencode, throwError)
 
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
@@ -16,18 +16,18 @@ throwError error =
     Error { row = 0, col = 0, problem = Problem error }
 
 
-map : (Types.Expression -> Types.Expression) -> (Float -> Float) -> Value -> Value
-map builder fn =
-    andThen builder (fn >> Num)
+mapNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Float) -> Value -> Value -> Value
+mapNum2 builder fn =
+    andThenNum2 builder (\a -> fn a >> Num)
 
 
-map2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Float) -> Value -> Value -> Value
-map2 builder fn =
-    andThen2 builder (\a -> fn a >> Num)
+mapNum : (Float -> Float) -> Value -> Value
+mapNum fn =
+    andThenNum (fn >> Num)
 
 
-andThen : (Types.Expression -> Types.Expression) -> (Float -> Value) -> Value -> Value
-andThen builder fn val =
+andThenNum : (Float -> Value) -> Value -> Value
+andThenNum fn val =
     case val of
         Num float ->
             fn float
@@ -39,11 +39,21 @@ andThen builder fn val =
             val
 
         Expression e ->
+            Expression e
+
+
+orElse : (Types.Expression -> Types.Expression) -> Value -> Value
+orElse builder val =
+    case val of
+        Expression e ->
             Expression (builder e)
 
+        _ ->
+            val
 
-andThen2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Value) -> Value -> Value -> Value
-andThen2 builder fn val val2 =
+
+andThenNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Value) -> Value -> Value -> Value
+andThenNum2 builder fn val val2 =
     case ( val, val2 ) of
         ( Num float1, Num float2 ) ->
             fn float1 float2

@@ -65,25 +65,26 @@ runExpression state expr =
                 |> Maybe.withDefault (Return.Expression (Variable name))
             )
 
-        Abstraction name e ->
-            -- TODO evaluate body
-            ( state, Return.Expression (Abstraction name e) )
+        Abstraction param body ->
+            ( state
+            , Return.Expression (Abstraction param (Return.reencode <| eval state body))
+            )
 
         SingleArityApplication func e ->
             runSingleArity state func e
 
         DoubleArityApplication func e1 e2 ->
-            runDoubleArity state func e1 e2
+            ( state, runDoubleArity state func e1 e2 )
 
         TripleArityApplication func e1 e2 e3 ->
-            runTripleArity state func e1 e2 e3
+            ( state, runTripleArity state func e1 e2 e3 )
 
 
 runSingleArity : State -> SingleArity -> Expression -> LineResult
 runSingleArity state func expr =
     case func of
         Assignment name ->
-            case getExpressionValue state expr of
+            case eval state expr of
                 Return.Num num ->
                     ( setVariable name num state, Return.Void )
 
@@ -96,29 +97,60 @@ runSingleArity state func expr =
                 Return.Expression (Abstraction params body) ->
                     ( setFunction name params body state, Return.Void )
 
-                Return.Expression _ ->
-                    Debug.todo "not implemented"
+                Return.Expression e ->
+                    ( state, Return.Expression (SingleArityApplication (Assignment name) e) )
 
         NamedFunction name ->
             let
-                callFunction ( paramName, body ) =
-                    getExpressionValue state expr
-                        |> Return.andThen (SingleArityApplication (NamedFunction name))
-                            (\param_ ->
-                                getExpressionValue (setVariable paramName param_ state) body
-                            )
+                substituteParams ( param, body ) =
+                    substitute param expr body
             in
             ( state
             , Dict.get name state.functions
-                |> Maybe.map callFunction
-                |> Maybe.withDefault (throwError (name ++ " is not defined"))
+                |> Maybe.map substituteParams
+                |> Maybe.map (eval state)
+                |> Maybe.withDefault
+                    (eval state expr
+                        |> Return.andThenNum (Return.Expression << Number)
+                        |> Return.orElse (SingleArityApplication func)
+                    )
             )
 
         Sqrt ->
-            applyExpression state (SingleArityApplication func) sqrt expr
+            ( state
+            , eval state expr
+                |> Return.mapNum sqrt
+                |> Return.orElse (SingleArityApplication func)
+            )
 
 
-runDoubleArity : State -> DoubleArity -> Expression -> Expression -> LineResult
+substitute : String -> Expression -> Expression -> Expression
+substitute param value expr =
+    case expr of
+        Number val ->
+            Number val
+
+        Variable name ->
+            if name == param then
+                value
+
+            else
+                expr
+
+        Abstraction param_ body ->
+            Abstraction param_ (substitute param value body)
+
+        SingleArityApplication func e ->
+            SingleArityApplication func (substitute param value e)
+
+        DoubleArityApplication func e1 e2 ->
+            DoubleArityApplication func (substitute param value e1) (substitute param value e2)
+
+        TripleArityApplication func e1 e2 e3 ->
+            TripleArityApplication func (substitute param value e1) (substitute param value e2) (substitute param value e3)
+
+
+runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
 runDoubleArity state func e1 e2 =
     let
         operator =
@@ -141,28 +173,16 @@ runDoubleArity state func e1 e2 =
                 Frac ->
                     (/)
     in
-    applyExpressions state (DoubleArityApplication func) e1 operator e2
+    eval state e2
+        |> Return.mapNum2 (DoubleArityApplication func) operator (eval state e1)
 
 
-runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> LineResult
+runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> Return.Value
 runTripleArity state func expr1 expr2 expr3 =
     case func of
         Sum_ identifier ->
-            ( state
-            , Return.andThen2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3)
-                (\lowerLimit upperLimit ->
-                    let
-                        range =
-                            List.range (round lowerLimit) (round upperLimit)
-
-                        iterate curr total =
-                            let
-                                state_ =
-                                    setVariable identifier (toFloat curr) state
-                            in
-                            total
-                                |> Return.map2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3) (\result total_ -> total_ + result) (getExpressionValue state_ expr3)
-                    in
+            let
+                forLoop lowerLimit upperLimit =
                     if lowerLimit /= toFloat (round lowerLimit) then
                         throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
 
@@ -170,15 +190,23 @@ runTripleArity state func expr1 expr2 expr3 =
                         throwError ("Error on sum_: cannot use " ++ String.fromFloat upperLimit ++ " as an upper limit, it has to be an integer higher than lower limit")
 
                     else
-                        List.foldl iterate (Return.Num 0) range
-                )
-                (getExpressionValue state expr1)
-                (getExpressionValue state expr2)
-            )
+                        List.range (round lowerLimit) (round upperLimit)
+                            |> List.foldl iterate (Return.Num 0)
+
+                iterate curr total =
+                    substitute identifier (Number <| toFloat curr) expr3
+                        |> eval state
+                        |> Return.mapNum2 (\_ e -> e) (\result total_ -> total_ + result) total
+                        |> Return.orElse (TripleArityApplication func expr1 expr2)
+            in
+            Return.andThenNum2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3)
+                forLoop
+                (eval state expr1)
+                (eval state expr2)
 
 
-getExpressionValue : State -> Expression -> Return.Value
-getExpressionValue state =
+eval : State -> Expression -> Return.Value
+eval state =
     runExpression state >> Tuple.second
 
 
@@ -190,16 +218,3 @@ setVariable name value state =
 setFunction : String -> String -> Expression -> State -> State
 setFunction name param body state =
     { state | functions = Dict.insert name ( param, body ) state.functions }
-
-
-applyExpressions : State -> (Expression -> Expression -> Expression) -> Expression -> (Float -> Float -> Float) -> Expression -> LineResult
-applyExpressions state builder e1 fn e2 =
-    ( state
-    , getExpressionValue state e2
-        |> Return.map2 builder fn (getExpressionValue state e1)
-    )
-
-
-applyExpression : State -> (Expression -> Expression) -> (Float -> Float) -> Expression -> LineResult
-applyExpression state builder fn expr =
-    ( state, Return.map builder fn <| getExpressionValue state expr )
