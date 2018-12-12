@@ -6,6 +6,7 @@ import Types exposing (..)
 
 type Value
     = Num Float
+    | Vector (List Value)
     | Void
     | Expression Types.Expression
     | Error DeadEnd
@@ -31,6 +32,9 @@ andThenNum fn val =
     case val of
         Num float ->
             fn float
+
+        Vector _ ->
+            throwError "Cannot apply function to vector"
 
         Void ->
             throwError "Cannot apply function to void"
@@ -58,6 +62,12 @@ andThenNum2 builder fn val val2 =
         ( Num float1, Num float2 ) ->
             fn float1 float2
 
+        ( Vector _, _ ) ->
+            throwError "Cannot apply function to vector"
+
+        ( _, Vector _ ) ->
+            throwError "Cannot apply function to vector"
+
         ( Error _, _ ) ->
             val
 
@@ -82,6 +92,9 @@ reencode val =
     case val of
         Num float ->
             Number float
+
+        Vector items ->
+            Types.Vector (List.map reencode items)
 
         -- TODO
         Void ->

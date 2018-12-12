@@ -58,6 +58,9 @@ runExpression state expr =
         Number val ->
             ( state, Return.Num val )
 
+        Vector items ->
+            ( state, Return.Vector <| List.map (eval state) items )
+
         Variable name ->
             ( state
             , Dict.get name state.variables
@@ -87,6 +90,9 @@ runSingleArity state func expr =
             case eval state expr of
                 Return.Num num ->
                     ( setVariable name num state, Return.Void )
+
+                Return.Vector _ ->
+                    Debug.todo "not implemented yet"
 
                 Return.Void ->
                     ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
@@ -129,6 +135,9 @@ substitute param value expr =
     case expr of
         Number val ->
             Number val
+
+        Vector _ ->
+            Debug.todo "not implemented"
 
         Variable name ->
             if name == param then

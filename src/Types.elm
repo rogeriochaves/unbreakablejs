@@ -16,6 +16,7 @@ type alias Error =
 -}
 type Expression
     = Number Float
+    | Vector (List Expression)
     | Variable String
     | Abstraction String Expression
     | SingleArityApplication SingleArity Expression

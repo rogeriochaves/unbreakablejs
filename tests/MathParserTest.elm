@@ -145,6 +145,23 @@ suite =
                     MathParser.parse "f(5)"
                         |> isEq (SingleArityApplication (NamedFunction "f") (Number 5))
             ]
+        , describe "vectors"
+            [ test "parses simple vector" <|
+                \_ ->
+                    MathParser.parse "(1, 2, 3)"
+                        |> isEq
+                            (Vector [ Number 1, Number 2, Number 3 ])
+            , test "parses vector with expressions inside" <|
+                \_ ->
+                    MathParser.parse "(x, x + 1, x + 2)"
+                        |> isEq
+                            (Vector
+                                [ Variable "x"
+                                , DoubleArityApplication Addition (Variable "x") (Number 1)
+                                , DoubleArityApplication Addition (Variable "x") (Number 2)
+                                ]
+                            )
+            ]
         ]
 
 

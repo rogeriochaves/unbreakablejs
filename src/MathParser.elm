@@ -116,10 +116,11 @@ expressionParsers withDeclarations =
             ]
 
         expressions =
-            [ parens <| lazy (\_ -> expression)
+            [ backtrackable <| parens <| lazy (\_ -> expression)
             , symbolicFunction
             , functionCall
             , atoms
+            , vectors
             ]
     in
     if withDeclarations then
@@ -132,6 +133,19 @@ expressionParsers withDeclarations =
 atoms : Parser Expression
 atoms =
     oneOf [ map Variable identifier, digits ]
+
+
+vectors : Parser Expression
+vectors =
+    succeed Vector
+        |= sequence
+            { start = "("
+            , separator = ","
+            , end = ")"
+            , spaces = spaces
+            , item = expression
+            , trailing = Forbidden
+            }
 
 
 symbolicFunction : Parser Expression
