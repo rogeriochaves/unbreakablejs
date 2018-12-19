@@ -33,6 +33,25 @@ andThen fn val =
             throwError "Void return inside another expression"
 
 
+andThen2 : (Types.Expression -> Types.Expression -> Value) -> Value -> Value -> Value
+andThen2 fn val val2 =
+    case ( val, val2 ) of
+        ( Expression e, Expression e2 ) ->
+            fn e e2
+
+        ( Error _, _ ) ->
+            val
+
+        ( _, Error _ ) ->
+            val2
+
+        ( Void, _ ) ->
+            throwError "Cannot apply function to void"
+
+        ( _, Void ) ->
+            throwError "Cannot apply void to function"
+
+
 mapNum : (Float -> Float) -> Value -> Value
 mapNum fn =
     andThenNum (fn >> Types.Number >> Expression)
@@ -60,37 +79,22 @@ mapNum2 builder fn =
 
 
 andThenNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Value) -> Value -> Value -> Value
-andThenNum2 builder fn val val2 =
-    case ( val, val2 ) of
-        ( Expression (Types.Number float1), Expression (Types.Number float2) ) ->
-            fn float1 float2
+andThenNum2 builder fn =
+    andThen2
+        (\expr1 expr2 ->
+            case ( expr1, expr2 ) of
+                ( Types.Number float1, Types.Number float2 ) ->
+                    fn float1 float2
 
-        ( Expression (Types.Number float1), Expression e ) ->
-            Expression (builder (Types.Number float1) e)
+                ( Types.Number float1, e ) ->
+                    Expression (builder (Types.Number float1) e)
 
-        ( Expression e, Expression (Types.Number float1) ) ->
-            Expression (builder e (Types.Number float1))
+                ( e, Types.Number float2 ) ->
+                    Expression (builder e (Types.Number float2))
 
-        ( Expression (Types.Vector _), _ ) ->
-            throwError "Cannot apply function to vector"
-
-        ( _, Expression (Types.Vector _) ) ->
-            throwError "Cannot apply function to vector"
-
-        ( Error _, _ ) ->
-            val
-
-        ( _, Error _ ) ->
-            val2
-
-        ( Void, _ ) ->
-            throwError "Cannot apply function to void"
-
-        ( _, Void ) ->
-            throwError "Cannot apply function to void"
-
-        ( Expression e, Expression e2 ) ->
-            Expression (builder e e2)
+                ( e1, e2 ) ->
+                    Expression (builder e1 e2)
+        )
 
 
 orElse : (Types.Expression -> Types.Expression) -> Value -> Value
