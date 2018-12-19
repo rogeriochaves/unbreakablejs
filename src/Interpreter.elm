@@ -2,7 +2,7 @@ module Interpreter exposing (run)
 
 import Dict exposing (Dict)
 import Parser exposing (DeadEnd, Problem(..))
-import Return exposing (throwError)
+import Return exposing (Value(..), throwError)
 import Types exposing (..)
 
 
@@ -35,13 +35,13 @@ run expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( newState, Return.Void )
+                        |> Maybe.withDefault ( newState, Void )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
             in
             case Tuple.second lineResult of
-                Return.Error error ->
+                Error error ->
                     Err [ error ]
 
                 _ ->
@@ -56,18 +56,34 @@ runExpression : State -> Expression -> LineResult
 runExpression state expr =
     case expr of
         Number val ->
-            ( state, Return.Num val )
+            ( state, Expression (Number val) )
 
         Vector items ->
-            ( state, Return.Vector <| List.map (eval state) items )
+            let
+                appendOrLiftError curr acc =
+                    case ( acc, curr ) of
+                        ( Expression (Vector items_), Expression e ) ->
+                            Expression (Vector (items_ ++ [ e ]))
+
+                        ( Expression (Vector _), invalid ) ->
+                            invalid
+
+                        _ ->
+                            acc
+            in
+            ( state
+            , items
+                |> List.map (eval state)
+                |> List.foldl appendOrLiftError (Expression <| Vector [])
+            )
 
         Variable identifier ->
             case identifier of
                 ScalarIdentifier name ->
                     ( state
                     , Dict.get name state.variables
-                        |> Maybe.map Return.Num
-                        |> Maybe.withDefault (Return.Expression (Variable identifier))
+                        |> Maybe.map (Expression << Number)
+                        |> Maybe.withDefault (Expression (Variable identifier))
                     )
 
                 _ ->
@@ -75,7 +91,7 @@ runExpression state expr =
 
         Abstraction param body ->
             ( state
-            , Return.Expression (Abstraction param (Return.reencode <| eval state body))
+            , Expression (Abstraction param (Return.reencode <| eval state body))
             )
 
         SingleArity func e ->
@@ -95,30 +111,30 @@ runSingleArity state func expr =
             case identifier of
                 ScalarIdentifier name ->
                     case eval state expr of
-                        Return.Num num ->
-                            ( setVariable name num state, Return.Void )
+                        Expression (Number num) ->
+                            ( setVariable name num state, Void )
 
-                        Return.Vector _ ->
+                        Expression (Vector _) ->
                             Debug.todo "not implemented yet"
 
-                        Return.Void ->
+                        Void ->
                             ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
 
-                        Return.Error error ->
-                            ( state, Return.Error error )
+                        Error error ->
+                            ( state, Error error )
 
-                        Return.Expression (Abstraction params body) ->
-                            ( setFunction name params body state, Return.Void )
+                        Expression (Abstraction params body) ->
+                            ( setFunction name params body state, Void )
 
-                        Return.Expression e ->
-                            ( state, Return.Expression (SingleArity (Assignment identifier) e) )
+                        Expression e ->
+                            ( state, Expression (SingleArity (Assignment identifier) e) )
 
                 _ ->
                     Debug.todo "not implemented"
 
-        Application e ->
-            case eval state e of
-                Return.Expression (Variable (ScalarIdentifier name)) ->
+        Application e1 ->
+            case eval state e1 of
+                Expression (Variable (ScalarIdentifier name)) ->
                     let
                         substituteParams ( param, body ) =
                             substitute param expr body
@@ -129,8 +145,8 @@ runSingleArity state func expr =
                         |> Maybe.map (eval state)
                         |> Maybe.withDefault
                             (eval state expr
-                                |> Return.andThenNum (Return.Expression << Number)
                                 |> Return.orElse (SingleArity func)
+                                |> Return.andThenNum (Expression << SingleArity func << Number)
                             )
                     )
 
@@ -220,7 +236,7 @@ runTripleArity state func expr1 expr2 expr3 =
 
                     else
                         List.range (round lowerLimit) (round upperLimit)
-                            |> List.foldl iterate (Return.Num 0)
+                            |> List.foldl iterate (Expression (Number 0))
 
                 iterate curr total =
                     substitute identifier (Number <| toFloat curr) expr3
