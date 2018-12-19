@@ -19,6 +19,13 @@ digits =
         }
 
 
+vectorIdentifier : Parser String
+vectorIdentifier =
+    succeed identity
+        |. symbol "\\vec"
+        |= braces identifier
+
+
 identifier : Parser String
 identifier =
     variable
@@ -30,7 +37,7 @@ identifier =
 
 functionCall : Parser Expression
 functionCall =
-    succeed (SingleArityApplication << NamedFunction)
+    succeed (SingleArityApplication << Application << Variable << ScalarIdentifier)
         |= backtrackable identifier
         |= backtrackable (parens expression)
 
@@ -54,7 +61,7 @@ operators =
 
 assignment : Parser Expression
 assignment =
-    succeed (\( id, expr ) -> SingleArityApplication (Assignment id) expr)
+    succeed (\( id, expr ) -> SingleArityApplication (Assignment (ScalarIdentifier id)) expr)
         |= assignmentParser
 
 
@@ -68,9 +75,19 @@ assignmentParser =
         |= expression
 
 
+vectorAssignment : Parser Expression
+vectorAssignment =
+    succeed (\id expr -> SingleArityApplication (Assignment (VectorIdentifier id)) expr)
+        |= backtrackable vectorIdentifier
+        |. backtrackable spaces
+        |. backtrackable (symbol "=")
+        |. spaces
+        |= expression
+
+
 functionDeclaration : Parser Expression
 functionDeclaration =
-    succeed (\name param body -> SingleArityApplication (Assignment name) (Abstraction param body))
+    succeed (\name param body -> SingleArityApplication (Assignment (ScalarIdentifier name)) (Abstraction param body))
         |= backtrackable identifier
         |= backtrackable (parens identifier)
         |. backtrackable spaces
@@ -113,14 +130,15 @@ expressionParsers withDeclarations =
         declarations =
             [ functionDeclaration
             , assignment
+            , vectorAssignment
             ]
 
         expressions =
             [ backtrackable <| parens <| lazy (\_ -> expression)
-            , symbolicFunction
             , functionCall
             , atoms
             , vectors
+            , symbolicFunction
             ]
     in
     if withDeclarations then
@@ -132,7 +150,11 @@ expressionParsers withDeclarations =
 
 atoms : Parser Expression
 atoms =
-    oneOf [ map Variable identifier, digits ]
+    oneOf
+        [ map (Variable << ScalarIdentifier) identifier
+        , map (Variable << VectorIdentifier) vectorIdentifier
+        , digits
+        ]
 
 
 vectors : Parser Expression

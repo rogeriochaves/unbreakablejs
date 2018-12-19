@@ -109,7 +109,7 @@ suite =
             [ test "parses simple assignment" <|
                 \_ ->
                     MathParser.parse "x = 1 + 1"
-                        |> isEq (SingleArityApplication (Assignment "x") (DoubleArityApplication Addition (Number 1) (Number 1)))
+                        |> isEq (SingleArityApplication (Assignment (ScalarIdentifier "x")) (DoubleArityApplication Addition (Number 1) (Number 1)))
             , test "does not allow nested assignments" <|
                 \_ ->
                     MathParser.parse "x = 1 + (x = 2)"
@@ -118,11 +118,11 @@ suite =
             , test "parses expression with variables" <|
                 \_ ->
                     MathParser.parse "x + 1"
-                        |> isEq (DoubleArityApplication Addition (Variable "x") (Number 1))
+                        |> isEq (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1))
             , test "parses assignment with variables" <|
                 \_ ->
                     MathParser.parse "x = y + 1"
-                        |> isEq (SingleArityApplication (Assignment "x") (DoubleArityApplication Addition (Variable "y") (Number 1)))
+                        |> isEq (SingleArityApplication (Assignment (ScalarIdentifier "x")) (DoubleArityApplication Addition (Variable (ScalarIdentifier "y")) (Number 1)))
             ]
         , describe "functions"
             [ test "parses function declaration" <|
@@ -130,9 +130,9 @@ suite =
                     MathParser.parse "f(x) = x + 1"
                         |> isEq
                             (SingleArityApplication
-                                (Assignment "f")
+                                (Assignment (ScalarIdentifier "f"))
                                 (Abstraction "x"
-                                    (DoubleArityApplication Addition (Variable "x") (Number 1))
+                                    (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1))
                                 )
                             )
             , test "does not allow nested function declarations" <|
@@ -143,7 +143,7 @@ suite =
             , test "parses function call" <|
                 \_ ->
                     MathParser.parse "f(5)"
-                        |> isEq (SingleArityApplication (NamedFunction "f") (Number 5))
+                        |> isEq (SingleArityApplication (Application (Variable (ScalarIdentifier "f"))) (Number 5))
             ]
         , describe "vectors"
             [ test "parses simple vector" <|
@@ -156,11 +156,19 @@ suite =
                     MathParser.parse "(x, x + 1, x + 2)"
                         |> isEq
                             (Vector
-                                [ Variable "x"
-                                , DoubleArityApplication Addition (Variable "x") (Number 1)
-                                , DoubleArityApplication Addition (Variable "x") (Number 2)
+                                [ Variable (ScalarIdentifier "x")
+                                , DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1)
+                                , DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 2)
                                 ]
                             )
+            , test "parses vector assignment" <|
+                \_ ->
+                    MathParser.parse "\\vec{x} = (1, 2, 3)"
+                        |> isEq (SingleArityApplication (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+            , test "parses expression with vector variable" <|
+                \_ ->
+                    MathParser.parse "\\vec{x} + 1"
+                        |> isEq (DoubleArityApplication Addition (Variable (VectorIdentifier "x")) (Number 1))
             ]
         ]
 

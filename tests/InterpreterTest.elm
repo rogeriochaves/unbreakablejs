@@ -103,7 +103,7 @@ suite =
             , test "summation with undefined variables" <|
                 \_ ->
                     parseAndRun "\\sum_{x=1}^{7} y + (1 + 1)"
-                        |> isEq (Return.Expression (TripleArityApplication (Sum_ "x") (Number 1) (Number 7) (DoubleArityApplication Addition (Variable "y") (Number 2))))
+                        |> isEq (Return.Expression (TripleArityApplication (Sum_ "x") (Number 1) (Number 7) (DoubleArityApplication Addition (Variable (ScalarIdentifier "y")) (Number 2))))
             ]
         , test "multiple expressions" <|
             \_ ->
@@ -121,18 +121,18 @@ suite =
             , test "returns unapplied expression if the variable is not defined" <|
                 \_ ->
                     parseAndRun "x + 1"
-                        |> isEq (Return.Expression (DoubleArityApplication Addition (Variable "x") (Number 1)))
+                        |> isEq (Return.Expression (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1)))
             , test "applies the parts that can be calculated" <|
                 \_ ->
                     parseAndRun "x + (1 + 1)"
-                        |> isEq (Return.Expression (DoubleArityApplication Addition (Variable "x") (Number 2)))
+                        |> isEq (Return.Expression (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 2)))
             , test "parses assignment with undefined variables" <|
                 \_ ->
                     parseAndRun "x = y + (1 + 1)"
                         |> isEq
                             (Return.Expression
-                                (SingleArityApplication (Assignment "x")
-                                    (DoubleArityApplication Addition (Variable "y") (Number 2))
+                                (SingleArityApplication (Assignment (ScalarIdentifier "x"))
+                                    (DoubleArityApplication Addition (Variable (ScalarIdentifier "y")) (Number 2))
                                 )
                             )
             ]
@@ -146,14 +146,14 @@ suite =
                     parseAndRun "f(x)"
                         |> isEq
                             (Return.Expression
-                                (SingleArityApplication (NamedFunction "f") (Variable "x"))
+                                (SingleArityApplication (Application (Variable (ScalarIdentifier "f"))) (Variable (ScalarIdentifier "x")))
                             )
             , test "return unapplied expression if function is not defined, but evaluate the params" <|
                 \_ ->
                     parseAndRun "f(1 + 1)"
                         |> isEq
                             (Return.Expression
-                                (SingleArityApplication (NamedFunction "f") (Number 2))
+                                (SingleArityApplication (Application (Variable (ScalarIdentifier "f"))) (Number 2))
                             )
             ]
         , describe "vectors"

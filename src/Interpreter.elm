@@ -61,12 +61,17 @@ runExpression state expr =
         Vector items ->
             ( state, Return.Vector <| List.map (eval state) items )
 
-        Variable name ->
-            ( state
-            , Dict.get name state.variables
-                |> Maybe.map Return.Num
-                |> Maybe.withDefault (Return.Expression (Variable name))
-            )
+        Variable identifier ->
+            case identifier of
+                ScalarIdentifier name ->
+                    ( state
+                    , Dict.get name state.variables
+                        |> Maybe.map Return.Num
+                        |> Maybe.withDefault (Return.Expression (Variable identifier))
+                    )
+
+                _ ->
+                    Debug.todo "not implemented"
 
         Abstraction param body ->
             ( state
@@ -86,41 +91,51 @@ runExpression state expr =
 runSingleArity : State -> SingleArity -> Expression -> LineResult
 runSingleArity state func expr =
     case func of
-        Assignment name ->
-            case eval state expr of
-                Return.Num num ->
-                    ( setVariable name num state, Return.Void )
+        Assignment identifier ->
+            case identifier of
+                ScalarIdentifier name ->
+                    case eval state expr of
+                        Return.Num num ->
+                            ( setVariable name num state, Return.Void )
 
-                Return.Vector _ ->
-                    Debug.todo "not implemented yet"
+                        Return.Vector _ ->
+                            Debug.todo "not implemented yet"
 
-                Return.Void ->
-                    ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
+                        Return.Void ->
+                            ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
 
-                Return.Error error ->
-                    ( state, Return.Error error )
+                        Return.Error error ->
+                            ( state, Return.Error error )
 
-                Return.Expression (Abstraction params body) ->
-                    ( setFunction name params body state, Return.Void )
+                        Return.Expression (Abstraction params body) ->
+                            ( setFunction name params body state, Return.Void )
 
-                Return.Expression e ->
-                    ( state, Return.Expression (SingleArityApplication (Assignment name) e) )
+                        Return.Expression e ->
+                            ( state, Return.Expression (SingleArityApplication (Assignment identifier) e) )
 
-        NamedFunction name ->
-            let
-                substituteParams ( param, body ) =
-                    substitute param expr body
-            in
-            ( state
-            , Dict.get name state.functions
-                |> Maybe.map substituteParams
-                |> Maybe.map (eval state)
-                |> Maybe.withDefault
-                    (eval state expr
-                        |> Return.andThenNum (Return.Expression << Number)
-                        |> Return.orElse (SingleArityApplication func)
+                _ ->
+                    Debug.todo "not implemented"
+
+        Application e ->
+            case eval state e of
+                Return.Expression (Variable (ScalarIdentifier name)) ->
+                    let
+                        substituteParams ( param, body ) =
+                            substitute param expr body
+                    in
+                    ( state
+                    , Dict.get name state.functions
+                        |> Maybe.map substituteParams
+                        |> Maybe.map (eval state)
+                        |> Maybe.withDefault
+                            (eval state expr
+                                |> Return.andThenNum (Return.Expression << Number)
+                                |> Return.orElse (SingleArityApplication func)
+                            )
                     )
-            )
+
+                _ ->
+                    Debug.todo "not implemented"
 
         Sqrt ->
             ( state
@@ -139,12 +154,17 @@ substitute param value expr =
         Vector _ ->
             Debug.todo "not implemented"
 
-        Variable name ->
-            if name == param then
-                value
+        Variable identifier ->
+            case identifier of
+                ScalarIdentifier name ->
+                    if name == param then
+                        value
 
-            else
-                expr
+                    else
+                        expr
+
+                _ ->
+                    Debug.todo "not implemented"
 
         Abstraction param_ body ->
             Abstraction param_ (substitute param value body)
