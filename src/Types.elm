@@ -19,9 +19,9 @@ type Expression
     | Vector (List Expression)
     | Variable Identifier
     | Abstraction String Expression
-    | SingleArityApplication SingleArity Expression
-    | DoubleArityApplication DoubleArity Expression Expression
-    | TripleArityApplication TripleArity Expression Expression Expression
+    | SingleArity SingleArity Expression
+    | DoubleArity DoubleArity Expression Expression
+    | TripleArity TripleArity Expression Expression Expression
 
 
 type SingleArity

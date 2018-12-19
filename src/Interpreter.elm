@@ -78,13 +78,13 @@ runExpression state expr =
             , Return.Expression (Abstraction param (Return.reencode <| eval state body))
             )
 
-        SingleArityApplication func e ->
+        SingleArity func e ->
             runSingleArity state func e
 
-        DoubleArityApplication func e1 e2 ->
+        DoubleArity func e1 e2 ->
             ( state, runDoubleArity state func e1 e2 )
 
-        TripleArityApplication func e1 e2 e3 ->
+        TripleArity func e1 e2 e3 ->
             ( state, runTripleArity state func e1 e2 e3 )
 
 
@@ -111,7 +111,7 @@ runSingleArity state func expr =
                             ( setFunction name params body state, Return.Void )
 
                         Return.Expression e ->
-                            ( state, Return.Expression (SingleArityApplication (Assignment identifier) e) )
+                            ( state, Return.Expression (SingleArity (Assignment identifier) e) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -130,7 +130,7 @@ runSingleArity state func expr =
                         |> Maybe.withDefault
                             (eval state expr
                                 |> Return.andThenNum (Return.Expression << Number)
-                                |> Return.orElse (SingleArityApplication func)
+                                |> Return.orElse (SingleArity func)
                             )
                     )
 
@@ -141,7 +141,7 @@ runSingleArity state func expr =
             ( state
             , eval state expr
                 |> Return.mapNum sqrt
-                |> Return.orElse (SingleArityApplication func)
+                |> Return.orElse (SingleArity func)
             )
 
 
@@ -169,14 +169,14 @@ substitute param value expr =
         Abstraction param_ body ->
             Abstraction param_ (substitute param value body)
 
-        SingleArityApplication func e ->
-            SingleArityApplication func (substitute param value e)
+        SingleArity func e ->
+            SingleArity func (substitute param value e)
 
-        DoubleArityApplication func e1 e2 ->
-            DoubleArityApplication func (substitute param value e1) (substitute param value e2)
+        DoubleArity func e1 e2 ->
+            DoubleArity func (substitute param value e1) (substitute param value e2)
 
-        TripleArityApplication func e1 e2 e3 ->
-            TripleArityApplication func (substitute param value e1) (substitute param value e2) (substitute param value e3)
+        TripleArity func e1 e2 e3 ->
+            TripleArity func (substitute param value e1) (substitute param value e2) (substitute param value e3)
 
 
 runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
@@ -203,7 +203,7 @@ runDoubleArity state func e1 e2 =
                     (/)
     in
     eval state e2
-        |> Return.mapNum2 (DoubleArityApplication func) operator (eval state e1)
+        |> Return.mapNum2 (DoubleArity func) operator (eval state e1)
 
 
 runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> Return.Value
@@ -226,9 +226,9 @@ runTripleArity state func expr1 expr2 expr3 =
                     substitute identifier (Number <| toFloat curr) expr3
                         |> eval state
                         |> Return.mapNum2 (\_ e -> e) (\result total_ -> total_ + result) total
-                        |> Return.orElse (TripleArityApplication func expr1 expr2)
+                        |> Return.orElse (TripleArity func expr1 expr2)
             in
-            Return.andThenNum2 (\e1 e2 -> TripleArityApplication func e1 e2 expr3)
+            Return.andThenNum2 (\e1 e2 -> TripleArity func e1 e2 expr3)
                 forLoop
                 (eval state expr1)
                 (eval state expr2)

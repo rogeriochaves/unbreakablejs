@@ -13,7 +13,7 @@ suite =
             \_ ->
                 MathParser.parse "1 + 1"
                     |> isEq
-                        (DoubleArityApplication Addition
+                        (DoubleArity Addition
                             (Number 1)
                             (Number 1)
                         )
@@ -21,7 +21,7 @@ suite =
             \_ ->
                 MathParser.parse "1.5 + 1.3"
                     |> isEq
-                        (DoubleArityApplication Addition
+                        (DoubleArity Addition
                             (Number 1.5)
                             (Number 1.3)
                         )
@@ -29,9 +29,9 @@ suite =
             \_ ->
                 MathParser.parse "1 - (3 - 2)"
                     |> isEq
-                        (DoubleArityApplication Subtraction
+                        (DoubleArity Subtraction
                             (Number 1)
-                            (DoubleArityApplication Subtraction
+                            (DoubleArity Subtraction
                                 (Number 3)
                                 (Number 2)
                             )
@@ -39,30 +39,30 @@ suite =
         , test "read single-arity symbolic function" <|
             \_ ->
                 MathParser.parse "\\sqrt{5}"
-                    |> isEq (SingleArityApplication Sqrt (Number 5))
+                    |> isEq (SingleArity Sqrt (Number 5))
         , test "read double-arity symbolic function" <|
             \_ ->
                 MathParser.parse "\\frac{2}{3}"
-                    |> isEq (DoubleArityApplication Frac (Number 2) (Number 3))
+                    |> isEq (DoubleArity Frac (Number 2) (Number 3))
 
         -- https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits#Sums_and_products
         , test "read iterator functions" <|
             \_ ->
                 MathParser.parse "\\sum_{x = 1}^{3} 5"
-                    |> isEq (TripleArityApplication (Sum_ "x") (Number 1) (Number 3) (Number 5))
+                    |> isEq (TripleArity (Sum_ "x") (Number 1) (Number 3) (Number 5))
         , test "read symbol function aplication with other expression" <|
             \_ ->
                 MathParser.parse "\\sqrt{9} + 2"
                     |> isEq
-                        (DoubleArityApplication Addition
-                            (SingleArityApplication Sqrt (Number 9))
+                        (DoubleArity Addition
+                            (SingleArity Sqrt (Number 9))
                             (Number 2)
                         )
         , test "read exponentiation" <|
             \_ ->
                 MathParser.parse "2 ^ 5"
                     |> isEq
-                        (DoubleArityApplication Exponentiation
+                        (DoubleArity Exponentiation
                             (Number 2)
                             (Number 5)
                         )
@@ -72,8 +72,8 @@ suite =
                     MathParser.parse "1 + 1\n2 + 2"
                         |> Expect.equal
                             (Ok
-                                [ DoubleArityApplication Addition (Number 1) (Number 1)
-                                , DoubleArityApplication Addition (Number 2) (Number 2)
+                                [ DoubleArity Addition (Number 1) (Number 1)
+                                , DoubleArity Addition (Number 2) (Number 2)
                                 ]
                             )
             , test "breaks for weird things after the end" <|
@@ -91,8 +91,8 @@ suite =
                     MathParser.parse "1 + 1\n\n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ DoubleArityApplication Addition (Number 1) (Number 1)
-                                , DoubleArityApplication Addition (Number 2) (Number 2)
+                                [ DoubleArity Addition (Number 1) (Number 1)
+                                , DoubleArity Addition (Number 2) (Number 2)
                                 ]
                             )
             , test "allow empty lines and trailing spaces" <|
@@ -100,8 +100,8 @@ suite =
                     MathParser.parse "1 + 1 \n \n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ DoubleArityApplication Addition (Number 1) (Number 1)
-                                , DoubleArityApplication Addition (Number 2) (Number 2)
+                                [ DoubleArity Addition (Number 1) (Number 1)
+                                , DoubleArity Addition (Number 2) (Number 2)
                                 ]
                             )
             ]
@@ -109,7 +109,7 @@ suite =
             [ test "parses simple assignment" <|
                 \_ ->
                     MathParser.parse "x = 1 + 1"
-                        |> isEq (SingleArityApplication (Assignment (ScalarIdentifier "x")) (DoubleArityApplication Addition (Number 1) (Number 1)))
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Number 1) (Number 1)))
             , test "does not allow nested assignments" <|
                 \_ ->
                     MathParser.parse "x = 1 + (x = 2)"
@@ -118,21 +118,21 @@ suite =
             , test "parses expression with variables" <|
                 \_ ->
                     MathParser.parse "x + 1"
-                        |> isEq (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1))
+                        |> isEq (DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1))
             , test "parses assignment with variables" <|
                 \_ ->
                     MathParser.parse "x = y + 1"
-                        |> isEq (SingleArityApplication (Assignment (ScalarIdentifier "x")) (DoubleArityApplication Addition (Variable (ScalarIdentifier "y")) (Number 1)))
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Variable (ScalarIdentifier "y")) (Number 1)))
             ]
         , describe "functions"
             [ test "parses function declaration" <|
                 \_ ->
                     MathParser.parse "f(x) = x + 1"
                         |> isEq
-                            (SingleArityApplication
+                            (SingleArity
                                 (Assignment (ScalarIdentifier "f"))
                                 (Abstraction "x"
-                                    (DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1))
+                                    (DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1))
                                 )
                             )
             , test "does not allow nested function declarations" <|
@@ -143,7 +143,7 @@ suite =
             , test "parses function call" <|
                 \_ ->
                     MathParser.parse "f(5)"
-                        |> isEq (SingleArityApplication (Application (Variable (ScalarIdentifier "f"))) (Number 5))
+                        |> isEq (SingleArity (Application (Variable (ScalarIdentifier "f"))) (Number 5))
             ]
         , describe "vectors"
             [ test "parses simple vector" <|
@@ -157,18 +157,18 @@ suite =
                         |> isEq
                             (Vector
                                 [ Variable (ScalarIdentifier "x")
-                                , DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 1)
-                                , DoubleArityApplication Addition (Variable (ScalarIdentifier "x")) (Number 2)
+                                , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1)
+                                , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
                                 ]
                             )
             , test "parses vector assignment" <|
                 \_ ->
                     MathParser.parse "\\vec{x} = (1, 2, 3)"
-                        |> isEq (SingleArityApplication (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+                        |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
             , test "parses expression with vector variable" <|
                 \_ ->
                     MathParser.parse "\\vec{x} + 1"
-                        |> isEq (DoubleArityApplication Addition (Variable (VectorIdentifier "x")) (Number 1))
+                        |> isEq (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
             ]
         ]
 

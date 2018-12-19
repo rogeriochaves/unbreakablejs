@@ -37,7 +37,7 @@ identifier =
 
 functionCall : Parser Expression
 functionCall =
-    succeed (SingleArityApplication << Application << Variable << ScalarIdentifier)
+    succeed (SingleArity << Application << Variable << ScalarIdentifier)
         |= backtrackable identifier
         |= backtrackable (parens expression)
 
@@ -46,7 +46,7 @@ operators : OperatorTable Expression
 operators =
     let
         infixOp op =
-            infixOperator (DoubleArityApplication op)
+            infixOperator (DoubleArity op)
 
         symb sign =
             succeed identity
@@ -61,7 +61,7 @@ operators =
 
 assignment : Parser Expression
 assignment =
-    succeed (\( id, expr ) -> SingleArityApplication (Assignment (ScalarIdentifier id)) expr)
+    succeed (\( id, expr ) -> SingleArity (Assignment (ScalarIdentifier id)) expr)
         |= assignmentParser
 
 
@@ -77,7 +77,7 @@ assignmentParser =
 
 vectorAssignment : Parser Expression
 vectorAssignment =
-    succeed (\id expr -> SingleArityApplication (Assignment (VectorIdentifier id)) expr)
+    succeed (\id expr -> SingleArity (Assignment (VectorIdentifier id)) expr)
         |= backtrackable vectorIdentifier
         |. backtrackable spaces
         |. backtrackable (symbol "=")
@@ -87,7 +87,7 @@ vectorAssignment =
 
 functionDeclaration : Parser Expression
 functionDeclaration =
-    succeed (\name param body -> SingleArityApplication (Assignment (ScalarIdentifier name)) (Abstraction param body))
+    succeed (\name param body -> SingleArity (Assignment (ScalarIdentifier name)) (Abstraction param body))
         |= backtrackable identifier
         |= backtrackable (parens identifier)
         |. backtrackable spaces
@@ -182,16 +182,16 @@ symbolicFunction =
         matchArities name =
             case findSymbols name of
                 ( Just symbol, _, _ ) ->
-                    succeed (SingleArityApplication symbol)
+                    succeed (SingleArity symbol)
                         |= braces expression
 
                 ( Nothing, Just symbol, _ ) ->
-                    succeed (DoubleArityApplication symbol)
+                    succeed (DoubleArity symbol)
                         |= braces expression
                         |= braces expression
 
                 ( Nothing, Nothing, Just "sum_" ) ->
-                    succeed (\( id, expr ) -> TripleArityApplication (Sum_ id) expr)
+                    succeed (\( id, expr ) -> TripleArity (Sum_ id) expr)
                         |= braces assignmentParser
                         |. Parser.symbol "^"
                         |= braces expression
