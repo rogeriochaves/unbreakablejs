@@ -91,7 +91,8 @@ runExpression state expr =
 
         Abstraction param body ->
             ( state
-            , Expression (Abstraction param (Return.reencode <| eval state body))
+            , eval state body
+                |> Return.map (Abstraction param)
             )
 
         SingleArity func e ->
