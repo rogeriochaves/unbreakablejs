@@ -7,14 +7,16 @@ import Types exposing (..)
 
 
 type alias State =
-    { variables : Dict String Float
+    { scalars : Dict String Float
+    , vectors : Dict String (List Expression)
     , functions : Dict String ( String, Expression )
     }
 
 
 newState : State
 newState =
-    { variables = Dict.empty
+    { scalars = Dict.empty
+    , vectors = Dict.empty
     , functions = Dict.empty
     }
 
@@ -81,13 +83,17 @@ runExpression state expr =
             case identifier of
                 ScalarIdentifier name ->
                     ( state
-                    , Dict.get name state.variables
+                    , Dict.get name state.scalars
                         |> Maybe.map (Expression << Number)
                         |> Maybe.withDefault (Expression (Variable identifier))
                     )
 
-                _ ->
-                    Debug.todo "not implemented"
+                VectorIdentifier name ->
+                    ( state
+                    , Dict.get name state.vectors
+                        |> Maybe.map (Expression << Vector)
+                        |> Maybe.withDefault (Expression (Variable identifier))
+                    )
 
         Abstraction param body ->
             ( state
@@ -113,7 +119,7 @@ runSingleArity state func expr =
                 ScalarIdentifier name ->
                     case eval state expr of
                         Expression (Number num) ->
-                            ( setVariable name num state, Void )
+                            ( setScalar name num state, Void )
 
                         Expression (Vector _) ->
                             Debug.todo "not implemented yet"
@@ -130,8 +136,13 @@ runSingleArity state func expr =
                         Expression e ->
                             ( state, Expression (SingleArity (Assignment identifier) e) )
 
-                _ ->
-                    Debug.todo "not implemented"
+                VectorIdentifier name ->
+                    case eval state expr of
+                        Expression (Vector v) ->
+                            ( setVector name v state, Void )
+
+                        _ ->
+                            Debug.todo "not implemented"
 
         Application e1 ->
             case eval state e1 of
@@ -256,9 +267,14 @@ eval state =
     runExpression state >> Tuple.second
 
 
-setVariable : String -> Float -> State -> State
-setVariable name value state =
-    { state | variables = Dict.insert name value state.variables }
+setScalar : String -> Float -> State -> State
+setScalar name value state =
+    { state | scalars = Dict.insert name value state.scalars }
+
+
+setVector : String -> List Expression -> State -> State
+setVector name value state =
+    { state | vectors = Dict.insert name value state.vectors }
 
 
 setFunction : String -> String -> Expression -> State -> State

@@ -165,6 +165,14 @@ suite =
                 \_ ->
                     parseAndRun "(1, 1 + 1, 3)"
                         |> isEq (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            , test "parses a simple assignment and return void" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = (1, 2, 3)"
+                        |> isEq Void
+            , test "saves the value to the variable" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
+                        |> Expect.equal (Ok [ Void, Expression <| Vector [ Number 1, Number 2, Number 3 ] ])
             ]
         ]
 
