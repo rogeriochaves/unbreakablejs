@@ -1,4 +1,4 @@
-module Types exposing (..)
+module Types exposing (DoubleArity(..), Error, Expression(..), Identifier(..), Program, SingleArity(..), TripleArity(..), doubleAritySymbolsMap, singleAritySymbolsMap, tripleAritySymbolsMap)
 
 import Dict
 import Parser exposing (..)
@@ -18,7 +18,7 @@ type Expression
     = Number Float
     | Vector (List Expression)
     | Variable Identifier
-    | Abstraction String Expression
+    | Abstraction Identifier Expression
     | SingleArity SingleArity Expression
     | DoubleArity DoubleArity Expression Expression
     | TripleArity TripleArity Expression Expression Expression
@@ -42,9 +42,11 @@ type DoubleArity
 type TripleArity
     = Sum_ String
 
+
 type Identifier
     = ScalarIdentifier String
     | VectorIdentifier String
+
 
 singleAritySymbolsMap : Dict.Dict String SingleArity
 singleAritySymbolsMap =

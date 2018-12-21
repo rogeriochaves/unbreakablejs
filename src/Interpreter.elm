@@ -9,7 +9,7 @@ import Types exposing (..)
 type alias State =
     { scalars : Dict String Float
     , vectors : Dict String (List Expression)
-    , functions : Dict String ( String, Expression )
+    , functions : Dict String ( Identifier, Expression )
     }
 
 
@@ -147,14 +147,9 @@ runSingleArity state func expr =
         Application e1 ->
             case eval state e1 of
                 Expression (Variable (ScalarIdentifier name)) ->
-                    let
-                        substituteParams ( param, body ) =
-                            substitute param expr body
-                    in
                     ( state
                     , Dict.get name state.functions
-                        |> Maybe.map substituteParams
-                        |> Maybe.map (eval state)
+                        |> Maybe.map (callFunction state expr)
                         |> Maybe.withDefault
                             (eval state expr
                                 |> Return.orElse (SingleArity func)
@@ -173,38 +168,22 @@ runSingleArity state func expr =
             )
 
 
-substitute : String -> Expression -> Expression -> Expression
-substitute param value expr =
-    case expr of
-        Number val ->
-            Number val
+callFunction : State -> Expression -> ( Identifier, Expression ) -> Return.Value
+callFunction state args ( functionParam, functionBody ) =
+    case functionParam of
+        ScalarIdentifier paramName ->
+            eval state args
+                |> Return.andThenNum
+                    (\param_ ->
+                        eval (setScalar paramName param_ state) functionBody
+                    )
 
-        Vector _ ->
-            Debug.todo "not implemented"
-
-        Variable identifier ->
-            case identifier of
-                ScalarIdentifier name ->
-                    if name == param then
-                        value
-
-                    else
-                        expr
-
-                _ ->
-                    Debug.todo "not implemented"
-
-        Abstraction param_ body ->
-            Abstraction param_ (substitute param value body)
-
-        SingleArity func e ->
-            SingleArity func (substitute param value e)
-
-        DoubleArity func e1 e2 ->
-            DoubleArity func (substitute param value e1) (substitute param value e2)
-
-        TripleArity func e1 e2 e3 ->
-            TripleArity func (substitute param value e1) (substitute param value e2) (substitute param value e3)
+        VectorIdentifier paramName ->
+            eval state args
+                |> Return.andThenVector
+                    (\param_ ->
+                        eval (setVector paramName param_ state) functionBody
+                    )
 
 
 runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
@@ -251,8 +230,11 @@ runTripleArity state func expr1 expr2 expr3 =
                             |> List.foldl iterate (Expression (Number 0))
 
                 iterate curr total =
-                    substitute identifier (Number <| toFloat curr) expr3
-                        |> eval state
+                    let
+                        state_ =
+                            setScalar identifier (toFloat curr) state
+                    in
+                    eval state_ expr3
                         |> Return.mapNum2 (\_ e -> e) (\result total_ -> total_ + result) total
                         |> Return.orElse (TripleArity func expr1 expr2)
             in
@@ -277,6 +259,6 @@ setVector name value state =
     { state | vectors = Dict.insert name value state.vectors }
 
 
-setFunction : String -> String -> Expression -> State -> State
+setFunction : String -> Identifier -> Expression -> State -> State
 setFunction name param body state =
     { state | functions = Dict.insert name ( param, body ) state.functions }

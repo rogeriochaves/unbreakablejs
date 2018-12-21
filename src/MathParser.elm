@@ -87,9 +87,17 @@ vectorAssignment =
 
 functionDeclaration : Parser Expression
 functionDeclaration =
+    let
+        -- TODO refactor this
+        ident =
+            oneOf
+                [ map ScalarIdentifier identifier
+                , map VectorIdentifier vectorIdentifier
+                ]
+    in
     succeed (\name param body -> SingleArity (Assignment (ScalarIdentifier name)) (Abstraction param body))
         |= backtrackable identifier
-        |= backtrackable (parens identifier)
+        |= backtrackable (parens ident)
         |. backtrackable spaces
         |. backtrackable (symbol "=")
         |. spaces

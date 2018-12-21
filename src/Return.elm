@@ -1,4 +1,4 @@
-module Return exposing (Value(..), andThen, andThenNum, andThenNum2, map, mapNum, mapNum2, orElse, throwError)
+module Return exposing (Value(..), andThen, andThenNum, andThenNum2, andThenVector, map, mapNum, mapNum2, orElse, throwError)
 
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
@@ -67,6 +67,22 @@ andThenNum fn =
 
                 Types.Vector _ ->
                     throwError "Cannot apply function to vector"
+
+                other ->
+                    Expression other
+        )
+
+
+andThenVector : (List Expression -> Value) -> Value -> Value
+andThenVector fn =
+    andThen
+        (\expr ->
+            case expr of
+                Types.Number float ->
+                    throwError "Vector expected"
+
+                Types.Vector items ->
+                    fn items
 
                 other ->
                     Expression other

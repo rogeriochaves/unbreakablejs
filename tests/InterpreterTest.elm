@@ -173,6 +173,60 @@ suite =
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
                         |> Expect.equal (Ok [ Void, Expression <| Vector [ Number 1, Number 2, Number 3 ] ])
+            , test "calls a function with vec as param" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
+                        |> Expect.equal
+                            (Ok
+                                [ Void
+                                , Void
+                                , Expression <|
+                                    Vector [ Number 1, Number 2, Number 3 ]
+                                ]
+                            )
+            , test "replaces variables inside vector" <|
+                \_ ->
+                    parseAndRun "f(x) = (1, x, 3)\nf(2)"
+                        |> Expect.equal
+                            (Ok
+                                [ Void
+                                , Expression <|
+                                    Vector [ Number 1, Number 2, Number 3 ]
+                                ]
+                            )
+            , test "calling a vector function with a scalar argument should fail" <|
+                \_ ->
+                    parseAndRun "f(\\vec{y}) = \\vec{y}\nf(5)"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Vector expected"
+                                  }
+                                ]
+                            )
+            , test "validation of param type should also work for indirect cases" <|
+                \_ ->
+                    parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = x + 1\nf(g(5))"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Vector expected"
+                                  }
+                                ]
+                            )
+            , test "validation of param type should also work for indirect cases 2" <|
+                \_ ->
+                    parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = (1, x, 3)\nf(g(2))"
+                        |> Expect.equal
+                            (Ok
+                                [ Void
+                                , Void
+                                , Expression <|
+                                    Vector [ Number 1, Number 2, Number 3 ]
+                                ]
+                            )
             ]
         ]
 

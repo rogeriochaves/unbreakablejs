@@ -131,7 +131,7 @@ suite =
                         |> isEq
                             (SingleArity
                                 (Assignment (ScalarIdentifier "f"))
-                                (Abstraction "x"
+                                (Abstraction (ScalarIdentifier "x")
                                     (DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1))
                                 )
                             )
@@ -169,6 +169,16 @@ suite =
                 \_ ->
                     MathParser.parse "\\vec{x} + 1"
                         |> isEq (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
+            , test "parses function with vector as param" <|
+                \_ ->
+                    MathParser.parse "f(\\vec{x}) = \\vec{x} + 1"
+                        |> isEq
+                            (SingleArity
+                                (Assignment (ScalarIdentifier "f"))
+                                (Abstraction (VectorIdentifier "x")
+                                    (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
+                                )
+                            )
             ]
         ]
 
