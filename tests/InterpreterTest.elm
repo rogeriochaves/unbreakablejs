@@ -70,36 +70,15 @@ suite =
             , test "summation with a float upper limit should break" <|
                 \_ ->
                     parseAndRun "\\sum_{x=1}^{3.9} 5"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Error on sum_: cannot use 3.9 as an upper limit, it has to be an integer higher than lower limit"
-                                  }
-                                ]
-                            )
+                        |> isErr "Error on sum_: cannot use 3.9 as an upper limit, it has to be an integer higher than lower limit"
             , test "summation with a float lower limit should break" <|
                 \_ ->
                     parseAndRun "\\sum_{x=1.9}^{3} 5"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Error on sum_: cannot use 1.9 as a lower limit, it has to be an integer"
-                                  }
-                                ]
-                            )
+                        |> isErr "Error on sum_: cannot use 1.9 as a lower limit, it has to be an integer"
             , test "summation with a upper limit lower than lower limit" <|
                 \_ ->
                     parseAndRun "\\sum_{x=1}^{0-5} 5"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Error on sum_: cannot use -5 as an upper limit, it has to be an integer higher than lower limit"
-                                  }
-                                ]
-                            )
+                        |> isErr "Error on sum_: cannot use -5 as an upper limit, it has to be an integer higher than lower limit"
             , test "summation with undefined variables" <|
                 \_ ->
                     parseAndRun "\\sum_{x=1}^{7} y + (1 + 1)"
@@ -197,25 +176,11 @@ suite =
             , test "calling a vector function with a scalar argument should fail" <|
                 \_ ->
                     parseAndRun "f(\\vec{y}) = \\vec{y}\nf(5)"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Vector expected"
-                                  }
-                                ]
-                            )
+                        |> isErr "Vector expected"
             , test "validation of param type should also work for indirect cases" <|
                 \_ ->
                     parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = x + 1\nf(g(5))"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Vector expected"
-                                  }
-                                ]
-                            )
+                        |> isErr "Vector expected"
             , test "validation of param type should also work for indirect cases 2" <|
                 \_ ->
                     parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = (1, x, 3)\nf(g(2))"
@@ -230,25 +195,11 @@ suite =
             , test "dont assign vector to scalar variables" <|
                 \_ ->
                     parseAndRun "x = (1, 2, 3)"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Cannot assign vector to scalar variables, use \\vec{x} instead"
-                                  }
-                                ]
-                            )
+                        |> isErr "Cannot assign vector to scalar variables, use \\vec{x} instead"
             , test "dont assign scalar to vector variables" <|
                 \_ ->
                     parseAndRun "\\vec{x} = 1 + 1"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Cannot assign scalar to vector variables"
-                                  }
-                                ]
-                            )
+                        |> isErr "Cannot assign scalar to vector variables"
             , test "parses assignment with undefined variables" <|
                 \_ ->
                     parseAndRun "\\vec{x} = y + (1 + 1)"
@@ -265,36 +216,15 @@ suite =
             , test "breaks if index is not integer" <|
                 \_ ->
                     parseAndRun "(3, 2, 1)_{3/2}"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Cannot use 1.5 as an index, it has to be a positive integer"
-                                  }
-                                ]
-                            )
+                        |> isErr "Cannot use 1.5 as an index, it has to be a positive integer"
             , test "breaks if index is out bound" <|
                 \_ ->
                     parseAndRun "(3, 2, 1)_{5}"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Index 5 out of bounds"
-                                  }
-                                ]
-                            )
+                        |> isErr "Index 5 out of bounds"
             , test "breaks for numbers smaller than 1" <|
                 \_ ->
                     parseAndRun "(3, 2, 1)_{0}"
-                        |> Expect.equal
-                            (Err
-                                [ { row = 0
-                                  , col = 0
-                                  , problem = Problem "Cannot use 0 as an index, it has to be a positive integer"
-                                  }
-                                ]
-                            )
+                        |> isErr "Cannot use 0 as an index, it has to be a positive integer"
             ]
         ]
 
@@ -307,3 +237,13 @@ parseAndRun code =
 
 isEq result =
     Expect.equal (Ok [ result ])
+
+isErr msg =
+    Expect.equal
+        (Err
+            [ { row = 0
+                , col = 0
+                , problem = Problem msg
+                }
+            ]
+        )
