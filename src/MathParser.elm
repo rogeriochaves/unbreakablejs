@@ -19,15 +19,23 @@ digits =
         }
 
 
+identifier : Parser Identifier
+identifier =
+    oneOf
+        [ map ScalarIdentifier scalarIdentifier
+        , map VectorIdentifier vectorIdentifier
+        ]
+
+
 vectorIdentifier : Parser String
 vectorIdentifier =
     succeed identity
         |. symbol "\\vec"
-        |= braces identifier
+        |= braces scalarIdentifier
 
 
-identifier : Parser String
-identifier =
+scalarIdentifier : Parser String
+scalarIdentifier =
     variable
         { start = Char.isLower
         , inner = \c -> Char.isAlphaNum c || c == '_'
@@ -38,7 +46,7 @@ identifier =
 functionCall : Parser Expression
 functionCall =
     succeed (SingleArity << Application << Variable << ScalarIdentifier)
-        |= backtrackable identifier
+        |= backtrackable scalarIdentifier
         |= backtrackable (parens expression)
 
 
@@ -61,13 +69,7 @@ operators =
 
 assignment : Parser Expression
 assignment =
-    succeed (\( id, expr ) -> SingleArity (Assignment (ScalarIdentifier id)) expr)
-        |= assignmentParser
-
-
-assignmentParser : Parser ( String, Expression )
-assignmentParser =
-    succeed (\id expr -> ( id, expr ))
+    succeed (SingleArity << Assignment)
         |= backtrackable identifier
         |. backtrackable spaces
         |. symbol "="
@@ -75,29 +77,11 @@ assignmentParser =
         |= expression
 
 
-vectorAssignment : Parser Expression
-vectorAssignment =
-    succeed (\id expr -> SingleArity (Assignment (VectorIdentifier id)) expr)
-        |= backtrackable vectorIdentifier
-        |. backtrackable spaces
-        |. backtrackable (symbol "=")
-        |. spaces
-        |= expression
-
-
 functionDeclaration : Parser Expression
 functionDeclaration =
-    let
-        -- TODO refactor this
-        ident =
-            oneOf
-                [ map ScalarIdentifier identifier
-                , map VectorIdentifier vectorIdentifier
-                ]
-    in
     succeed (\name param body -> SingleArity (Assignment (ScalarIdentifier name)) (Abstraction param body))
-        |= backtrackable identifier
-        |= backtrackable (parens ident)
+        |= backtrackable scalarIdentifier
+        |= backtrackable (parens identifier)
         |. backtrackable spaces
         |. backtrackable (symbol "=")
         |. spaces
@@ -138,7 +122,6 @@ expressionParsers withDeclarations =
         declarations =
             [ functionDeclaration
             , assignment
-            , vectorAssignment
             ]
 
         expressions =
@@ -159,8 +142,7 @@ expressionParsers withDeclarations =
 atoms : Parser Expression
 atoms =
     oneOf
-        [ map (Variable << ScalarIdentifier) identifier
-        , map (Variable << VectorIdentifier) vectorIdentifier
+        [ map Variable identifier
         , digits
         ]
 
@@ -199,8 +181,17 @@ symbolicFunction =
                         |= braces expression
 
                 ( Nothing, Nothing, Just "sum_" ) ->
-                    succeed (\( id, expr ) -> TripleArity (Sum_ id) expr)
-                        |= braces assignmentParser
+                    let
+                        scalarAssignment =
+                            succeed (TripleArity << Sum_)
+                                |= backtrackable scalarIdentifier
+                                |. backtrackable spaces
+                                |. symbol "="
+                                |. spaces
+                                |= expression
+                    in
+                    succeed identity
+                        |= braces scalarAssignment
                         |. Parser.symbol "^"
                         |= braces expression
                         |. spaces
@@ -211,7 +202,7 @@ symbolicFunction =
     in
     succeed identity
         |. symbol "\\"
-        |= (identifier |> andThen matchArities)
+        |= (scalarIdentifier |> andThen matchArities)
 
 
 parse : String -> Result Error Types.Program
