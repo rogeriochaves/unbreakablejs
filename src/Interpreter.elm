@@ -220,7 +220,16 @@ runDoubleArity state func e1 e2 =
             numOp (/)
 
         Index ->
-            eval state e1
+            let
+                vector =
+                    case e1 of
+                        Variable (ScalarIdentifier name) ->
+                            Variable (VectorIdentifier name)
+
+                        _ ->
+                            e1
+            in
+            eval state vector
                 |> Return.andThenVector (\v -> DoubleArity Index v e2)
                     (\items ->
                         eval state e2

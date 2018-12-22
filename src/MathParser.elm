@@ -36,6 +36,13 @@ vectorIdentifier =
 
 scalarIdentifier : Parser String
 scalarIdentifier =
+    getChompedString <|
+        succeed ()
+            |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+
+
+symbolIdentifier : Parser String
+symbolIdentifier =
     variable
         { start = Char.isLower
         , inner = \c -> Char.isAlphaNum c || c == '_'
@@ -118,14 +125,18 @@ expression =
 
 expression_ : Bool -> Parser Expression
 expression_ withDeclarations =
-    buildExpressionParser operators (lazy <| \_ -> expressionParsers withDeclarations)
-        |> andThen
-            (\expr ->
-                oneOf
-                    [ index expr
-                    , succeed expr
-                    ]
-            )
+    buildExpressionParser operators
+        (lazy <|
+            \_ ->
+                expressionParsers withDeclarations
+                    |> andThen
+                        (\expr ->
+                            oneOf
+                                [ index expr
+                                , succeed expr
+                                ]
+                        )
+        )
 
 
 expressionParsers : Bool -> Parser Expression
@@ -214,7 +225,7 @@ symbolicFunction =
     in
     succeed identity
         |. symbol "\\"
-        |= (scalarIdentifier |> andThen matchArities)
+        |= (symbolIdentifier |> andThen matchArities)
 
 
 parse : String -> Result Error Types.Program

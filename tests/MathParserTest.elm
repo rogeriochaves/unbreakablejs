@@ -181,24 +181,29 @@ suite =
                             )
             , test "parses vector index position" <|
                 \_ ->
-                    MathParser.parse "\\vec{x}_{3}"
+                    MathParser.parse "x_{3}"
                         |> isEq
-                            (DoubleArity Index (Variable (VectorIdentifier "x")) (Number 3))
+                            (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
+            , test "parses vector index position and other operation" <|
+                \_ ->
+                    MathParser.parse "x_{3} + 1"
+                        |> isEq
+                            (DoubleArity Addition (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3)) (Number 1))
             , test "parses vector index position inside function assignment" <|
                 \_ ->
-                    MathParser.parse "f(\\vec{x}) = \\vec{x}_{3}"
+                    MathParser.parse "f(\\vec{x}) = x_{3}"
                         |> isEq
                             (SingleArity
                                 (Assignment (ScalarIdentifier "f"))
                                 (Abstraction (VectorIdentifier "x")
-                                    (DoubleArity Index (Variable (VectorIdentifier "x")) (Number 3))
+                                    (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
                                 )
                             )
             , test "parses nested index" <|
                 \_ ->
-                    MathParser.parse "\\vec{x}_{\\vec{y}_{3}}"
+                    MathParser.parse "x_{y_{3}}"
                         |> isEq
-                            (DoubleArity Index (Variable (VectorIdentifier "x")) (DoubleArity Index (Variable (VectorIdentifier "y")) (Number 3)))
+                            (DoubleArity Index (Variable (ScalarIdentifier "x")) (DoubleArity Index (Variable (ScalarIdentifier "y")) (Number 3)))
             ]
         ]
 

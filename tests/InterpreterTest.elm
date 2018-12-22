@@ -259,6 +259,10 @@ suite =
                                     (Variable (ScalarIdentifier "x"))
                                 )
                             )
+            , test "evaluates indexes from vector variables in scalar context" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = (3, 2, 1)\nx_{1}"
+                        |> Expect.equal (Ok [ Void, Expression (Number 3) ])
             ]
         ]
 
