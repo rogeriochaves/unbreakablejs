@@ -198,28 +198,48 @@ callFunction state args ( functionParam, functionBody ) =
 runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
 runDoubleArity state func e1 e2 =
     let
-        operator =
-            case func of
-                Addition ->
-                    (+)
-
-                Subtraction ->
-                    (-)
-
-                Multiplication ->
-                    (*)
-
-                Division ->
-                    (/)
-
-                Exponentiation ->
-                    (^)
-
-                Frac ->
-                    (/)
+        numOp operator =
+            eval state e2
+                |> Return.mapNum2 (DoubleArity func) operator (eval state e1)
     in
-    eval state e2
-        |> Return.mapNum2 (DoubleArity func) operator (eval state e1)
+    case func of
+        Addition ->
+            numOp (+)
+
+        Subtraction ->
+            numOp (-)
+
+        Multiplication ->
+            numOp (*)
+
+        Division ->
+            numOp (/)
+
+        Exponentiation ->
+            numOp (^)
+
+        Frac ->
+            numOp (/)
+
+        Index ->
+            eval state e1
+                |> Return.andThenVector
+                    (\items ->
+                        eval state e2
+                            |> Return.andThenNum
+                                (\index ->
+                                    if index /= toFloat (round index) || index < 1 then
+                                        throwError ("Cannot use " ++ String.fromFloat index ++ " as an index, it has to be a positive integer")
+
+                                    else
+                                        case List.head <| List.drop (round index - 1) items of
+                                            Just item ->
+                                                Expression item
+
+                                            Nothing ->
+                                                throwError ("Index " ++ String.fromFloat index ++ " out of bounds")
+                                )
+                    )
 
 
 runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> Return.Value

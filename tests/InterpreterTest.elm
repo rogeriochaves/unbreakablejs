@@ -258,6 +258,43 @@ suite =
                                     (DoubleArity Addition (Variable (ScalarIdentifier "y")) (Number 2))
                                 )
                             )
+            , test "gets index position from a vector, 1-based index (unfortunatly math is like that 🙁)" <|
+                \_ ->
+                    parseAndRun "(3, 2, 1)_{1}"
+                        |> isEq (Expression (Number 3))
+            , test "breaks if index is not integer" <|
+                \_ ->
+                    parseAndRun "(3, 2, 1)_{3/2}"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Cannot use 1.5 as an index, it has to be a positive integer"
+                                  }
+                                ]
+                            )
+            , test "breaks if index is out bound" <|
+                \_ ->
+                    parseAndRun "(3, 2, 1)_{5}"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Index 5 out of bounds"
+                                  }
+                                ]
+                            )
+            , test "breaks for numbers smaller than 1" <|
+                \_ ->
+                    parseAndRun "(3, 2, 1)_{0}"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Cannot use 0 as an index, it has to be a positive integer"
+                                  }
+                                ]
+                            )
             ]
         ]
 

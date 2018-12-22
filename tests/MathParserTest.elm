@@ -179,6 +179,26 @@ suite =
                                     (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
                                 )
                             )
+            , test "parses vector index position" <|
+                \_ ->
+                    MathParser.parse "\\vec{x}_{3}"
+                        |> isEq
+                            (DoubleArity Index (Variable (VectorIdentifier "x")) (Number 3))
+            , test "parses vector index position inside function assignment" <|
+                \_ ->
+                    MathParser.parse "f(\\vec{x}) = \\vec{x}_{3}"
+                        |> isEq
+                            (SingleArity
+                                (Assignment (ScalarIdentifier "f"))
+                                (Abstraction (VectorIdentifier "x")
+                                    (DoubleArity Index (Variable (VectorIdentifier "x")) (Number 3))
+                                )
+                            )
+            , test "parses nested index" <|
+                \_ ->
+                    MathParser.parse "\\vec{x}_{\\vec{y}_{3}}"
+                        |> isEq
+                            (DoubleArity Index (Variable (VectorIdentifier "x")) (DoubleArity Index (Variable (VectorIdentifier "y")) (Number 3)))
             ]
         ]
 

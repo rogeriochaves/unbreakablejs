@@ -88,6 +88,13 @@ functionDeclaration =
         |= expression
 
 
+index : Expression -> Parser Expression
+index expr =
+    succeed (DoubleArity Index expr)
+        |. backtrackable (symbol "_")
+        |= backtrackable (braces (lazy <| \_ -> expression))
+
+
 program : Parser Types.Program
 program =
     loop []
@@ -96,7 +103,7 @@ program =
                 [ succeed (Done expressions)
                     |. symbol "EOF"
                 , succeed (\expr -> Loop (expressions ++ [ expr ]))
-                    |= expressionWithDeclarations
+                    |= expression_ True
                     |. chompWhile (\c -> c == ' ')
                     |. chompIf (\c -> c == '\n')
                     |. spaces
@@ -106,14 +113,19 @@ program =
 
 expression : Parser Expression
 expression =
-    buildExpressionParser operators
-        (lazy <| \_ -> expressionParsers False)
+    expression_ False
 
 
-expressionWithDeclarations : Parser Expression
-expressionWithDeclarations =
-    buildExpressionParser operators
-        (lazy <| \_ -> expressionParsers True)
+expression_ : Bool -> Parser Expression
+expression_ withDeclarations =
+    buildExpressionParser operators (lazy <| \_ -> expressionParsers withDeclarations)
+        |> andThen
+            (\expr ->
+                oneOf
+                    [ index expr
+                    , succeed expr
+                    ]
+            )
 
 
 expressionParsers : Bool -> Parser Expression

@@ -37,6 +37,7 @@ type DoubleArity
     | Division
     | Exponentiation
     | Frac
+    | Index
 
 
 type TripleArity
