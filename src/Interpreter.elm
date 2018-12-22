@@ -122,10 +122,10 @@ runSingleArity state func expr =
                             ( setScalar name num state, Void )
 
                         Expression (Vector _) ->
-                            Debug.todo "not implemented yet"
+                            ( state, throwError ("Cannot assign vector to scalar variables, use \\vec{" ++ name ++ "} instead") )
 
                         Void ->
-                            ( state, throwError ("Cannot set variable" ++ name ++ "to void") )
+                            ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
 
                         Error error ->
                             ( state, Error error )
@@ -138,11 +138,20 @@ runSingleArity state func expr =
 
                 VectorIdentifier name ->
                     case eval state expr of
+                        Expression (Number _) ->
+                            ( state, throwError "Cannot assign scalar to vector variables" )
+
                         Expression (Vector v) ->
                             ( setVector name v state, Void )
 
-                        _ ->
-                            Debug.todo "not implemented"
+                        Void ->
+                            ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
+
+                        Error error ->
+                            ( state, Error error )
+
+                        Expression e ->
+                            ( state, Expression (SingleArity (Assignment identifier) e) )
 
         Application e1 ->
             case eval state e1 of

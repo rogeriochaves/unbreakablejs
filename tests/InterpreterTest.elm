@@ -227,6 +227,37 @@ suite =
                                     Vector [ Number 1, Number 2, Number 3 ]
                                 ]
                             )
+            , test "dont assign vector to scalar variables" <|
+                \_ ->
+                    parseAndRun "x = (1, 2, 3)"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Cannot assign vector to scalar variables, use \\vec{x} instead"
+                                  }
+                                ]
+                            )
+            , test "dont assign scalar to vector variables" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = 1 + 1"
+                        |> Expect.equal
+                            (Err
+                                [ { row = 0
+                                  , col = 0
+                                  , problem = Problem "Cannot assign scalar to vector variables"
+                                  }
+                                ]
+                            )
+            , test "parses assignment with undefined variables" <|
+                \_ ->
+                    parseAndRun "\\vec{x} = y + (1 + 1)"
+                        |> isEq
+                            (Expression
+                                (SingleArity (Assignment (VectorIdentifier "x"))
+                                    (DoubleArity Addition (Variable (ScalarIdentifier "y")) (Number 2))
+                                )
+                            )
             ]
         ]
 
