@@ -140,7 +140,22 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ Void
-                                , Expression (SingleArity (Application (Variable (ScalarIdentifier "f"))) (DoubleArity Addition (Number 1) (Variable (ScalarIdentifier "y"))))
+                                , Expression
+                                    (SingleArity (Application (Variable (ScalarIdentifier "f")))
+                                        (DoubleArity Addition (Number 1) (Variable (ScalarIdentifier "y")))
+                                    )
+                                ]
+                            )
+            , test "return unapplied expression if params also cannot be evaluated for vectors" <|
+                \_ ->
+                    parseAndRun "f(\\vec{x}) = x + 1\nf(g(1))"
+                        |> Expect.equal
+                            (Ok
+                                [ Void
+                                , Expression
+                                    (SingleArity (Application (Variable (ScalarIdentifier "f")))
+                                        (SingleArity (Application (Variable (ScalarIdentifier "g"))) (Number 1))
+                                    )
                                 ]
                             )
             ]

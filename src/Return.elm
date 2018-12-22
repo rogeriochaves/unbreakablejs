@@ -73,8 +73,8 @@ andThenNum builder fn =
         )
 
 
-andThenVector : (List Expression -> Value) -> Value -> Value
-andThenVector fn =
+andThenVector : (Types.Expression -> Types.Expression) -> (List Expression -> Value) -> Value -> Value
+andThenVector builder fn =
     andThen
         (\expr ->
             case expr of
@@ -85,7 +85,7 @@ andThenVector fn =
                     fn items
 
                 other ->
-                    Expression other
+                    Expression (builder other)
         )
 
 
@@ -111,5 +111,3 @@ andThenNum2 builder fn =
                 ( e1, e2 ) ->
                     Expression (builder e1 e2)
         )
-
-

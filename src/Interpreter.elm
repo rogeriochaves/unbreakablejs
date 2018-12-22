@@ -187,7 +187,7 @@ callFunction func state args ( functionParam, functionBody ) =
 
         VectorIdentifier paramName ->
             eval state args
-                |> Return.andThenVector
+                |> Return.andThenVector (SingleArity func)
                     (\param_ ->
                         eval (setVector paramName param_ state) functionBody
                     )
@@ -221,7 +221,7 @@ runDoubleArity state func e1 e2 =
 
         Index ->
             eval state e1
-                |> Return.andThenVector
+                |> Return.andThenVector (\v -> DoubleArity Index v e2)
                     (\items ->
                         eval state e2
                             |> Return.andThenNum
