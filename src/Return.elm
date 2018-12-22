@@ -1,4 +1,4 @@
-module Return exposing (Value(..), andThen, andThenNum, andThenNum2, andThenVector, map, mapNum, mapNum2, orElse, throwError)
+module Return exposing (Value(..), andThen, andThenNum, andThenNum2, andThenVector, map, mapNum, mapNum2, throwError)
 
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
@@ -52,13 +52,13 @@ andThen2 fn val val2 =
             throwError "Cannot apply void to function"
 
 
-mapNum : (Float -> Float) -> Value -> Value
-mapNum fn =
-    andThenNum (fn >> Types.Number >> Expression)
+mapNum : (Types.Expression -> Types.Expression) -> (Float -> Float) -> Value -> Value
+mapNum builder fn =
+    andThenNum builder (fn >> Types.Number >> Expression)
 
 
-andThenNum : (Float -> Value) -> Value -> Value
-andThenNum fn =
+andThenNum : (Types.Expression -> Types.Expression) -> (Float -> Value) -> Value -> Value
+andThenNum builder fn =
     andThen
         (\expr ->
             case expr of
@@ -69,7 +69,7 @@ andThenNum fn =
                     throwError "Cannot apply function to vector"
 
                 other ->
-                    Expression other
+                    Expression (builder other)
         )
 
 
@@ -113,18 +113,3 @@ andThenNum2 builder fn =
         )
 
 
-orElse : (Types.Expression -> Types.Expression) -> Value -> Value
-orElse builder val =
-    case val of
-        Expression (Types.Number float) ->
-            Expression (Types.Number float)
-
-        -- TODO vector
-        Expression e ->
-            Expression (builder e)
-
-        Error e ->
-            Error e
-
-        Void ->
-            Void

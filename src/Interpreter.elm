@@ -158,11 +158,10 @@ runSingleArity state func expr =
                 Expression (Variable (ScalarIdentifier name)) ->
                     ( state
                     , Dict.get name state.functions
-                        |> Maybe.map (callFunction state expr)
+                        |> Maybe.map (callFunction func state expr)
                         |> Maybe.withDefault
                             (eval state expr
-                                |> Return.orElse (SingleArity func)
-                                |> Return.andThenNum (Expression << SingleArity func << Number)
+                                |> Return.andThenNum (SingleArity func) (Expression << SingleArity func << Number)
                             )
                     )
 
@@ -172,17 +171,16 @@ runSingleArity state func expr =
         Sqrt ->
             ( state
             , eval state expr
-                |> Return.mapNum sqrt
-                |> Return.orElse (SingleArity func)
+                |> Return.mapNum (SingleArity func) sqrt
             )
 
 
-callFunction : State -> Expression -> ( Identifier, Expression ) -> Return.Value
-callFunction state args ( functionParam, functionBody ) =
+callFunction : SingleArity -> State -> Expression -> ( Identifier, Expression ) -> Return.Value
+callFunction func state args ( functionParam, functionBody ) =
     case functionParam of
         ScalarIdentifier paramName ->
             eval state args
-                |> Return.andThenNum
+                |> Return.andThenNum (SingleArity func)
                     (\param_ ->
                         eval (setScalar paramName param_ state) functionBody
                     )
@@ -227,6 +225,7 @@ runDoubleArity state func e1 e2 =
                     (\items ->
                         eval state e2
                             |> Return.andThenNum
+                                (DoubleArity Index (Vector items))
                                 (\index ->
                                     if index /= toFloat (round index) || index < 1 then
                                         throwError ("Cannot use " ++ String.fromFloat index ++ " as an index, it has to be a positive integer")
@@ -264,8 +263,7 @@ runTripleArity state func expr1 expr2 expr3 =
                             setScalar identifier (toFloat curr) state
                     in
                     eval state_ expr3
-                        |> Return.mapNum2 (\_ e -> e) (\result total_ -> total_ + result) total
-                        |> Return.orElse (TripleArity func expr1 expr2)
+                        |> Return.mapNum2 (\_ -> TripleArity func expr1 expr2) (\result total_ -> total_ + result) total
             in
             Return.andThenNum2 (\e1 e2 -> TripleArity func e1 e2 expr3)
                 forLoop

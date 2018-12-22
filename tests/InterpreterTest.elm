@@ -134,6 +134,15 @@ suite =
                             (Expression
                                 (SingleArity (Application (Variable (ScalarIdentifier "f"))) (Number 2))
                             )
+            , test "return unapplied expression if params also cannot be evaluated" <|
+                \_ ->
+                    parseAndRun "f(x) = x + 1\nf(1+y)"
+                        |> Expect.equal
+                            (Ok
+                                [ Void
+                                , Expression (SingleArity (Application (Variable (ScalarIdentifier "f"))) (DoubleArity Addition (Number 1) (Variable (ScalarIdentifier "y"))))
+                                ]
+                            )
             ]
         , describe "vectors"
             [ test "reads a vector" <|
@@ -225,6 +234,16 @@ suite =
                 \_ ->
                     parseAndRun "(3, 2, 1)_{0}"
                         |> isErr "Cannot use 0 as an index, it has to be a positive integer"
+            , test "returns unapplied index for undefined variable" <|
+                \_ ->
+                    parseAndRun "(1, 2, 3)_{x}"
+                        |> isEq
+                            (Expression
+                                (DoubleArity Index
+                                    (Vector [ Number 1, Number 2, Number 3 ])
+                                    (Variable (ScalarIdentifier "x"))
+                                )
+                            )
             ]
         ]
 
@@ -238,12 +257,13 @@ parseAndRun code =
 isEq result =
     Expect.equal (Ok [ result ])
 
+
 isErr msg =
     Expect.equal
         (Err
             [ { row = 0
-                , col = 0
-                , problem = Problem msg
-                }
+              , col = 0
+              , problem = Problem msg
+              }
             ]
         )
