@@ -12,7 +12,8 @@
             "elm/html": "1.0.0",
             "elm/parser": "1.0.0",
             "elm-community/list-extra": "8.1.0",
-            "elm-explorations/test": "1.0.0"
+            "elm-explorations/test": "1.0.0",
+            "ohanhi/autoexpand": "3.0.0"
         },
         "indirect": {
             "elm/json": "1.0.0",
