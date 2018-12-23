@@ -50,6 +50,12 @@ suite =
                     parseAndRun "2 * 3 ^ 5"
                         |> isEq (Expression <| Number 486)
             ]
+        , describe "constants"
+            [ test "starts with euler number" <|
+                \_ ->
+                    parseAndRun "e"
+                        |> isEq (Expression <| Number 2.718281828459045)
+            ]
         , describe "symbols"
             [ test "sqrt" <|
                 \_ ->

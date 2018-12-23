@@ -37,8 +37,11 @@ vectorIdentifier =
 scalarIdentifier : Parser String
 scalarIdentifier =
     getChompedString <|
-        succeed ()
-            |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+        oneOf
+            [ symbol "\\sigma"
+            , succeed ()
+                |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+            ]
 
 
 symbolIdentifier : Parser String
@@ -115,6 +118,18 @@ index expr =
         |= backtrackable (braces (lazy <| \_ -> expression))
 
 
+exponentiation : Expression -> Parser Expression
+exponentiation expr =
+    succeed (DoubleArity Exponentiation expr)
+        |. backtrackable spaces
+        |. backtrackable (symbol "^")
+        |. spaces
+        |= oneOf
+            [ braces (lazy <| \_ -> expression)
+            , lazy <| \_ -> expression
+            ]
+
+
 program : Parser Types.Program
 program =
     loop []
@@ -146,6 +161,7 @@ expression_ withDeclarations =
                         (\expr ->
                             oneOf
                                 [ index expr
+                                , exponentiation expr
                                 , succeed expr
                                 ]
                         )

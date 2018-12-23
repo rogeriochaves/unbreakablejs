@@ -66,6 +66,17 @@ suite =
                             (Number 2)
                             (Number 5)
                         )
+        , test "read grouped exponentiation" <|
+            \_ ->
+                MathParser.parse "2 ^ {5 + 1}"
+                    |> isEq
+                        (DoubleArity Exponentiation
+                            (Number 2)
+                            (DoubleArity Addition
+                                (Number 5)
+                                (Number 1)
+                            )
+                        )
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->
@@ -123,6 +134,10 @@ suite =
                 \_ ->
                     MathParser.parse "x = y + 1"
                         |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Variable (ScalarIdentifier "y")) (Number 1)))
+            , test "parses sigma as a variable" <|
+                \_ ->
+                    MathParser.parse "\\sigma + 1"
+                        |> isEq (DoubleArity Addition (Variable (ScalarIdentifier "\\sigma")) (Number 1))
             ]
         , describe "functions"
             [ test "parses function declaration" <|

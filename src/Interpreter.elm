@@ -22,6 +22,7 @@ newState =
     , functions = Dict.empty
     , mapFunctions = Dict.empty
     }
+        |> setScalar "e" 2.718281828459045
 
 
 type alias LineResult =
