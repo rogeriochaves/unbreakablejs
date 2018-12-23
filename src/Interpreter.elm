@@ -1,6 +1,7 @@
 module Interpreter exposing (run)
 
 import Dict exposing (Dict)
+import List.Extra
 import Parser exposing (DeadEnd, Problem(..))
 import Return exposing (Value(..), throwError)
 import Types exposing (..)
@@ -10,6 +11,7 @@ type alias State =
     { scalars : Dict String Float
     , vectors : Dict String (List Expression)
     , functions : Dict String ( Identifier, Expression )
+    , mapFunctions : Dict String ( String, String, Expression )
     }
 
 
@@ -18,6 +20,7 @@ newState =
     { scalars = Dict.empty
     , vectors = Dict.empty
     , functions = Dict.empty
+    , mapFunctions = Dict.empty
     }
 
 
@@ -101,6 +104,12 @@ runExpression state expr =
                 |> Return.map (Abstraction param)
             )
 
+        MapAbstraction param index body ->
+            ( state
+            , eval state body
+                |> Return.map (MapAbstraction param index)
+            )
+
         SingleArity func e ->
             runSingleArity state func e
 
@@ -133,6 +142,9 @@ runSingleArity state func expr =
                         Expression (Abstraction params body) ->
                             ( setFunction name params body state, Void )
 
+                        Expression (MapAbstraction params index body) ->
+                            ( setMapFunction name params index body state, Void )
+
                         Expression e ->
                             ( state, Expression (SingleArity (Assignment identifier) e) )
 
@@ -157,12 +169,16 @@ runSingleArity state func expr =
             case eval state e1 of
                 Expression (Variable (ScalarIdentifier name)) ->
                     ( state
-                    , Dict.get name state.functions
-                        |> Maybe.map (callFunction func state expr)
-                        |> Maybe.withDefault
-                            (eval state expr
+                    , case ( Dict.get name state.mapFunctions, Dict.get name state.functions ) of
+                        ( Just mapFn, _ ) ->
+                            callMapFunction func state expr mapFn
+
+                        ( Nothing, Just fn ) ->
+                            callFunction func state expr fn
+
+                        ( Nothing, Nothing ) ->
+                            eval state expr
                                 |> Return.andThenNum (SingleArity func) (Expression << SingleArity func << Number)
-                            )
                     )
 
                 _ ->
@@ -191,6 +207,34 @@ callFunction func state args ( functionParam, functionBody ) =
                     (\param_ ->
                         eval (setVector paramName param_ state) functionBody
                     )
+
+
+callMapFunction : SingleArity -> State -> Expression -> ( String, String, Expression ) -> Return.Value
+callMapFunction func state args ( functionParam, functionIndex, functionBody ) =
+    eval state args
+        |> Return.andThenVector (SingleArity func)
+            (\items ->
+                List.Extra.indexedFoldl
+                    (\i _ acc ->
+                        let
+                            state_ =
+                                state
+                                    |> setVector functionParam items
+                                    |> setScalar functionIndex (toFloat <| i + 1)
+                        in
+                        case ( acc, eval state_ functionBody ) of
+                            ( Expression (Vector items_), Expression e ) ->
+                                Expression (Vector (items_ ++ [ e ]))
+
+                            ( Expression (Vector items_), error ) ->
+                                error
+
+                            ( acc_, _ ) ->
+                                acc_
+                    )
+                    (Expression (Vector []))
+                    items
+            )
 
 
 runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
@@ -298,3 +342,8 @@ setVector name value state =
 setFunction : String -> Identifier -> Expression -> State -> State
 setFunction name param body state =
     { state | functions = Dict.insert name ( param, body ) state.functions }
+
+
+setMapFunction : String -> String -> String -> Expression -> State -> State
+setMapFunction name param index body state =
+    { state | mapFunctions = Dict.insert name ( param, index, body ) state.mapFunctions }

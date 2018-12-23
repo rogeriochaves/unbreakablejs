@@ -19,6 +19,7 @@ type Expression
     | Vector (List Expression)
     | Variable Identifier
     | Abstraction Identifier Expression
+    | MapAbstraction String String Expression
     | SingleArity SingleArity Expression
     | DoubleArity DoubleArity Expression Expression
     | TripleArity TripleArity Expression Expression Expression

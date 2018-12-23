@@ -95,6 +95,19 @@ functionDeclaration =
         |= expression
 
 
+mapFunctionDeclaration : Parser Expression
+mapFunctionDeclaration =
+    succeed (\name param idx body -> SingleArity (Assignment (ScalarIdentifier name)) (MapAbstraction param idx body))
+        |= backtrackable scalarIdentifier
+        |= backtrackable (parens vectorIdentifier)
+        |. backtrackable (symbol "_")
+        |= braces scalarIdentifier
+        |. spaces
+        |. symbol "="
+        |. spaces
+        |= expression
+
+
 index : Expression -> Parser Expression
 index expr =
     succeed (DoubleArity Index expr)
@@ -143,7 +156,8 @@ expressionParsers : Bool -> Parser Expression
 expressionParsers withDeclarations =
     let
         declarations =
-            [ functionDeclaration
+            [ mapFunctionDeclaration
+            , functionDeclaration
             , assignment
             ]
 

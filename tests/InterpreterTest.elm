@@ -263,6 +263,10 @@ suite =
                 \_ ->
                     parseAndRun "\\vec{x} = (3, 2, 1)\nx_{1}"
                         |> Expect.equal (Ok [ Void, Expression (Number 3) ])
+            , test "evaluates map function" <|
+                \_ ->
+                    parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
+                        |> Expect.equal (Ok [ Void, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
             ]
         ]
 

@@ -205,6 +205,22 @@ suite =
                         |> isEq
                             (DoubleArity Index (Variable (ScalarIdentifier "x")) (DoubleArity Index (Variable (ScalarIdentifier "y")) (Number 3)))
             ]
+        , describe "mapping function"
+            [ test "parses mapping function declaration" <|
+                \_ ->
+                    MathParser.parse "f(\\vec{x})_{i} = x_{i} + 1"
+                        |> isEq
+                            (SingleArity
+                                (Assignment (ScalarIdentifier "f"))
+                                (MapAbstraction "x"
+                                    "i"
+                                    (DoubleArity Addition
+                                        (DoubleArity Index (Variable (ScalarIdentifier "x")) (Variable (ScalarIdentifier "i")))
+                                        (Number 1)
+                                    )
+                                )
+                            )
+            ]
         ]
 
 
