@@ -130,7 +130,7 @@ renderLatex item =
         convertedText =
             "$$\n" ++ String.replace "\n" "\\\\" item.input ++ "\n$$"
     in
-    div [ style "width" "80%" ]
+    div [ style "width" "80%", style "margin-top" "-8px", style "padding-left" "5px" ]
         [ Html.Keyed.node "div"
             []
             [ ( item.input, div [ class "raw-math" ] [ text <| convertedText ] )
