@@ -1,4 +1,4 @@
-module Playground.Style exposing (body, cell, cellLabelInput, cellLabelOutput, notebook, selectedCell)
+module Playground.Style exposing (body, cell, cellLabelInput, cellLabelOutput, errorMessage, notebook, selectedCell)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -30,10 +30,20 @@ selectedCell =
 cellLabelInput =
     [ style "color" "#303F9F"
     , style "font-size" "14px"
-    , style "font-family" "monospace, sans-serif"
+    , monospace
     , style "text-align" "right"
     ]
 
 
 cellLabelOutput =
     cellLabelInput ++ [ style "color" "#D84315" ]
+
+
+errorMessage =
+    [ style "color" "#E75C58"
+    , monospace
+    ]
+
+
+monospace =
+    style "font-family" "monospace, sans-serif"

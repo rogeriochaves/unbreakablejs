@@ -129,9 +129,25 @@ renderResult item =
             div [] []
 
         Error err ->
-            div [ style "display" "flex" ]
+            let
+                row =
+                    err.row - 1
+
+                msg =
+                    if row <= 0 then
+                        Debug.toString err.problem
+
+                    else
+                        "Error on line "
+                            ++ String.fromInt row
+                            ++ ", column "
+                            ++ String.fromInt err.col
+                            ++ ": "
+                            ++ Debug.toString err.problem
+            in
+            div (Style.errorMessage ++ [ style "display" "flex" ])
                 [ cellLabelView Style.cellLabelOutput ""
-                , text (Debug.toString err.problem)
+                , text msg
                 ]
 
 
