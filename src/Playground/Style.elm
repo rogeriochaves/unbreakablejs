@@ -1,17 +1,28 @@
-module Playground.Style exposing (body, cell, cellLabelInput, cellLabelOutput, errorMessage, notebook, selectedCell)
+module Playground.Style exposing (cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, monospace, notebook, selectedCell, title, toolbarButton)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 
 
-body =
+general =
     [ style "font-family" "sans-serif"
-    , style "background" "#EEE"
+    ]
+
+
+header =
+    [ style "background" "#FFF"
+    , style "box-shadow" "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+    ]
+
+
+title =
+    [ style "font-weight" "normal"
     ]
 
 
 notebook =
     [ style "background" "#FFF"
+    , style "box-shadow" "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
     ]
 
 
@@ -42,6 +53,15 @@ cellLabelOutput =
 errorMessage =
     [ style "color" "#E75C58"
     , monospace
+    ]
+
+
+toolbarButton =
+    [ style "border" "1px solid #999"
+    , style "background" "#FFF"
+    , style "font-size" "13px"
+    , style "border-radius" "5px"
+    , style "cursor" "pointer"
     ]
 
 

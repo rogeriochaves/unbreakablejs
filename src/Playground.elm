@@ -77,19 +77,36 @@ emptyLatexState =
 
 view : Model -> Html Msg
 view model =
-    div (Style.body ++ [ style "padding" "20px", style "margin" "-8px" ])
-        [ h1 [] [ text "Explain Math" ]
-        , toolbarView
-        , div (Style.notebook ++ [ style "padding" "15px" ])
-            (List.indexedMap (cellView model) model.cells)
+    div (Style.general ++ [ style "margin" "-8px" ])
+        [ div (Style.header ++ [ style "display" "flex", style "justify-content" "center" ])
+            [ div [ style "flex-grow" "1", style "max-width" "1140px" ]
+                [ h1 Style.title [ text "Explain Math" ]
+                , toolbarView
+                ]
+            ]
+        , div [ style "display" "flex", style "justify-content" "center", style "padding-top" "20px" ]
+            [ div (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
+                (List.indexedMap (cellView model) model.cells)
+            ]
         ]
 
 
 toolbarView : Html Msg
 toolbarView =
+    let
+        toolbarButton attrs =
+            button
+                (Style.toolbarButton
+                    ++ [ class "toolbarButton"
+                       , style "margin-right" "5px"
+                       , style "padding" "5px 10px"
+                       ]
+                    ++ attrs
+                )
+    in
     div [ style "padding-bottom" "20px" ]
-        [ button [ onClick AddCell ] [ text "Add" ]
-        , button [ onClick RunCell ] [ text "Run" ]
+        [ toolbarButton [ onClick AddCell ] [ text "Add Cell" ]
+        , toolbarButton [ onClick RunCell ] [ text "Run Cell" ]
         ]
 
 
@@ -103,7 +120,7 @@ cellView model index item =
             else
                 Style.cell
     in
-    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px", style "margin-bottom" "20px" ])
+    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
         [ div [ style "display" "flex" ]
             [ cellLabelView Style.cellLabelInput "Input:"
             , if String.isEmpty item.input || index == model.selectedCell then
@@ -120,7 +137,7 @@ renderResult : Cell -> Html Msg
 renderResult item =
     case item.result of
         Expression expr ->
-            div [ style "display" "flex" ]
+            div [ style "display" "flex", style "padding-bottom" "20px" ]
                 [ cellLabelView Style.cellLabelOutput "Output:"
                 , renderLatex (encode expr)
                 ]
@@ -145,7 +162,7 @@ renderResult item =
                             ++ ": "
                             ++ Debug.toString err.problem
             in
-            div (Style.errorMessage ++ [ style "display" "flex" ])
+            div (Style.errorMessage ++ [ style "display" "flex", style "padding-bottom" "20px" ])
                 [ cellLabelView Style.cellLabelOutput ""
                 , text msg
                 ]
@@ -206,9 +223,13 @@ update msg model =
                 updateCell cell_ =
                     { cell_
                         | result =
-                            MathParser.parse cell_.input
-                                |> Result.andThen Interpreter.run
-                                |> getLastResult
+                            if String.isEmpty (String.trim cell_.input) then
+                                Void
+
+                            else
+                                MathParser.parse cell_.input
+                                    |> Result.andThen Interpreter.run
+                                    |> getLastResult
                     }
 
                 updatedModel =
