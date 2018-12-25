@@ -25,6 +25,7 @@ main =
 
 type alias Model =
     { cells : List Cell
+    , selectedCell : Int
     }
 
 
@@ -38,6 +39,8 @@ type alias Cell =
 type Msg
     = UpdateInput Int { textValue : String, state : AutoExpand.State }
     | AddCell
+    | SelectCell Int
+    | RunCell
 
 
 init : () -> ( Model, Cmd Msg )
@@ -45,11 +48,13 @@ init flags =
     ( { cells =
             [ newCell 0
             ]
+      , selectedCell = -1
       }
     , Cmd.none
     )
 
 
+newCell : Int -> Cell
 newCell index =
     { input = ""
     , autoexpand = AutoExpand.initState (autoExpandConfig index)
@@ -70,29 +75,53 @@ view : Model -> Html Msg
 view model =
     div (Style.body ++ [ style "padding" "20px", style "margin" "-8px" ])
         [ h1 [] [ text "Explain Math" ]
-        , toolbar
-        , div (Style.notebook ++ [ style "padding" "20px" ])
-            (List.indexedMap cell model.cells)
+        , toolbarView
+        , div (Style.notebook ++ [ style "padding" "15px" ])
+            (List.indexedMap (cellView model) model.cells)
         ]
 
 
-toolbar : Html Msg
-toolbar =
+toolbarView : Html Msg
+toolbarView =
     div [ style "padding-bottom" "20px" ]
         [ button [ onClick AddCell ] [ text "Add" ]
-        , button [] [ text "Run" ]
+        , button [ onClick RunCell ] [ text "Run" ]
         ]
 
 
-cell : Int -> Cell -> Html Msg
-cell index item =
-    div []
-        [ AutoExpand.view (autoExpandConfig index) item.autoexpand item.input
-        , h2 [] [ text "latex output" ]
-        , renderLatex item
-        , h2 [] [ text "result" ]
-        , text item.result
+cellView : Model -> Int -> Cell -> Html Msg
+cellView model index item =
+    let
+        cellStyle =
+            if model.selectedCell == index then
+                Style.selectedCell
+
+            else
+                Style.cell
+    in
+    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
+        [ div [ style "display" "flex" ]
+            [ cellLabelView Style.cellLabelInput "Input:"
+            , if String.isEmpty item.result || index == model.selectedCell then
+                AutoExpand.view (autoExpandConfig index) item.autoexpand item.input
+
+              else
+                renderLatex item
+            ]
+        , if String.isEmpty item.result then
+            div [] []
+
+          else
+            div [ style "display" "flex" ]
+                [ cellLabelView Style.cellLabelOutput "Output:"
+                , text item.result
+                ]
         ]
+
+
+cellLabelView : List (Attribute Msg) -> String -> Html Msg
+cellLabelView attrs str =
+    div (attrs ++ [ style "width" "90px", style "padding-right" "5px", style "padding-top" "8px" ]) [ text str ]
 
 
 renderLatex : Cell -> Html Msg
@@ -101,7 +130,7 @@ renderLatex item =
         convertedText =
             "$$\n" ++ String.replace "\n" "\\\\" item.input ++ "\n$$"
     in
-    div []
+    div [ style "width" "80%" ]
         [ Html.Keyed.node "div"
             []
             [ ( item.input, div [ class "raw-math" ] [ text <| convertedText ] )
@@ -115,14 +144,7 @@ update msg model =
         UpdateInput index { state, textValue } ->
             let
                 updateCell cell_ =
-                    { cell_
-                        | autoexpand = state
-                        , input = textValue
-                        , result =
-                            MathParser.parse textValue
-                                |> Result.andThen Interpreter.run
-                                |> Debug.toString
-                    }
+                    { cell_ | autoexpand = state, input = textValue }
             in
             ( { model | cells = List.Extra.updateIfIndex ((==) index) updateCell model.cells }
             , Cmd.none
@@ -133,15 +155,46 @@ update msg model =
             , Cmd.none
             )
 
+        SelectCell index ->
+            ( { model | selectedCell = index }, Cmd.none )
+
+        RunCell ->
+            let
+                updateCell cell_ =
+                    { cell_
+                        | result =
+                            MathParser.parse cell_.input
+                                |> Result.andThen Interpreter.run
+                                |> Debug.toString
+                    }
+
+                updatedModel =
+                    { model
+                        | cells = List.Extra.updateIfIndex ((==) model.selectedCell) updateCell model.cells
+                        , selectedCell = model.selectedCell + 1
+                    }
+            in
+            if updatedModel.selectedCell == List.length model.cells then
+                updatedModel
+                    |> update AddCell
+
+            else
+                ( updatedModel, Cmd.none )
+
 
 autoExpandConfig : Int -> AutoExpand.Config Msg
 autoExpandConfig index =
     AutoExpand.config
         { onInput = UpdateInput index
-        , padding = 12
-        , lineHeight = 21
+        , padding = 5
+        , lineHeight = 18
         , minRows = 1
         , maxRows = 4
         }
-        |> AutoExpand.withAttribute (Html.Attributes.style "resize" "none")
-        |> AutoExpand.withAttribute (Html.Attributes.style "width" "100%")
+        |> AutoExpand.withAttribute (style "resize" "none")
+        |> AutoExpand.withAttribute (style "flex-grow" "1")
+        |> AutoExpand.withAttribute (style "background" "#f7f7f7")
+        |> AutoExpand.withAttribute (style "border" "1px solid #cfcfcf")
+        |> AutoExpand.withAttribute (style "font-size" "14px")
+        |> AutoExpand.withAttribute (style "font-family" "monospace, sans-serif")
+        |> AutoExpand.withAttribute (onFocus (SelectCell index))
