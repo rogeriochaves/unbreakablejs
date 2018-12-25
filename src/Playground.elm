@@ -3,6 +3,7 @@ module Playground exposing (main)
 import AutoExpand as AutoExpand
 import Browser
 import Dict
+import Encoder exposing (encode)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -10,7 +11,10 @@ import Html.Keyed
 import Interpreter
 import List.Extra
 import MathParser
+import Parser exposing (Problem(..))
 import Playground.Style as Style
+import Return exposing (Value(..))
+import Types exposing (Error)
 
 
 main : Program () Model Msg
@@ -32,7 +36,7 @@ type alias Model =
 type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
-    , result : String
+    , result : Return.Value
     }
 
 
@@ -58,7 +62,7 @@ newCell : Int -> Cell
 newCell index =
     { input = ""
     , autoexpand = AutoExpand.initState (autoExpandConfig index)
-    , result = ""
+    , result = Void
     }
 
 
@@ -99,24 +103,36 @@ cellView model index item =
             else
                 Style.cell
     in
-    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
+    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px", style "margin-bottom" "20px" ])
         [ div [ style "display" "flex" ]
             [ cellLabelView Style.cellLabelInput "Input:"
-            , if String.isEmpty item.result || index == model.selectedCell then
+            , if String.isEmpty item.input || index == model.selectedCell then
                 AutoExpand.view (autoExpandConfig index) item.autoexpand item.input
 
               else
-                renderLatex item
+                renderLatex item.input
             ]
-        , if String.isEmpty item.result then
-            div [] []
+        , renderResult item
+        ]
 
-          else
+
+renderResult : Cell -> Html Msg
+renderResult item =
+    case item.result of
+        Expression expr ->
             div [ style "display" "flex" ]
                 [ cellLabelView Style.cellLabelOutput "Output:"
-                , text item.result
+                , renderLatex (encode expr)
                 ]
-        ]
+
+        Void ->
+            div [] []
+
+        Error err ->
+            div [ style "display" "flex" ]
+                [ cellLabelView Style.cellLabelOutput ""
+                , text (Debug.toString err.problem)
+                ]
 
 
 cellLabelView : List (Attribute Msg) -> String -> Html Msg
@@ -124,16 +140,16 @@ cellLabelView attrs str =
     div (attrs ++ [ style "width" "90px", style "padding-right" "5px", style "padding-top" "8px" ]) [ text str ]
 
 
-renderLatex : Cell -> Html Msg
-renderLatex item =
+renderLatex : String -> Html Msg
+renderLatex str =
     let
         convertedText =
-            "$$\n" ++ String.replace "\n" "\\\\" item.input ++ "\n$$"
+            "$$\n" ++ String.replace "\n" "\\\\" str ++ "\n$$"
     in
     div [ style "width" "80%", style "margin-top" "-8px", style "padding-left" "5px" ]
         [ Html.Keyed.node "div"
             []
-            [ ( item.input, div [ class "raw-math" ] [ text <| convertedText ] )
+            [ ( str, div [ class "raw-math" ] [ text <| convertedText ] )
             ]
         ]
 
@@ -160,12 +176,23 @@ update msg model =
 
         RunCell ->
             let
+                getLastResult res =
+                    case res of
+                        Ok values ->
+                            List.Extra.last values
+                                |> Maybe.withDefault Void
+
+                        Err errs ->
+                            List.Extra.last errs
+                                |> Maybe.map Error
+                                |> Maybe.withDefault Void
+
                 updateCell cell_ =
                     { cell_
                         | result =
                             MathParser.parse cell_.input
                                 |> Result.andThen Interpreter.run
-                                |> Debug.toString
+                                |> getLastResult
                     }
 
                 updatedModel =
