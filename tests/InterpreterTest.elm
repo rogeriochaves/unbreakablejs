@@ -93,6 +93,7 @@ suite =
         , test "multiple expressions" <|
             \_ ->
                 parseAndRun "1 + 1\n2 + 2"
+                    |> Result.map (List.map Tuple.second)
                     |> Expect.equal (Ok [ Expression <| Number 2, Expression <| Number 4 ])
         , describe "assignments" <|
             [ test "parses a simple assignment and return void" <|
@@ -102,6 +103,7 @@ suite =
             , test "saves the value to the variable" <|
                 \_ ->
                     parseAndRun "x = 2 + 2\nx + 1"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression <| Number 5 ])
             , test "returns unapplied expression if the variable is not defined" <|
                 \_ ->
@@ -125,6 +127,7 @@ suite =
             [ test "declares a simple function" <|
                 \_ ->
                     parseAndRun "f(x) = x + 1\nf(5)"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression <| Number 6 ])
             , test "return unapplied expression if function is not defined" <|
                 \_ ->
@@ -143,6 +146,7 @@ suite =
             , test "return unapplied expression if params also cannot be evaluated" <|
                 \_ ->
                     parseAndRun "f(x) = x + 1\nf(1+y)"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal
                             (Ok
                                 [ Void
@@ -155,6 +159,7 @@ suite =
             , test "return unapplied expression if params also cannot be evaluated for vectors" <|
                 \_ ->
                     parseAndRun "f(\\vec{x}) = x + 1\nf(g(1))"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal
                             (Ok
                                 [ Void
@@ -181,10 +186,12 @@ suite =
             , test "saves the value to the variable" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression <| Vector [ Number 1, Number 2, Number 3 ] ])
             , test "calls a function with vec as param" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal
                             (Ok
                                 [ Void
@@ -196,6 +203,7 @@ suite =
             , test "replaces variables inside vector" <|
                 \_ ->
                     parseAndRun "f(x) = (1, x, 3)\nf(2)"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal
                             (Ok
                                 [ Void
@@ -214,6 +222,7 @@ suite =
             , test "validation of param type should also work for indirect cases 2" <|
                 \_ ->
                     parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = (1, x, 3)\nf(g(2))"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal
                             (Ok
                                 [ Void
@@ -268,23 +277,27 @@ suite =
             , test "evaluates indexes from vector variables in scalar context" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (3, 2, 1)\nx_{1}"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression (Number 3) ])
             , test "evaluates map function" <|
                 \_ ->
                     parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
+                        |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
             ]
         ]
 
 
-parseAndRun : String -> Result Error (List Return.Value)
+parseAndRun : String -> Result Error (List LineResult)
 parseAndRun code =
     MathParser.parse code
-        |> Result.andThen Interpreter.run
+        |> Result.andThen (Interpreter.run newState)
 
 
-isEq result =
-    Expect.equal (Ok [ result ])
+isEq expected actual =
+    actual
+        |> Result.map (List.map Tuple.second)
+        |> Expect.equal (Ok [ expected ])
 
 
 isErr msg =

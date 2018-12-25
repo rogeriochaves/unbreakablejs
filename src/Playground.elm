@@ -29,6 +29,7 @@ main =
 
 type alias Model =
     { cells : List Cell
+    , state : Interpreter.State
     , selectedCell : Int
     }
 
@@ -52,6 +53,7 @@ init flags =
     ( { cells =
             [ newCell 0
             ]
+      , state = Interpreter.newState
       , selectedCell = -1
       }
     , Cmd.none
@@ -137,7 +139,7 @@ renderResult : Cell -> Html Msg
 renderResult item =
     case item.result of
         Expression expr ->
-            div [ style "display" "flex", style "padding-bottom" "20px" ]
+            div [ style "display" "flex" ]
                 [ cellLabelView Style.cellLabelOutput "Output:"
                 , renderLatex (encode expr)
                 ]
@@ -213,28 +215,35 @@ update msg model =
                     case res of
                         Ok values ->
                             List.Extra.last values
-                                |> Maybe.withDefault Void
+                                |> Maybe.withDefault ( model.state, Void )
 
                         Err errs ->
                             List.Extra.last errs
-                                |> Maybe.map Error
-                                |> Maybe.withDefault Void
+                                |> Maybe.map (\e -> ( model.state, Error e ))
+                                |> Maybe.withDefault ( model.state, Void )
+
+                runCell : Cell -> Interpreter.LineResult
+                runCell cell_ =
+                    if String.isEmpty (String.trim cell_.input) then
+                        ( model.state, Void )
+
+                    else
+                        MathParser.parse cell_.input
+                            |> Result.andThen (Interpreter.run model.state)
+                            |> getLastResult
+
+                result =
+                    List.Extra.getAt model.selectedCell model.cells
+                        |> Maybe.map runCell
+                        |> Maybe.withDefault ( model.state, Void )
 
                 updateCell cell_ =
-                    { cell_
-                        | result =
-                            if String.isEmpty (String.trim cell_.input) then
-                                Void
-
-                            else
-                                MathParser.parse cell_.input
-                                    |> Result.andThen Interpreter.run
-                                    |> getLastResult
-                    }
+                    { cell_ | result = Tuple.second result }
 
                 updatedModel =
                     { model
-                        | cells = List.Extra.updateIfIndex ((==) model.selectedCell) updateCell model.cells
+                        | state = Tuple.first result
+                        , cells = List.Extra.updateIfIndex ((==) model.selectedCell) updateCell model.cells
                         , selectedCell = model.selectedCell + 1
                     }
             in
@@ -253,7 +262,7 @@ autoExpandConfig index =
         , padding = 5
         , lineHeight = 18
         , minRows = 1
-        , maxRows = 4
+        , maxRows = 50
         }
         |> AutoExpand.withAttribute (style "resize" "none")
         |> AutoExpand.withAttribute (style "flex-grow" "1")

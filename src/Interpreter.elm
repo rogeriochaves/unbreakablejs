@@ -1,4 +1,4 @@
-module Interpreter exposing (run)
+module Interpreter exposing (LineResult, State, run, newState)
 
 import Dict exposing (Dict)
 import List.Extra
@@ -29,8 +29,8 @@ type alias LineResult =
     ( State, Return.Value )
 
 
-run : Types.Program -> Result Error (List Return.Value)
-run expressions =
+run : State -> Types.Program -> Result Error (List LineResult)
+run state expressions =
     let
         iterate : Expression -> Result Error (List LineResult) -> Result Error (List LineResult)
         iterate expr accummulated =
@@ -41,7 +41,7 @@ run expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( newState, Void )
+                        |> Maybe.withDefault ( state, Void )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
@@ -55,7 +55,7 @@ run expressions =
     in
     expressions
         |> List.foldl iterate (Ok [])
-        |> Result.map (List.reverse >> List.map Tuple.second)
+        |> Result.map List.reverse
 
 
 runExpression : State -> Expression -> LineResult
