@@ -49,6 +49,34 @@ suite =
                 \_ ->
                     parseAndRun "2 * 3 ^ 5"
                         |> isEq (Expression <| Number 486)
+            , test "negation" <|
+                \_ ->
+                    parseAndRun "5 * -3"
+                        |> isEq (Expression <| Number -15)
+            , test "factorial" <|
+                \_ ->
+                    parseAndRun "5!"
+                        |> isEq (Expression <| Number 120)
+            , test "respects math priority #4" <|
+                \_ ->
+                    parseAndRun "-5!"
+                        |> isEq (Expression <| Number -120)
+            , test "factorial should break for float numbers" <|
+                \_ ->
+                    parseAndRun "5.1!"
+                        |> isErr "Cannot calculate factorial for 5.1, only for positive integers"
+            , test "factorial should break for negative numbers" <|
+                \_ ->
+                    parseAndRun "(-5)!"
+                        |> isErr "Cannot calculate factorial for -5, only for positive integers"
+            , test "factorial of 0 is 1" <|
+                \_ ->
+                    parseAndRun "0!"
+                        |> isEq (Expression <| Number 1)
+            , test "respects math priority #5" <|
+                    \_ ->
+                        parseAndRun "2 ^ 5 * 4"
+                            |> isEq (Expression <| Number 128)
             ]
         , describe "constants"
             [ test "starts with euler number" <|

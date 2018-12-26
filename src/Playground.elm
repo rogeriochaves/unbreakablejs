@@ -46,12 +46,18 @@ type Msg
     | AddCell
     | SelectCell Int
     | RunCell
+    | SetExample Example
+
+
+type Example
+    = Softmax
+    | Bitcoin
 
 
 init : () -> ( Model, Cmd Msg )
 init flags =
     ( { cells =
-            [ newCell 0
+            [ newCell 0 ""
             ]
       , state = Interpreter.newState
       , selectedCell = -1
@@ -60,10 +66,10 @@ init flags =
     )
 
 
-newCell : Int -> Cell
-newCell index =
-    { input = ""
-    , autoexpand = AutoExpand.initState (autoExpandConfig index)
+newCell : Int -> String -> Cell
+newCell index input =
+    { input = input
+    , autoexpand = AutoExpand.initState (autoExpandConfig (List.length <| String.split "\n" input) index)
     , result = Void
     }
 
@@ -96,6 +102,9 @@ header model =
     let
         menuLink attrs =
             a (Style.menuLink ++ [ style "padding" "10px 20px", class "menuLink" ] ++ attrs)
+
+        submenuItem attrs =
+            a (Style.submenuItem ++ [ style "padding" "10px 20px", style "display" "block", class "submenuItem" ] ++ attrs)
     in
     [ column [ style "padding-top" "20px" ]
         [ row []
@@ -104,7 +113,14 @@ header model =
             ]
         , column [ style "justify-content" "center", style "flex-grow" "1" ]
             [ menuLink [] [ text "Playground" ]
-            , menuLink [] [ text "Examples ", span Style.utf8Icon [ text "▼" ] ]
+            , menuLink [ class "submenuLink" ]
+                [ text "Examples "
+                , span Style.utf8Icon [ text "▼" ]
+                , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
+                    [ submenuItem [ onClick (SetExample Softmax) ] [ text "Softmax" ]
+                    , submenuItem [ onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Prob" ]
+                    ]
+                ]
             , menuLink [] [ text "About" ]
             , menuLink [] [ text "Docs" ]
             ]
@@ -156,7 +172,7 @@ cellView model index item =
         [ column []
             [ cellLabelView Style.cellLabelInput "Input:"
             , if String.isEmpty item.input || index == model.selectedCell then
-                AutoExpand.view (autoExpandConfig index) item.autoexpand item.input
+                AutoExpand.view (autoExpandConfig 1 index) item.autoexpand item.input
 
               else
                 renderLatex item.input
@@ -232,7 +248,7 @@ update msg model =
             )
 
         AddCell ->
-            ( { model | cells = model.cells ++ [ newCell (List.length model.cells) ] }
+            ( { model | cells = model.cells ++ [ newCell (List.length model.cells) "" ] }
             , Cmd.none
             )
 
@@ -245,17 +261,15 @@ update msg model =
                     case res of
                         Ok values ->
                             List.Extra.last values
-                                |> Maybe.withDefault ( model.state, Void )
 
                         Err errs ->
                             List.Extra.last errs
                                 |> Maybe.map (\e -> ( model.state, Error e ))
-                                |> Maybe.withDefault ( model.state, Void )
 
-                runCell : Cell -> Interpreter.LineResult
+                runCell : Cell -> Maybe Interpreter.LineResult
                 runCell cell_ =
                     if String.isEmpty (String.trim cell_.input) then
-                        ( model.state, Void )
+                        Nothing
 
                     else
                         MathParser.parse cell_.input
@@ -264,7 +278,7 @@ update msg model =
 
                 result =
                     List.Extra.getAt model.selectedCell model.cells
-                        |> Maybe.map runCell
+                        |> Maybe.andThen runCell
                         |> Maybe.withDefault ( model.state, Void )
 
                 updateCell cell_ =
@@ -284,14 +298,41 @@ update msg model =
             else
                 ( updatedModel, Cmd.none )
 
+        SetExample example ->
+            case example of
+                Softmax ->
+                    ( { model
+                        | state = Interpreter.newState
+                        , cells =
+                            [ newCell 0 "\\sigma(\\vec{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}"
+                            , newCell 1 "\\vec{v} = (1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0)\nn = 7\n\\sigma(\\vec{v})"
+                            , newCell 2 "\\sum_{i = 1}^{n} \\sigma(\\vec{v})_{i}"
+                            ]
+                        , selectedCell = 0
+                      }
+                    , Cmd.none
+                    )
 
-autoExpandConfig : Int -> AutoExpand.Config Msg
-autoExpandConfig index =
+                Bitcoin ->
+                    ( { model
+                        | state = Interpreter.newState
+                        , cells =
+                            [ newCell 0 "q = 0.1\nz = 2\np = 1 - q\n\\lambda = z * \\frac{q}{p}"
+                            , newCell 1 "1 - \\sum_{k = 0}^{z} \\frac{(\\lambda ^ k) * e ^ {-\\lambda}}{k!} * (1 - (q / p) ^ {(z - k)})"
+                            ]
+                        , selectedCell = 0
+                      }
+                    , Cmd.none
+                    )
+
+
+autoExpandConfig : Int -> Int -> AutoExpand.Config Msg
+autoExpandConfig minRows index =
     AutoExpand.config
         { onInput = UpdateInput index
         , padding = 5
         , lineHeight = 18
-        , minRows = 1
+        , minRows = minRows
         , maxRows = 50
         }
         |> AutoExpand.withAttribute (style "resize" "none")

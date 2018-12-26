@@ -34,6 +34,12 @@ encode expr =
                 Sqrt ->
                     "\\sqrt{" ++ encode e1 ++ "}"
 
+                Factorial ->
+                    encode e1 ++ "!"
+
+                Negation ->
+                    "-" ++ encode e1
+
         encodeDoubleOp op e1 e2 =
             case op of
                 Addition ->

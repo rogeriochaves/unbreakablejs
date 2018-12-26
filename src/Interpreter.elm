@@ -1,4 +1,4 @@
-module Interpreter exposing (LineResult, State, run, newState)
+module Interpreter exposing (LineResult, State, newState, run)
 
 import Dict exposing (Dict)
 import List.Extra
@@ -189,6 +189,29 @@ runSingleArity state func expr =
             ( state
             , eval state expr
                 |> Return.mapNum (SingleArity func) sqrt
+            )
+
+        Factorial ->
+            let
+                factorial : Float -> Value
+                factorial num =
+                    if num /= toFloat (round num) || num < 0 then
+                        throwError ("Cannot calculate factorial for " ++ String.fromFloat num ++ ", only for positive integers")
+
+                    else
+                        List.range 1 (round num)
+                            |> List.foldl (*) 1
+                            |> (Expression << Number << toFloat)
+            in
+            ( state
+            , eval state expr
+                |> Return.andThenNum (SingleArity func) factorial
+            )
+
+        Negation ->
+            ( state
+            , eval state expr
+                |> Return.mapNum (SingleArity func) negate
             )
 
 

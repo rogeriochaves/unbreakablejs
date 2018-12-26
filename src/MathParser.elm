@@ -39,6 +39,7 @@ scalarIdentifier =
     getChompedString <|
         oneOf
             [ symbol "\\sigma"
+            , symbol "\\lambda"
             , succeed ()
                 |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
             ]
@@ -71,7 +72,8 @@ operators =
                 |. backtrackable spaces
                 |= symbol sign
     in
-    [ [ infixOp Exponentiation (symb "^") AssocLeft ]
+    [ [ prefixOperator (SingleArity Negation) (symbol "-") ]
+    , [ infixOp Exponentiation (symb "^") AssocLeft ]
     , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
     , [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
     ]
@@ -123,11 +125,14 @@ exponentiation expr =
     succeed (DoubleArity Exponentiation expr)
         |. backtrackable spaces
         |. backtrackable (symbol "^")
-        |. spaces
-        |= oneOf
-            [ braces (lazy <| \_ -> expression)
-            , lazy <| \_ -> expression
-            ]
+        |. backtrackable spaces
+        |= backtrackable (braces (lazy <| \_ -> expression))
+
+
+factorial : Expression -> Parser Expression
+factorial expr =
+    succeed (SingleArity Factorial expr)
+        |. backtrackable (symbol "!")
 
 
 program : Parser Types.Program
@@ -162,6 +167,7 @@ expression_ withDeclarations =
                             oneOf
                                 [ index expr
                                 , exponentiation expr
+                                , factorial expr
                                 , succeed expr
                                 ]
                         )

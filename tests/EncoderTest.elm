@@ -38,7 +38,7 @@ suite =
             \_ ->
                 let
                     original =
-                        "f(\\vec{x})_{z} = (1 ^ {x + 1}, 1 - 1, 2 * 2, 3 / 3, \\sqrt{4})"
+                        "f(\\vec{x})_{z} = (1 ^ {x + 1}, 1 - 1, 2 * 2, 3 / 3, \\sqrt{4}, -5!)"
                 in
                 MathParser.parse original
                     |> Result.map (List.map encode)

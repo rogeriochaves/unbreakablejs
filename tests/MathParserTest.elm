@@ -77,6 +77,14 @@ suite =
                                 (Number 1)
                             )
                         )
+        , test "parses factorial" <|
+            \_ ->
+                MathParser.parse "5!"
+                    |> isEq (SingleArity Factorial (Number 5))
+        , test "parses negation" <|
+            \_ ->
+                MathParser.parse "-5"
+                    |> isEq (SingleArity Negation (Number 5))
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->

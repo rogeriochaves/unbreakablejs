@@ -29,6 +29,8 @@ type SingleArity
     = Application Expression
     | Assignment Identifier
     | Sqrt
+    | Factorial
+    | Negation
 
 
 type DoubleArity
