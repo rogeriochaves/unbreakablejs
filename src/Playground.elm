@@ -50,7 +50,8 @@ type Msg
 
 
 type Example
-    = Softmax
+    = Basics
+    | Softmax
     | Bitcoin
 
 
@@ -117,7 +118,8 @@ header model =
                 [ text "Examples "
                 , span Style.utf8Icon [ text "▼" ]
                 , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
-                    [ submenuItem [ onClick (SetExample Softmax) ] [ text "Softmax" ]
+                    [ submenuItem [ onClick (SetExample Basics) ] [ text "Basic Samples" ]
+                    , submenuItem [ onClick (SetExample Softmax) ] [ text "Softmax" ]
                     , submenuItem [ onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Prob" ]
                     ]
                 ]
@@ -303,6 +305,24 @@ update msg model =
 
         SetExample example ->
             case example of
+                Basics ->
+                    ( { model
+                        | state = Interpreter.newState
+                        , cells =
+                            [ newCell 0 "1 + 1"
+                            , newCell 1 "\\frac{25}{2}"
+                            , newCell 2 "12!"
+                            , newCell 3 "x = 5\n\\vec{y} = (1, 2, 3)"
+                            , newCell 4 "\\sqrt{x}"
+                            , newCell 5 "\\sum_{i = 1}^{100} (2 * i + 1)"
+                            , newCell 6 "f(x) = x + 1\nf(5)"
+                            , newCell 7 "f(\\vec{v})_{j} = v_{j} + 1\nf(\\vec{y})"
+                            ]
+                        , selectedCell = 0
+                      }
+                    , Cmd.none
+                    )
+
                 Softmax ->
                     ( { model
                         | state = Interpreter.newState

@@ -47,6 +47,7 @@ utf8Icon =
 
 submenu =
     [ style "box-shadow" "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+    , style "background" "#FFF"
     ]
 
 
