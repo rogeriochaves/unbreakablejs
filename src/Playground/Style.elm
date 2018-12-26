@@ -1,4 +1,4 @@
-module Playground.Style exposing (cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, monospace, notebook, selectedCell, title, toolbarButton)
+module Playground.Style exposing (cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, title, toolbarButton, utf8Icon)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -17,6 +17,25 @@ header =
 
 title =
     [ style "font-weight" "normal"
+    ]
+
+
+smallSubtitle =
+    [ style "font-weight" "normal"
+    , style "color" "#AAA"
+    , style "font-size" "15px"
+    ]
+
+
+menuLink =
+    [ style "color" "rgb(40, 126, 213)"
+    , style "font-size" "20px"
+    , style "cursor" "pointer"
+    ]
+
+
+utf8Icon =
+    [ style "font-size" "0.8em"
     ]
 
 

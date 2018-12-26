@@ -79,18 +79,48 @@ emptyLatexState =
 
 view : Model -> Html Msg
 view model =
-    div (Style.general ++ [ style "margin" "-8px" ])
-        [ div (Style.header ++ [ style "display" "flex", style "justify-content" "center" ])
-            [ div [ style "flex-grow" "1", style "max-width" "1140px" ]
-                [ h1 Style.title [ text "Explain Math" ]
-                , toolbarView
-                ]
+    row (Style.general ++ [ style "margin" "-8px" ])
+        [ column (Style.header ++ [ style "justify-content" "center" ])
+            [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+                (header model)
             ]
-        , div [ style "display" "flex", style "justify-content" "center", style "padding-top" "20px" ]
-            [ div (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
+        , column [ style "justify-content" "center", style "padding-top" "20px" ]
+            [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
                 (List.indexedMap (cellView model) model.cells)
             ]
         ]
+
+
+header : Model -> List (Html Msg)
+header model =
+    let
+        menuLink attrs =
+            a (Style.menuLink ++ [ style "padding" "10px 20px", class "menuLink" ] ++ attrs)
+    in
+    [ column [ style "padding-top" "20px" ]
+        [ row []
+            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "Rubber" ]
+            , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "Evaluate LaTeX math code (beta)" ]
+            ]
+        , column [ style "justify-content" "center", style "flex-grow" "1" ]
+            [ menuLink [] [ text "Playground" ]
+            , menuLink [] [ text "Examples ", span Style.utf8Icon [ text "▼" ] ]
+            , menuLink [] [ text "About" ]
+            , menuLink [] [ text "Docs" ]
+            ]
+        ]
+    , toolbarView
+    ]
+
+
+row : List (Html.Attribute a) -> List (Html a) -> Html a
+row =
+    div
+
+
+column : List (Html.Attribute a) -> List (Html a) -> Html a
+column attrs =
+    div ([ style "display" "flex" ] ++ attrs)
 
 
 toolbarView : Html Msg
@@ -106,7 +136,7 @@ toolbarView =
                     ++ attrs
                 )
     in
-    div [ style "padding-bottom" "20px" ]
+    column [ style "padding-bottom" "20px" ]
         [ toolbarButton [ onClick AddCell ] [ text "Add Cell" ]
         , toolbarButton [ onClick RunCell ] [ text "Run Cell" ]
         ]
@@ -122,8 +152,8 @@ cellView model index item =
             else
                 Style.cell
     in
-    div (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
-        [ div [ style "display" "flex" ]
+    row (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
+        [ column []
             [ cellLabelView Style.cellLabelInput "Input:"
             , if String.isEmpty item.input || index == model.selectedCell then
                 AutoExpand.view (autoExpandConfig index) item.autoexpand item.input
@@ -139,7 +169,7 @@ renderResult : Cell -> Html Msg
 renderResult item =
     case item.result of
         Expression expr ->
-            div [ style "display" "flex" ]
+            column []
                 [ cellLabelView Style.cellLabelOutput "Output:"
                 , renderLatex (encode expr)
                 ]
@@ -149,22 +179,22 @@ renderResult item =
 
         Error err ->
             let
-                row =
+                row_ =
                     err.row - 1
 
                 msg =
-                    if row <= 0 then
+                    if row_ <= 0 then
                         Debug.toString err.problem
 
                     else
                         "Error on line "
-                            ++ String.fromInt row
+                            ++ String.fromInt row_
                             ++ ", column "
                             ++ String.fromInt err.col
                             ++ ": "
                             ++ Debug.toString err.problem
             in
-            div (Style.errorMessage ++ [ style "display" "flex", style "padding-bottom" "20px" ])
+            column (Style.errorMessage ++ [ style "padding-bottom" "20px" ])
                 [ cellLabelView Style.cellLabelOutput ""
                 , text msg
                 ]
@@ -172,7 +202,7 @@ renderResult item =
 
 cellLabelView : List (Attribute Msg) -> String -> Html Msg
 cellLabelView attrs str =
-    div (attrs ++ [ style "width" "90px", style "padding-right" "5px", style "padding-top" "8px" ]) [ text str ]
+    row (attrs ++ [ style "width" "90px", style "padding-right" "5px", style "padding-top" "8px" ]) [ text str ]
 
 
 renderLatex : String -> Html Msg
@@ -181,7 +211,7 @@ renderLatex str =
         convertedText =
             "$$\n" ++ String.replace "\n" "\\\\" str ++ "\n$$"
     in
-    div [ style "width" "80%", style "margin-top" "-8px", style "padding-left" "5px" ]
+    row [ style "width" "80%", style "margin-top" "-8px", style "padding-left" "5px" ]
         [ Html.Keyed.node "div"
             []
             [ ( str, div [ class "raw-math" ] [ text <| convertedText ] )
