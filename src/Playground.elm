@@ -37,7 +37,7 @@ type alias Model =
 type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
-    , result : Return.Value
+    , result : Maybe Return.Value
     }
 
 
@@ -70,7 +70,7 @@ newCell : Int -> String -> Cell
 newCell index input =
     { input = input
     , autoexpand = AutoExpand.initState (autoExpandConfig (List.length <| String.split "\n" input) index)
-    , result = Void
+    , result = Nothing
     }
 
 
@@ -171,7 +171,7 @@ cellView model index item =
     row (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
         [ column []
             [ cellLabelView Style.cellLabelInput "Input:"
-            , if String.isEmpty item.input || index == model.selectedCell then
+            , if item.result == Nothing || index == model.selectedCell then
                 AutoExpand.view (autoExpandConfig 1 index) item.autoexpand item.input
 
               else
@@ -184,16 +184,13 @@ cellView model index item =
 renderResult : Cell -> Html Msg
 renderResult item =
     case item.result of
-        Expression expr ->
+        Just (Expression expr) ->
             column []
                 [ cellLabelView Style.cellLabelOutput "Output:"
                 , renderLatex (encode expr)
                 ]
 
-        Void ->
-            div [] []
-
-        Error err ->
+        Just (Error err) ->
             let
                 row_ =
                     err.row - 1
@@ -214,6 +211,12 @@ renderResult item =
                 [ cellLabelView Style.cellLabelOutput ""
                 , text msg
                 ]
+
+        Just Void ->
+            div [] []
+
+        Nothing ->
+            div [] []
 
 
 cellLabelView : List (Attribute Msg) -> String -> Html Msg
@@ -282,7 +285,7 @@ update msg model =
                         |> Maybe.withDefault ( model.state, Void )
 
                 updateCell cell_ =
-                    { cell_ | result = Tuple.second result }
+                    { cell_ | result = Just <| Tuple.second result }
 
                 updatedModel =
                     { model
