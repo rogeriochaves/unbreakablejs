@@ -9,6 +9,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed
 import Interpreter
+import Json.Decode as Json
 import List.Extra
 import MathParser
 import Parser exposing (Problem(..))
@@ -47,6 +48,7 @@ type Msg
     | SelectCell Int
     | RunCell
     | SetExample Example
+    | KeyDown (Maybe Int)
 
 
 type Example
@@ -348,6 +350,14 @@ update msg model =
                     , Cmd.none
                     )
 
+        KeyDown key ->
+            case key of
+                Just 13 ->
+                    update RunCell model
+
+                _ ->
+                    ( model, Cmd.none )
+
 
 autoExpandConfig : Int -> Int -> AutoExpand.Config Msg
 autoExpandConfig minRows index =
@@ -365,3 +375,17 @@ autoExpandConfig minRows index =
         |> AutoExpand.withAttribute (style "font-size" "14px")
         |> AutoExpand.withAttribute (style "font-family" "monospace, sans-serif")
         |> AutoExpand.withAttribute (onFocus (SelectCell index))
+        |> AutoExpand.withAttribute (on "keydown" (Json.map KeyDown keyCodeWithShift))
+
+
+keyCodeWithShift =
+    Json.map2
+        (\shift keyCode ->
+            if shift then
+                Just keyCode
+
+            else
+                Nothing
+        )
+        (Json.field "shiftKey" Json.bool)
+        (Json.field "keyCode" Json.int)
