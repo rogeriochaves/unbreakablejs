@@ -15,8 +15,10 @@ import Json.Decode as Json
 import List.Extra
 import MathParser
 import Parser exposing (Problem(..))
+import Playground.Components exposing (..)
 import Playground.Routes exposing (..)
 import Playground.Style as Style
+import Playground.Types exposing (..)
 import Return exposing (Value(..))
 import Task
 import Types exposing (Error)
@@ -34,41 +36,6 @@ main =
         , onUrlChange = OnUrlChange
         , onUrlRequest = OnUrlRequest
         }
-
-
-type alias Model =
-    { cells : List Cell
-    , state : Interpreter.State
-    , selectedCell : Int
-    , page : Page
-    , key : Key
-    }
-
-
-type alias Cell =
-    { input : String
-    , autoexpand : AutoExpand.State
-    , result : Maybe Return.Value
-    }
-
-
-type Msg
-    = NoOp
-    | UpdateInput Int { textValue : String, state : AutoExpand.State }
-    | AddCell
-    | SelectCell Int
-    | RunCell
-    | SetExample Example
-    | KeyDown (Maybe Int)
-    | OnUrlChange Url
-    | OnUrlRequest UrlRequest
-    | Go Page
-
-
-type Example
-    = Basics
-    | Softmax
-    | Bitcoin
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -105,71 +72,37 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Rubber - Evaluate LaTeX math code"
     , body =
-        [ case model.page of
-            Playground ->
-                playground model
+        [ row (Style.general ++ [ id "main", style "margin" "-8px" ])
+            (case model.page of
+                Playground ->
+                    playground model
 
-            About ->
-                text "about the project"
+                About ->
+                    [ column (Style.header ++ [ style "justify-content" "center" ])
+                        [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+                            [ Playground.Components.header
+                            ]
+                        ]
+                    , text "about the project"
+                    ]
+            )
         ]
     }
 
 
-playground : Model -> Html Msg
+playground : Model -> List (Html Msg)
 playground model =
-    row (Style.general ++ [ id "main", style "margin" "-8px" ])
-        [ column (Style.header ++ [ style "justify-content" "center" ])
-            [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
-                (header model)
-            ]
-        , column [ style "justify-content" "center", style "padding-top" "20px" ]
-            [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
-                (List.indexedMap (cellView model) model.cells)
+    [ column (Style.header ++ [ style "justify-content" "center" ])
+        [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+            [ Playground.Components.header
+            , toolbarView
             ]
         ]
-
-
-header : Model -> List (Html Msg)
-header model =
-    let
-        menuLink attrs =
-            a (Style.menuLink ++ [ style "padding" "10px 20px", class "menuLink" ] ++ attrs)
-
-        submenuItem attrs =
-            a (Style.submenuItem ++ [ style "padding" "10px 20px", style "display" "block", class "submenuItem" ] ++ attrs)
-    in
-    [ column [ style "padding-top" "20px" ]
-        [ row []
-            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "Rubber" ]
-            , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "Evaluate LaTeX math code (beta)" ]
-            ]
-        , column [ style "justify-content" "center", style "flex-grow" "1" ]
-            [ menuLink [ href "#" ] [ text "Playground" ]
-            , menuLink [ href "#", class "submenuLink" ]
-                [ text "Examples "
-                , span Style.utf8Icon [ text "▼" ]
-                , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
-                    [ submenuItem [ href "#", onClick (SetExample Basics) ] [ text "Basic Samples" ]
-                    , submenuItem [ href "#", onClick (SetExample Softmax) ] [ text "Softmax" ]
-                    , submenuItem [ href "#", onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
-                    ]
-                ]
-            , menuLink [ href "#about" ] [ text "About" ]
-            , menuLink [ href "#docs" ] [ text "Docs" ]
-            ]
+    , column [ style "justify-content" "center", style "padding-top" "20px" ]
+        [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
+            (List.indexedMap (cellView model) model.cells)
         ]
-    , toolbarView
     ]
-
-
-row : List (Html.Attribute a) -> List (Html a) -> Html a
-row =
-    div
-
-
-column : List (Html.Attribute a) -> List (Html a) -> Html a
-column attrs =
-    div ([ style "display" "flex" ] ++ attrs)
 
 
 toolbarView : Html Msg
