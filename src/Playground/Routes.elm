@@ -1,7 +1,7 @@
 module Playground.Routes exposing (Page(..), routes, toPath)
 
 import Browser.Navigation
-import Url.Parser exposing ((</>), Parser, map, oneOf, parse, s, top)
+import Url.Parser exposing ((</>), Parser, fragment, map, oneOf, parse, top)
 
 
 type Page
@@ -12,9 +12,22 @@ type Page
 routes : Parser (Page -> a) a
 routes =
     oneOf
-        [ map Playground top
-        , map About (s "about")
+        [ mapFragment About "about"
+        , map Playground top
         ]
+
+
+mapFragment : Page -> String -> Parser (Page -> c) c
+mapFragment page path =
+    map
+        (\frag ->
+            if Maybe.withDefault "" frag == path then
+                page
+
+            else
+                Playground
+        )
+        (fragment identity)
 
 
 toPath : Page -> String
@@ -24,4 +37,4 @@ toPath page =
             "/"
 
         About ->
-            "/about"
+            "#about"

@@ -73,16 +73,15 @@ type Example
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { cells =
-            [ newCell 0 ""
-            ]
-      , state = Interpreter.newState
-      , selectedCell = -1
-      , page = Playground
-      , key = key
-      }
-    , Cmd.none
-    )
+    { cells =
+        [ newCell 0 ""
+        ]
+    , state = Interpreter.newState
+    , selectedCell = -1
+    , page = Playground
+    , key = key
+    }
+        |> update (OnUrlChange url)
 
 
 newCell : Int -> String -> Cell
@@ -106,18 +105,28 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Rubber - Evaluate LaTeX math code"
     , body =
-        [ row (Style.general ++ [ id "main", style "margin" "-8px" ])
-            [ column (Style.header ++ [ style "justify-content" "center" ])
-                [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
-                    (header model)
-                ]
-            , column [ style "justify-content" "center", style "padding-top" "20px" ]
-                [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
-                    (List.indexedMap (cellView model) model.cells)
-                ]
-            ]
+        [ case model.page of
+            Playground ->
+                playground model
+
+            About ->
+                text "about the project"
         ]
     }
+
+
+playground : Model -> Html Msg
+playground model =
+    row (Style.general ++ [ id "main", style "margin" "-8px" ])
+        [ column (Style.header ++ [ style "justify-content" "center" ])
+            [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+                (header model)
+            ]
+        , column [ style "justify-content" "center", style "padding-top" "20px" ]
+            [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
+                (List.indexedMap (cellView model) model.cells)
+            ]
+        ]
 
 
 header : Model -> List (Html Msg)
@@ -347,7 +356,7 @@ update msg model =
         SetExample example ->
             case example of
                 Basics ->
-                    ( { model
+                    { model
                         | state = Interpreter.newState
                         , cells =
                             [ newCell 0 "1 + 1"
@@ -359,35 +368,30 @@ update msg model =
                             , newCell 6 "f(x) = x + 1\nf(5)"
                             , newCell 7 "f(\\vec{v})_{j} = v_{j} + 1\nf(\\vec{y})"
                             ]
-                        , selectedCell = 0
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> update (SelectCell 0)
 
                 Softmax ->
-                    ( { model
+                    { model
                         | state = Interpreter.newState
                         , cells =
                             [ newCell 0 "\\sigma(\\vec{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}"
                             , newCell 1 "\\vec{v} = (1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0)\nn = 7\n\\sigma(\\vec{v})"
                             , newCell 2 "\\sum_{i = 1}^{n} \\sigma(\\vec{v})_{i}"
                             ]
-                        , selectedCell = 0
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> update (SelectCell 0)
 
                 Bitcoin ->
-                    ( { model
+                    { model
                         | state = Interpreter.newState
                         , cells =
                             [ newCell 0 "q = 0.1\nz = 2\np = 1 - q\n\\lambda = z * \\frac{q}{p}"
                             , newCell 1 "1 - \\sum_{k = 0}^{z} \\frac{(\\lambda ^ k) * e ^ {-\\lambda}}{k!} * (1 - (q / p) ^ {(z - k)})"
                             ]
                         , selectedCell = 0
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> update (SelectCell 0)
 
         KeyDown key ->
             case key of
