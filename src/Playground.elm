@@ -1,8 +1,9 @@
 module Playground exposing (main)
 
 import AutoExpand as AutoExpand
-import Browser
+import Browser exposing (UrlRequest(..))
 import Browser.Dom exposing (focus)
+import Browser.Navigation exposing (Key, load, pushUrl)
 import Dict
 import Encoder exposing (encode)
 import Html exposing (..)
@@ -14,19 +15,24 @@ import Json.Decode as Json
 import List.Extra
 import MathParser
 import Parser exposing (Problem(..))
+import Playground.Routes exposing (..)
 import Playground.Style as Style
 import Return exposing (Value(..))
 import Task
 import Types exposing (Error)
+import Url exposing (Url)
+import Url.Parser exposing (parse)
 
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = always Sub.none
+        , onUrlChange = OnUrlChange
+        , onUrlRequest = OnUrlRequest
         }
 
 
@@ -34,6 +40,8 @@ type alias Model =
     { cells : List Cell
     , state : Interpreter.State
     , selectedCell : Int
+    , page : Page
+    , key : Key
     }
 
 
@@ -52,6 +60,9 @@ type Msg
     | RunCell
     | SetExample Example
     | KeyDown (Maybe Int)
+    | OnUrlChange Url
+    | OnUrlRequest UrlRequest
+    | Go Page
 
 
 type Example
@@ -60,13 +71,15 @@ type Example
     | Bitcoin
 
 
-init : () -> ( Model, Cmd Msg )
-init flags =
+init : () -> Url -> Key -> ( Model, Cmd Msg )
+init flags url key =
     ( { cells =
             [ newCell 0 ""
             ]
       , state = Interpreter.newState
       , selectedCell = -1
+      , page = Playground
+      , key = key
       }
     , Cmd.none
     )
@@ -89,18 +102,22 @@ emptyLatexState =
     }
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    row (Style.general ++ [ style "margin" "-8px" ])
-        [ column (Style.header ++ [ style "justify-content" "center" ])
-            [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
-                (header model)
-            ]
-        , column [ style "justify-content" "center", style "padding-top" "20px" ]
-            [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
-                (List.indexedMap (cellView model) model.cells)
+    { title = "Rubber - Evaluate LaTeX math code"
+    , body =
+        [ row (Style.general ++ [ id "main", style "margin" "-8px" ])
+            [ column (Style.header ++ [ style "justify-content" "center" ])
+                [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+                    (header model)
+                ]
+            , column [ style "justify-content" "center", style "padding-top" "20px" ]
+                [ row (Style.notebook ++ [ style "padding" "15px", style "flex-grow" "1", style "max-width" "1140px" ])
+                    (List.indexedMap (cellView model) model.cells)
+                ]
             ]
         ]
+    }
 
 
 header : Model -> List (Html Msg)
@@ -118,18 +135,18 @@ header model =
             , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "Evaluate LaTeX math code (beta)" ]
             ]
         , column [ style "justify-content" "center", style "flex-grow" "1" ]
-            [ menuLink [] [ text "Playground" ]
-            , menuLink [ class "submenuLink" ]
+            [ menuLink [ href "#" ] [ text "Playground" ]
+            , menuLink [ href "#", class "submenuLink" ]
                 [ text "Examples "
                 , span Style.utf8Icon [ text "▼" ]
                 , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
-                    [ submenuItem [ onClick (SetExample Basics) ] [ text "Basic Samples" ]
-                    , submenuItem [ onClick (SetExample Softmax) ] [ text "Softmax" ]
-                    , submenuItem [ onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
+                    [ submenuItem [ href "#", onClick (SetExample Basics) ] [ text "Basic Samples" ]
+                    , submenuItem [ href "#", onClick (SetExample Softmax) ] [ text "Softmax" ]
+                    , submenuItem [ href "#", onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
                     ]
                 ]
-            , menuLink [] [ text "About" ]
-            , menuLink [] [ text "Docs" ]
+            , menuLink [ href "#about" ] [ text "About" ]
+            , menuLink [ href "#docs" ] [ text "Docs" ]
             ]
         ]
     , toolbarView
@@ -379,6 +396,20 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        OnUrlChange url ->
+            ( { model | page = Maybe.withDefault Playground <| parse routes url }, Cmd.none )
+
+        OnUrlRequest urlRequest ->
+            case urlRequest of
+                Internal url ->
+                    ( model, pushUrl model.key <| Url.toString url )
+
+                External url ->
+                    ( model, load url )
+
+        Go page ->
+            ( model, pushUrl model.key <| toPath page )
 
 
 autoExpandConfig : Int -> Int -> AutoExpand.Config Msg

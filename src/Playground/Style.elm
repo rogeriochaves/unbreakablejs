@@ -31,13 +31,15 @@ menuLink =
     [ style "color" "rgb(40, 126, 213)"
     , style "font-size" "20px"
     , style "cursor" "pointer"
+    , style "text-decoration" "none"
     ]
 
 
 submenuItem =
-    [ style "font-size" "18px"
-    , style "color" "#666"
-    ]
+    menuLink
+        ++ [ style "font-size" "18px"
+           , style "color" "#666"
+           ]
 
 
 utf8Icon =
