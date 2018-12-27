@@ -1,4 +1,4 @@
-module Playground.Style exposing (cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon)
+module Playground.Style exposing (card, cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -9,10 +9,14 @@ general =
     ]
 
 
-header =
+card =
     [ style "background" "#FFF"
     , style "box-shadow" "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
     ]
+
+
+header =
+    card
 
 
 title =
@@ -54,9 +58,7 @@ submenu =
 
 
 notebook =
-    [ style "background" "#FFF"
-    , style "box-shadow" "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
-    ]
+    card
 
 
 cell =

@@ -1,4 +1,4 @@
-module Playground.Components exposing (column, header, row)
+module Playground.Components exposing (column, container, header, row)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -46,3 +46,11 @@ row =
 column : List (Html.Attribute a) -> List (Html a) -> Html a
 column attrs =
     div ([ style "display" "flex" ] ++ attrs)
+
+
+container : List (Html.Attribute a) -> List (Html a) -> Html a
+container attrs children =
+    column ([ style "justify-content" "center" ] ++ attrs)
+        [ row [ style "flex-grow" "1", style "max-width" "1140px", style "padding" "0 10px" ]
+            children
+        ]
