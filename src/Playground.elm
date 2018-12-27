@@ -2,6 +2,7 @@ module Playground exposing (main)
 
 import AutoExpand as AutoExpand
 import Browser
+import Browser.Dom exposing (focus)
 import Dict
 import Encoder exposing (encode)
 import Html exposing (..)
@@ -15,6 +16,7 @@ import MathParser
 import Parser exposing (Problem(..))
 import Playground.Style as Style
 import Return exposing (Value(..))
+import Task
 import Types exposing (Error)
 
 
@@ -43,7 +45,8 @@ type alias Cell =
 
 
 type Msg
-    = UpdateInput Int { textValue : String, state : AutoExpand.State }
+    = NoOp
+    | UpdateInput Int { textValue : String, state : AutoExpand.State }
     | AddCell
     | SelectCell Int
     | RunCell
@@ -122,7 +125,7 @@ header model =
                 , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
                     [ submenuItem [ onClick (SetExample Basics) ] [ text "Basic Samples" ]
                     , submenuItem [ onClick (SetExample Softmax) ] [ text "Softmax" ]
-                    , submenuItem [ onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Prob" ]
+                    , submenuItem [ onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
                     ]
                 ]
             , menuLink [] [ text "About" ]
@@ -245,22 +248,34 @@ renderLatex str =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         UpdateInput index { state, textValue } ->
             let
                 updateCell cell_ =
                     { cell_ | autoexpand = state, input = textValue }
             in
-            ( { model | cells = List.Extra.updateIfIndex ((==) index) updateCell model.cells }
-            , Cmd.none
-            )
+            if index == model.selectedCell then
+                ( { model | cells = List.Extra.updateIfIndex ((==) index) updateCell model.cells }
+                , Cmd.none
+                )
+
+            else
+                ( model, Cmd.none )
 
         AddCell ->
-            ( { model | cells = model.cells ++ [ newCell (List.length model.cells) "" ] }
-            , Cmd.none
-            )
+            let
+                index =
+                    List.length model.cells
+            in
+            { model | cells = model.cells ++ [ newCell index "" ] }
+                |> update (SelectCell index)
 
         SelectCell index ->
-            ( { model | selectedCell = index }, Cmd.none )
+            ( { model | selectedCell = index }
+            , Task.attempt (\_ -> NoOp) (focus ("cellinput-" ++ String.fromInt index))
+            )
 
         RunCell ->
             let
@@ -291,19 +306,26 @@ update msg model =
                 updateCell cell_ =
                     { cell_ | result = Just <| Tuple.second result }
 
-                updatedModel =
+                updated =
                     { model
                         | state = Tuple.first result
                         , cells = List.Extra.updateIfIndex ((==) model.selectedCell) updateCell model.cells
-                        , selectedCell = model.selectedCell + 1
                     }
+                        |> update (SelectCell (model.selectedCell + 1))
+
+                updatedModel =
+                    Tuple.first updated
+
+                updatedCmd =
+                    Tuple.second updated
             in
             if updatedModel.selectedCell == List.length model.cells then
                 updatedModel
                     |> update AddCell
+                    |> Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, updatedCmd ])
 
             else
-                ( updatedModel, Cmd.none )
+                updated
 
         SetExample example ->
             case example of
@@ -376,6 +398,7 @@ autoExpandConfig minRows index =
         |> AutoExpand.withAttribute (style "font-family" "monospace, sans-serif")
         |> AutoExpand.withAttribute (onFocus (SelectCell index))
         |> AutoExpand.withAttribute (on "keydown" (Json.map KeyDown keyCodeWithShift))
+        |> AutoExpand.withAttribute (id ("cellinput-" ++ String.fromInt index))
 
 
 keyCodeWithShift =
