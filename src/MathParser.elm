@@ -30,7 +30,7 @@ identifier =
 vectorIdentifier : Parser String
 vectorIdentifier =
     succeed identity
-        |. symbol "\\vec"
+        |. oneOf [ symbol "\\vec", symbol "\\mathbf" ]
         |= braces scalarIdentifier
 
 

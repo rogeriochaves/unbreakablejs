@@ -13,7 +13,7 @@ encode expr =
                     name
 
                 VectorIdentifier name ->
-                    "\\vec{" ++ name ++ "}"
+                    "\\mathbf{" ++ name ++ "}"
 
         encodeSingleOp op e1 =
             case op of
@@ -110,4 +110,4 @@ encode expr =
             "(" ++ encodeIdentifier id ++ ") = " ++ encode e
 
         MapAbstraction var index e ->
-            "(\\vec{" ++ var ++ "})_{" ++ index ++ "} = " ++ encode e
+            "(\\mathbf{" ++ var ++ "})_{" ++ index ++ "} = " ++ encode e

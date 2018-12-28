@@ -22,7 +22,7 @@ header =
             , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "Evaluate LaTeX math code (beta)" ]
             ]
         , column [ style "justify-content" "center", style "flex-grow" "1" ]
-            [ menuLink [ href "#" ] [ text "Playground" ]
+            [ menuLink [ href "#", onClick ClearPlayground ] [ text "Playground" ]
             , menuLink [ href "#", class "submenuLink" ]
                 [ text "Examples "
                 , span Style.utf8Icon [ text "▼" ]
@@ -33,7 +33,7 @@ header =
                     ]
                 ]
             , menuLink [ href "#about" ] [ text "About" ]
-            , menuLink [ href "#docs" ] [ text "Docs" ]
+            , menuLink [ href "https://rogeriochaves.gitbooks.io/rubber/?", target "_blank" ] [ text "Docs" ]
             ]
         ]
 

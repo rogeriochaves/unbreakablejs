@@ -29,7 +29,7 @@ suite =
             \_ ->
                 let
                     original =
-                        "\\vec{x} = (\\frac{2}{3}, \\sum_{x = 1}^{3} 5, g(x), x_{5})"
+                        "\\mathbf{x} = (\\frac{2}{3}, \\sum_{x = 1}^{3} 5, g(x), x_{5})"
                 in
                 MathParser.parse original
                     |> Result.map (List.map encode)
@@ -38,7 +38,7 @@ suite =
             \_ ->
                 let
                     original =
-                        "f(\\vec{x})_{z} = (1 ^ {x + 1}, 1 - 1, 2 * 2, 3 / 3, \\sqrt{4}, -5!)"
+                        "f(\\mathbf{x})_{z} = (1 ^ {x + 1}, 1 - 1, 2 * 2, 3 / 3, \\sqrt{4}, -5!)"
                 in
                 MathParser.parse original
                     |> Result.map (List.map encode)

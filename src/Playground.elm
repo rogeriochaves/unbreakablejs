@@ -78,6 +78,10 @@ view model =
 
 about : List (Html Msg)
 about =
+    let
+        softmax =
+            "$$\n\\sigma(\\mathbf{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}\n$$"
+    in
     [ container Style.header
         [ Playground.Components.header
         ]
@@ -94,7 +98,10 @@ More often then not, academic papers uses a lot of math to describe its achievin
 For example, take the softmax formula, see how it looks mathematically:
 
             """
-            , div [ class "raw-math", style "padding-bottom" "10px" ] [ text "$$\n\\sigma(\\mathbf{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}\n$$" ]
+            , Html.Keyed.node "div"
+                []
+                [ ( softmax, div [ class "raw-math", style "padding-bottom" "10px" ] [ text <| softmax ] )
+                ]
             , Markdown.toHtml [ style "line-height" "1.5em" ]
                 """
 
@@ -118,7 +125,7 @@ There are a lot of popular math-focused languages out there, like [MATLAB](https
 
 Other languages or tools do have a support for true math formulas, sometimes even some support to LaTeX code, but they are closed-source and very expensive, such as [Wolfram Mathematica](http://www.wolfram.com/mathematica) or [Maple](https://www.maplesoft.com).
 
-The goal of **Rubber** is to allow you to copy the same LaTeX code that was put in some paper, and run it. Ideally, paper authors would publish the LaTeX code as an attachment to every formula used, and they would had run it already on **Rubber** knowing it works, allowing people to copy and paste and explore on their own, so it has to be as open and free as possible.
+The goal of **Rubber** is to allow you to copy the same LaTeX code that was put in some paper, and run it. Ideally, paper authors would publish the LaTeX code as an attachment to every formula used, and they would had run it already on **Rubber** knowing it works, allowing people to copy and paste and explore on their own. To achieve that, this project has to be as open and free as possible.
 
 If you like this idea, and would like me to keep developing it, drop me a message on [twitter](https://twitter.com/_rchaves_), or at least [some stars on github](https://github.com/rogeriochaves/rubber/) because I have no trackings on this website so I have no way of knowing it unless you tell me.
 
@@ -136,7 +143,7 @@ playground model =
         , toolbarView
         ]
     , container [ style "padding-top" "20px" ]
-        [ row Style.notebook
+        [ row (Style.notebook ++ [ style "padding" "20px" ])
             (List.indexedMap (cellView model) model.cells)
         ]
     ]
@@ -323,6 +330,17 @@ update msg model =
             else
                 updated
 
+        ClearPlayground ->
+            ( { model
+                | cells =
+                    [ newCell 0 ""
+                    ]
+                , state = Interpreter.newState
+                , selectedCell = -1
+              }
+            , Cmd.none
+            )
+
         SetExample example ->
             case example of
                 Basics ->
@@ -332,11 +350,11 @@ update msg model =
                             [ newCell 0 "1 + 1"
                             , newCell 1 "\\frac{25}{2}"
                             , newCell 2 "12!"
-                            , newCell 3 "x = 5\n\\vec{y} = (1, 2, 3)"
+                            , newCell 3 "x = 5\n\\mathbf{y} = (1, 2, 3)"
                             , newCell 4 "\\sqrt{x}"
                             , newCell 5 "\\sum_{i = 1}^{100} (2 * i + 1)"
                             , newCell 6 "f(x) = x + 1\nf(5)"
-                            , newCell 7 "f(\\vec{v})_{j} = v_{j} + 1\nf(\\vec{y})"
+                            , newCell 7 "f(\\mathbf{v})_{j} = v_{j} + 1\nf(\\mathbf{y})"
                             ]
                     }
                         |> update (SelectCell 0)
@@ -345,9 +363,9 @@ update msg model =
                     { model
                         | state = Interpreter.newState
                         , cells =
-                            [ newCell 0 "\\sigma(\\vec{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}"
-                            , newCell 1 "\\vec{v} = (1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0)\nn = 7\n\\sigma(\\vec{v})"
-                            , newCell 2 "\\sum_{i = 1}^{n} \\sigma(\\vec{v})_{i}"
+                            [ newCell 0 "\\sigma(\\mathbf{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}"
+                            , newCell 1 "\\mathbf{v} = (1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0)\nn = 7\n\\sigma(\\mathbf{v})"
+                            , newCell 2 "\\sum_{i = 1}^{n} \\sigma(\\mathbf{v})_{i}"
                             ]
                     }
                         |> update (SelectCell 0)

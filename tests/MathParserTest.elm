@@ -188,6 +188,11 @@ suite =
                 \_ ->
                     MathParser.parse "\\vec{x} = (1, 2, 3)"
                         |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+            , test "vector variables can also use mathbf" <|
+                \_ ->
+                    MathParser.parse "\\mathbf{x} = (1, 2, 3)"
+                        |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+
             , test "parses expression with vector variable" <|
                 \_ ->
                     MathParser.parse "\\vec{x} + 1"

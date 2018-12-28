@@ -31,6 +31,7 @@ type Msg
     | AddCell
     | SelectCell Int
     | RunCell
+    | ClearPlayground
     | SetExample Example
     | KeyDown (Maybe Int)
     | OnUrlChange Url
