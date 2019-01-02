@@ -64,7 +64,7 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Rubber - Evaluate LaTeX math code"
     , body =
-        [ row (Style.general ++ [ id "main", style "margin" "-8px" ])
+        [ row (Style.general ++ [ id "main", style "margin" "-8px", style "min-height" "90vh" ])
             (case model.page of
                 Playground ->
                     playground model
@@ -72,6 +72,21 @@ view model =
                 About ->
                     about
             )
+        , container (Style.footer ++ [ style "padding-top" "25px" ])
+            [ text "Did you like this project? Drop me a message on "
+            , a [ href "https://twitter.com/_rchaves_" ] [ text "twitter" ]
+            ]
+        , a [ href "https://github.com/rogeriochaves/rubber/" ]
+            [ img
+                [ style "position" "fixed"
+                , style "top" "0"
+                , style "right" "0"
+                , style "border" "0"
+                , src "https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"
+                , alt "Fork me on GitHub"
+                ]
+                []
+            ]
         ]
     }
 

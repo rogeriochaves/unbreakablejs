@@ -1,4 +1,4 @@
-module Playground.Style exposing (card, cell, cellLabelInput, cellLabelOutput, errorMessage, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon)
+module Playground.Style exposing (card, cell, cellLabelInput, cellLabelOutput, errorMessage, footer, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -98,6 +98,13 @@ toolbarButton =
     , style "border-radius" "5px"
     , style "cursor" "pointer"
     ]
+
+
+footer =
+    general
+        ++ [ style "color" "#999"
+           , style "font-size" "13px"
+           ]
 
 
 monospace =
