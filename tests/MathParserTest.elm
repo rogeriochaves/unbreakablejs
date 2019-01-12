@@ -129,6 +129,14 @@ suite =
                 \_ ->
                     MathParser.parse "x = 1 + 1"
                         |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Number 1) (Number 1)))
+            , test "allows have a variable with a bar" <|
+                \_ ->
+                    MathParser.parse "\\bar{x} = 2"
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "\\bar{x}")) (Number 2))
+            , test "allows have a variable with a tilde" <|
+                \_ ->
+                    MathParser.parse "\\tilde{x} = 3"
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "\\tilde{x}")) (Number 3))
             , test "does not allow nested assignments" <|
                 \_ ->
                     MathParser.parse "x = 1 + (x = 2)"
@@ -192,7 +200,6 @@ suite =
                 \_ ->
                     MathParser.parse "\\mathbf{x} = (1, 2, 3)"
                         |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
-
             , test "parses expression with vector variable" <|
                 \_ ->
                     MathParser.parse "\\vec{x} + 1"

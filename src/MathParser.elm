@@ -41,6 +41,9 @@ scalarIdentifier =
             [ symbol "\\sigma"
             , symbol "\\lambda"
             , succeed ()
+                |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
+                |. braces (chompIf (\c -> Char.isLower c && Char.isAlphaNum c))
+            , succeed ()
                 |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
             ]
 
