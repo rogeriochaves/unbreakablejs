@@ -195,7 +195,7 @@ runSingleArity state func expr =
             let
                 factorial : Float -> Value
                 factorial num =
-                    if num /= toFloat (round num) || num < 0 then
+                    if not (isInteger num) || num < 0 then
                         throwError ("Cannot calculate factorial for " ++ String.fromFloat num ++ ", only for positive integers")
 
                     else
@@ -237,6 +237,13 @@ runSingleArity state func expr =
                         (Expression (Number 0))
                         >> Return.andThen (eval state)
                     )
+            )
+
+        Cardinality ->
+            ( state
+            , eval state expr
+                |> Return.andThenVector (SingleArity func)
+                    (\items -> List.length items |> toFloat |> Number |> Expression)
             )
 
 
@@ -329,7 +336,7 @@ runDoubleArity state func e1 e2 =
                             |> Return.andThenNum
                                 (DoubleArity Index (Vector items))
                                 (\index ->
-                                    if index /= toFloat (round index) || index < 1 then
+                                    if not (isInteger index) || index < 1 then
                                         throwError ("Cannot use " ++ String.fromFloat index ++ " as an index, it has to be a positive integer")
 
                                     else
@@ -342,6 +349,22 @@ runDoubleArity state func e1 e2 =
                                 )
                     )
 
+        Modulo ->
+            eval state e1
+                |> Return.andThenNum2 (DoubleArity func)
+                    (\a b ->
+                        if isInteger a && isInteger b then
+                            Expression (Number (toFloat <| modBy (round a) (round b)))
+                        else
+                            throwError ("Modulo operation can only be performed on integers, you are trying to calculate " ++ String.fromFloat a ++ " \\mod " ++ String.fromFloat b)
+                    )
+                    (eval state e2)
+
+
+isInteger : Float -> Bool
+isInteger n =
+    n == toFloat (round n)
+
 
 runTripleArity : State -> TripleArity -> Expression -> Expression -> Expression -> Return.Value
 runTripleArity state func expr1 expr2 expr3 =
@@ -349,10 +372,10 @@ runTripleArity state func expr1 expr2 expr3 =
         Sum_ identifier ->
             let
                 forLoop lowerLimit upperLimit =
-                    if lowerLimit /= toFloat (round lowerLimit) then
+                    if not (isInteger lowerLimit) then
                         throwError ("Error on sum_: cannot use " ++ String.fromFloat lowerLimit ++ " as a lower limit, it has to be an integer")
 
-                    else if upperLimit /= toFloat (round upperLimit) || upperLimit < lowerLimit then
+                    else if not (isInteger upperLimit) || upperLimit < lowerLimit then
                         throwError ("Error on sum_: cannot use " ++ String.fromFloat upperLimit ++ " as an upper limit, it has to be an integer higher than lower limit")
 
                     else

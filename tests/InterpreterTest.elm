@@ -77,6 +77,10 @@ suite =
                 \_ ->
                     parseAndRun "2 ^ 5 * 4"
                         |> isEq (Expression <| Number 128)
+            , test "evaluates modulo" <|
+                \_ ->
+                    parseAndRun "5 \\mod 2"
+                        |> isEq (Expression <| Number 1)
             ]
         , describe "constants"
             [ test "starts with euler number" <|
@@ -312,8 +316,7 @@ suite =
                     parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
                         |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
-
-            , test "evaluate a vector summation" <|
+            , test "evaluates a vector summation" <|
                 \_ ->
                     parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"
                         |> Result.map (List.map Tuple.second)
@@ -327,6 +330,11 @@ suite =
                 \_ ->
                     parseAndRun "\\sum{\\mathbf{x}}"
                         |> isEq (Expression (SingleArity Summation (Variable (VectorIdentifier "x"))))
+            , test "evaluates cardinality" <|
+                \_ ->
+                    parseAndRun "\\mathbf{a} = (x, y, z)\n|\\mathbf{a}|"
+                        |> Result.map (List.map Tuple.second)
+                        |> Expect.equal (Ok [ Void, Expression (Number 3) ])
             ]
         ]
 

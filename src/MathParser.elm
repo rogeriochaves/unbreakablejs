@@ -64,6 +64,14 @@ functionCall =
         |= backtrackable (parens expression)
 
 
+cardinality : Parser Expression
+cardinality =
+    succeed (SingleArity Cardinality)
+        |. backtrackable (symbol "|")
+        |= backtrackable expression
+        |. symbol "|"
+
+
 operators : OperatorTable Expression
 operators =
     let
@@ -78,6 +86,7 @@ operators =
     [ [ prefixOperator (SingleArity Negation) (symbol "-") ]
     , [ infixOp Exponentiation (symb "^") AssocLeft ]
     , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
+    , [ infixOp Modulo (symb "\\mod") AssocLeft ]
     , [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
     ]
 
@@ -192,6 +201,7 @@ expressionParsers withDeclarations =
             , atoms
             , vectors
             , symbolicFunction
+            , cardinality
             ]
     in
     if withDeclarations then

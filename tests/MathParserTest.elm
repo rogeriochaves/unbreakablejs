@@ -70,6 +70,14 @@ suite =
                             (Number 2)
                             (Number 5)
                         )
+        , test "read modulo" <|
+            \_ ->
+                MathParser.parse "2 \\mod 5"
+                    |> isEq
+                        (DoubleArity Modulo
+                            (Number 2)
+                            (Number 5)
+                        )
         , test "read grouped exponentiation" <|
             \_ ->
                 MathParser.parse "2 ^ {5 + 1}"
@@ -89,6 +97,10 @@ suite =
             \_ ->
                 MathParser.parse "-5"
                     |> isEq (SingleArity Negation (Number 5))
+        , test "parses cardinality" <|
+            \_ ->
+                MathParser.parse "|\\vec{x}|"
+                    |> isEq (SingleArity Cardinality (Variable (VectorIdentifier "x")))
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->

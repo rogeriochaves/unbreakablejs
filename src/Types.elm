@@ -32,6 +32,7 @@ type SingleArity
     | Factorial
     | Negation
     | Summation
+    | Cardinality
 
 
 type DoubleArity
@@ -42,6 +43,7 @@ type DoubleArity
     | Exponentiation
     | Frac
     | Index
+    | Modulo
 
 
 type TripleArity

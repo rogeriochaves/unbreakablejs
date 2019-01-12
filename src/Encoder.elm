@@ -40,6 +40,12 @@ encode expr =
                 Negation ->
                     "-" ++ encode e1
 
+                Summation ->
+                    "\\sum{" ++ encode e1 ++ "}"
+
+                Cardinality ->
+                    "|" ++ encode e1 ++ "|"
+
         encodeDoubleOp op e1 e2 =
             case op of
                 Addition ->
@@ -80,6 +86,9 @@ encode expr =
 
                 Index ->
                     encode e1 ++ "_{" ++ encode e2 ++ "}"
+
+                Modulo ->
+                    encode e1 ++ " \\mod " ++ encode e2
     in
     case expr of
         Number num ->
