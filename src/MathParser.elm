@@ -86,7 +86,7 @@ operators =
     [ [ prefixOperator (SingleArity Negation) (symbol "-") ]
     , [ infixOp Exponentiation (symb "^") AssocLeft ]
     , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
-    , [ infixOp Modulo (symb "\\mod") AssocLeft ]
+    , [ infixOp Modulo (symb "\\mod") AssocLeft, infixOp EuclideanDivision (symb "\\div") AssocLeft ]
     , [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
     ]
 

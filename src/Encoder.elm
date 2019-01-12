@@ -89,6 +89,9 @@ encode expr =
 
                 Modulo ->
                     encode e1 ++ " \\mod " ++ encode e2
+
+                EuclideanDivision ->
+                    encode e1 ++ " \\div " ++ encode e2
     in
     case expr of
         Number num ->

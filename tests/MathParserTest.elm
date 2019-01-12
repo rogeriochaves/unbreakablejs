@@ -78,6 +78,14 @@ suite =
                             (Number 2)
                             (Number 5)
                         )
+        , test "read integer div" <|
+            \_ ->
+                MathParser.parse "5 \\div 2"
+                    |> isEq
+                        (DoubleArity EuclideanDivision
+                            (Number 5)
+                            (Number 2)
+                        )
         , test "read grouped exponentiation" <|
             \_ ->
                 MathParser.parse "2 ^ {5 + 1}"

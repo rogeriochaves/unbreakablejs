@@ -81,6 +81,10 @@ suite =
                 \_ ->
                     parseAndRun "5 \\mod 2"
                         |> isEq (Expression <| Number 1)
+            , test "evaluates euclidean division" <|
+                \_ ->
+                    parseAndRun "5 \\div 2"
+                        |> isEq (Expression <| Number 2)
             ]
         , describe "constants"
             [ test "starts with euler number" <|

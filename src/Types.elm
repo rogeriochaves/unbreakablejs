@@ -44,6 +44,7 @@ type DoubleArity
     | Frac
     | Index
     | Modulo
+    | EuclideanDivision
 
 
 type TripleArity

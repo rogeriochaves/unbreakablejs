@@ -22,7 +22,7 @@ newState =
     , functions = Dict.empty
     , mapFunctions = Dict.empty
     }
-        |> setScalar "e" 2.718281828459045
+        |> setScalar "e" e
 
 
 type alias LineResult =
@@ -350,15 +350,28 @@ runDoubleArity state func e1 e2 =
                     )
 
         Modulo ->
-            eval state e1
+            eval state e2
                 |> Return.andThenNum2 (DoubleArity func)
                     (\a b ->
                         if isInteger a && isInteger b then
-                            Expression (Number (toFloat <| modBy (round a) (round b)))
+                            Expression (Number (toFloat (round a |> modBy (round b))))
+
                         else
                             throwError ("Modulo operation can only be performed on integers, you are trying to calculate " ++ String.fromFloat a ++ " \\mod " ++ String.fromFloat b)
                     )
-                    (eval state e2)
+                    (eval state e1)
+
+        EuclideanDivision ->
+            eval state e2
+                |> Return.andThenNum2 (DoubleArity func)
+                    (\a b ->
+                        if isInteger a && isInteger b then
+                            Expression (Number (toFloat <| floor <| a / b))
+
+                        else
+                            throwError ("Euclidean division can only be performed on integers, you are trying to calculate " ++ String.fromFloat a ++ " \\div " ++ String.fromFloat b)
+                    )
+                    (eval state e1)
 
 
 isInteger : Float -> Bool
