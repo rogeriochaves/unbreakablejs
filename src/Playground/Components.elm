@@ -30,6 +30,7 @@ header =
                     [ submenuItem [ href "#", onClick (SetExample Basics) ] [ text "Basic Samples" ]
                     , submenuItem [ href "#", onClick (SetExample Softmax) ] [ text "Softmax" ]
                     , submenuItem [ href "#", onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
+                    , submenuItem [ href "#", onClick (SetExample Statistics) ] [ text "Basic Statistics" ]
                     ]
                 ]
             , menuLink [ href "#about" ] [ text "About" ]

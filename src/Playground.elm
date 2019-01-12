@@ -396,6 +396,22 @@ update msg model =
                     }
                         |> update (SelectCell 0)
 
+                Statistics ->
+                    { model
+                        | state = Interpreter.newState
+                        , cells =
+                            [ newCell 0 "\\mathbf{x} = (1, 3, 3, 6, 7, 8, 9)\nn = |\\mathbf{x}|"
+                            , newCell 1 "Mean:\n\\bar{x} = \\frac{\\sum{\\mathbf{x}}}{n}"
+                            , newCell 2 "Median:\n\\tilde{x} = x_{(n \\div 2 + 1)}"
+                            , newCell 3 "Quartiles\\ and\\ IQR:\nf = x_{(n \\div 4 + 1)}\nt = x_{(n - n \\div 4)}\ni = t - f"
+                            , newCell 4 "Outliers:\no = f - 1.5 * i\np = t + 1.5 * i\n(o, p)"
+                            , newCell 5 "Variance:\nv = \\frac{\\sum_{i = 1}^{n} (x_{i} - \\bar{x}) ^ 2}{n - 1}"
+                            , newCell 6 "Standard\\ Deviation:\ns = \\sqrt{v}"
+                            , newCell 7 "Z-Score:\nz(\\mathbf{y})_{i} = \\frac{y_{i} - \\bar{x}}{s}\nz(\\mathbf{x})"
+                            ]
+                    }
+                        |> update (SelectCell 0)
+
         KeyDown key ->
             case key of
                 Just 13 ->

@@ -120,6 +120,21 @@ runExpression state expr =
         TripleArity func e1 e2 e3 ->
             ( state, runTripleArity state func e1 e2 e3 )
 
+        Block name blockExpressions ->
+            case run state blockExpressions of
+                Err errors ->
+                    ( state
+                    , List.reverse errors
+                        |> List.head
+                        |> Maybe.map Error
+                        |> Maybe.withDefault (throwError "error in block with no error")
+                    )
+
+                Ok results ->
+                    List.reverse results
+                        |> List.head
+                        |> Maybe.withDefault ( state, Void )
+
 
 runSingleArity : State -> SingleArity -> Expression -> LineResult
 runSingleArity state func expr =

@@ -326,6 +326,16 @@ suite =
                     parseAndRun "\\mathbf{a} = (x, y, z)\n|\\mathbf{a}|"
                         |> isEqLast (Expression (Number 3))
             ]
+        , describe "blocks"
+            [ test "evaluates blocks" <|
+                \_ ->
+                    parseAndRun "Test:\nx = 1\nx + 2"
+                        |> isEqLast (Expression (Number 3))
+            , test "evaluates multiple blocks" <|
+                \_ ->
+                    parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
+                        |> isEqLast (Expression (Number 5))
+            ]
         ]
 
 

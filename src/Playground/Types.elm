@@ -43,3 +43,4 @@ type Example
     = Basics
     | Softmax
     | Bitcoin
+    | Statistics

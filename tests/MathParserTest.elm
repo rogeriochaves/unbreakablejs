@@ -280,6 +280,31 @@ suite =
                                 )
                             )
             ]
+        , describe "blocks"
+            [ test "parses blocks" <|
+                \_ ->
+                    MathParser.parse "Test:\nx = 1\nx + 2"
+                        |> isEq
+                            (Block "Test"
+                                [ SingleArity (Assignment (ScalarIdentifier "x")) (Number 1)
+                                , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
+                                ]
+                            )
+            , test "parses multiple blocks" <|
+                \_ ->
+                    MathParser.parse "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
+                        |> Expect.equal
+                            (Ok
+                                [ Block "First\\ Block"
+                                    [ SingleArity (Assignment (ScalarIdentifier "x")) (Number 1)
+                                    , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
+                                    ]
+                                , Block "Second\\ Block"
+                                    [ Number 5
+                                    ]
+                                ]
+                            )
+            ]
         ]
 
 

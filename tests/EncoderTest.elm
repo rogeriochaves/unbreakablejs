@@ -43,4 +43,16 @@ suite =
                 MathParser.parse original
                     |> Result.map (List.map encode)
                     |> Expect.equal (Ok [ original ])
+        , test "encodes block" <|
+            \_ ->
+                let
+                    firstBlock =
+                        "First\\ Block:\nx = 1\nx + 2"
+
+                    secondBlock =
+                        "Second\\ Block:\n5"
+                in
+                MathParser.parse (firstBlock ++ "\n" ++ secondBlock)
+                    |> Result.map (List.map encode)
+                    |> Expect.equal (Ok [ firstBlock, secondBlock ])
         ]

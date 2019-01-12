@@ -151,14 +151,31 @@ program : Parser Types.Program
 program =
     loop []
         (\expressions ->
+            let
+                appendExpr expr =
+                    case List.head expressions of
+                        Just (Block name items) ->
+                            Loop (Block name (items ++ [ expr ]) :: List.drop 1 expressions)
+
+                        _ ->
+                            Loop (expr :: expressions)
+
+                statementBreak =
+                    succeed ()
+                        |. chompWhile (\c -> c == ' ')
+                        |. chompIf (\c -> c == '\n')
+                        |. spaces
+            in
             oneOf
-                [ succeed (Done expressions)
+                [ succeed (Done (List.reverse expressions))
                     |. symbol "EOF"
-                , succeed (\expr -> Loop (expressions ++ [ expr ]))
+                , succeed (\name -> Loop (Block name [] :: expressions))
+                    |= backtrackable (getChompedString (chompWhile (\c -> c /= ':' && c /= '\n')))
+                    |. symbol ":"
+                    |. statementBreak
+                , succeed appendExpr
                     |= expression_ True
-                    |. chompWhile (\c -> c == ' ')
-                    |. chompIf (\c -> c == '\n')
-                    |. spaces
+                    |. statementBreak
                 ]
         )
 

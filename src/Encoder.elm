@@ -123,3 +123,6 @@ encode expr =
 
         MapAbstraction var index e ->
             "(\\mathbf{" ++ var ++ "})_{" ++ index ++ "} = " ++ encode e
+
+        Block name items ->
+            name ++ ":" ++ "\n" ++ String.join "\n" (List.map encode items)
