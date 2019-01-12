@@ -132,15 +132,14 @@ suite =
                     |> Result.map (List.map Tuple.second)
                     |> Expect.equal (Ok [ Expression <| Number 2, Expression <| Number 4 ])
         , describe "assignments" <|
-            [ test "parses a simple assignment and return void" <|
+            [ test "parses a simple assignment and return the result" <|
                 \_ ->
                     parseAndRun "x = 2 + 2"
-                        |> isEq Void
+                        |> isEq (Expression (Number 4))
             , test "saves the value to the variable" <|
                 \_ ->
                     parseAndRun "x = 2 + 2\nx + 1"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression <| Number 5 ])
+                        |> isEqLast (Expression <| Number 5)
             , test "returns unapplied expression if the variable is not defined" <|
                 \_ ->
                     parseAndRun "x + 1"
@@ -218,24 +217,15 @@ suite =
             , test "parses a simple assignment and return void" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)"
-                        |> isEq Void
+                        |> isEq (Expression <| Vector [ Number 1, Number 2, Number 3 ])
             , test "saves the value to the variable" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression <| Vector [ Number 1, Number 2, Number 3 ] ])
+                        |> isEqLast (Expression <| Vector [ Number 1, Number 2, Number 3 ])
             , test "calls a function with vec as param" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal
-                            (Ok
-                                [ Void
-                                , Void
-                                , Expression <|
-                                    Vector [ Number 1, Number 2, Number 3 ]
-                                ]
-                            )
+                        |> isEqLast (Expression <| Vector [ Number 1, Number 2, Number 3 ])
             , test "replaces variables inside vector" <|
                 \_ ->
                     parseAndRun "f(x) = (1, x, 3)\nf(2)"
@@ -313,8 +303,7 @@ suite =
             , test "evaluates indexes from vector variables in scalar context" <|
                 \_ ->
                     parseAndRun "\\vec{x} = (3, 2, 1)\nx_{1}"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression (Number 3) ])
+                        |> isEqLast (Expression (Number 3))
             , test "evaluates map function" <|
                 \_ ->
                     parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
@@ -323,13 +312,11 @@ suite =
             , test "evaluates a vector summation" <|
                 \_ ->
                     parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression (Number 6) ])
+                        |> isEqLast (Expression (Number 6))
             , test "expands a summation as far as it can" <|
                 \_ ->
                     parseAndRun "\\mathbf{x} = (1, 2, y)\n\\sum{\\mathbf{x}}"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression (DoubleArity Addition (Number 3) (Variable (ScalarIdentifier "y"))) ])
+                        |> isEqLast (Expression (DoubleArity Addition (Number 3) (Variable (ScalarIdentifier "y"))))
             , test "does not enter an infinite loop trying to expand undefined vars" <|
                 \_ ->
                     parseAndRun "\\sum{\\mathbf{x}}"
@@ -337,8 +324,7 @@ suite =
             , test "evaluates cardinality" <|
                 \_ ->
                     parseAndRun "\\mathbf{a} = (x, y, z)\n|\\mathbf{a}|"
-                        |> Result.map (List.map Tuple.second)
-                        |> Expect.equal (Ok [ Void, Expression (Number 3) ])
+                        |> isEqLast (Expression (Number 3))
             ]
         ]
 
@@ -353,6 +339,16 @@ isEq expected actual =
     actual
         |> Result.map (List.map Tuple.second)
         |> Expect.equal (Ok [ expected ])
+
+
+isEqLast expected actual =
+    actual
+        |> Result.map (List.map Tuple.second)
+        |> Result.toMaybe
+        |> Maybe.withDefault []
+        |> List.reverse
+        |> List.head
+        |> Expect.equal (Just expected)
 
 
 isErr msg =
