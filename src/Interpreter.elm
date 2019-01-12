@@ -214,6 +214,31 @@ runSingleArity state func expr =
                 |> Return.mapNum (SingleArity func) negate
             )
 
+        Summation ->
+            ( state
+            , eval state expr
+                |> Return.andThenVector (SingleArity func)
+                    (List.foldl
+                        (\curr acc ->
+                            case acc of
+                                Expression (Number n) ->
+                                    if n == 0 then
+                                        Expression curr
+
+                                    else
+                                        Expression (DoubleArity Addition (Number n) curr)
+
+                                Expression e ->
+                                    Expression (DoubleArity Addition e curr)
+
+                                acc_ ->
+                                    acc_
+                        )
+                        (Expression (Number 0))
+                        >> Return.andThen (eval state)
+                    )
+            )
+
 
 callFunction : SingleArity -> State -> Expression -> ( Identifier, Expression ) -> Return.Value
 callFunction func state args ( functionParam, functionBody ) =

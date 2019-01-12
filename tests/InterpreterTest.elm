@@ -74,9 +74,9 @@ suite =
                     parseAndRun "0!"
                         |> isEq (Expression <| Number 1)
             , test "respects math priority #5" <|
-                    \_ ->
-                        parseAndRun "2 ^ 5 * 4"
-                            |> isEq (Expression <| Number 128)
+                \_ ->
+                    parseAndRun "2 ^ 5 * 4"
+                        |> isEq (Expression <| Number 128)
             ]
         , describe "constants"
             [ test "starts with euler number" <|
@@ -312,6 +312,21 @@ suite =
                     parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
                         |> Result.map (List.map Tuple.second)
                         |> Expect.equal (Ok [ Void, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
+
+            , test "evaluate a vector summation" <|
+                \_ ->
+                    parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"
+                        |> Result.map (List.map Tuple.second)
+                        |> Expect.equal (Ok [ Void, Expression (Number 6) ])
+            , test "expands a summation as far as it can" <|
+                \_ ->
+                    parseAndRun "\\mathbf{x} = (1, 2, y)\n\\sum{\\mathbf{x}}"
+                        |> Result.map (List.map Tuple.second)
+                        |> Expect.equal (Ok [ Void, Expression (DoubleArity Addition (Number 3) (Variable (ScalarIdentifier "y"))) ])
+            , test "does not enter an infinite loop trying to expand undefined vars" <|
+                \_ ->
+                    parseAndRun "\\sum{\\mathbf{x}}"
+                        |> isEq (Expression (SingleArity Summation (Variable (VectorIdentifier "x"))))
             ]
         ]
 

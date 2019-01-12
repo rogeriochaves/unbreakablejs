@@ -40,6 +40,10 @@ suite =
             \_ ->
                 MathParser.parse "\\sqrt{5}"
                     |> isEq (SingleArity Sqrt (Number 5))
+        , test "read simple summation function" <|
+            \_ ->
+                MathParser.parse "\\sum{\\mathbf{x}}"
+                    |> isEq (SingleArity Summation (Variable (VectorIdentifier "x")))
         , test "read double-arity symbolic function" <|
             \_ ->
                 MathParser.parse "\\frac{2}{3}"

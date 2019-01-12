@@ -31,6 +31,7 @@ type SingleArity
     | Sqrt
     | Factorial
     | Negation
+    | Summation
 
 
 type DoubleArity
@@ -54,7 +55,10 @@ type Identifier
 
 singleAritySymbolsMap : Dict.Dict String SingleArity
 singleAritySymbolsMap =
-    Dict.fromList [ ( "sqrt", Sqrt ) ]
+    Dict.fromList
+        [ ( "sqrt", Sqrt )
+        , ( "sum", Summation )
+        ]
 
 
 doubleAritySymbolsMap : Dict.Dict String DoubleArity
