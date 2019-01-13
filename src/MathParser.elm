@@ -36,16 +36,47 @@ vectorIdentifier =
 
 scalarIdentifier : Parser String
 scalarIdentifier =
-    getChompedString <|
-        oneOf
-            [ symbol "\\sigma"
-            , symbol "\\lambda"
-            , succeed ()
-                |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
-                |. braces (chompIf (\c -> Char.isLower c && Char.isAlphaNum c))
-            , succeed ()
-                |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
-            ]
+    oneOf
+        (lowercaseGreek
+            ++ [ succeed ()
+                    |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
+                    |. braces (chompIf (\c -> Char.isLower c && Char.isAlphaNum c))
+               , succeed ()
+                    |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+               ]
+        )
+        |> getChompedString
+
+
+lowercaseGreek : List (Parser ())
+lowercaseGreek =
+    List.map symbol
+        [ "\\alpha"
+        , "\\beta"
+        , "\\gamma"
+        , "\\delta"
+        , "\\epsilon"
+        , "\\varepsilon"
+        , "\\zeta"
+        , "\\eta"
+        , "\\theta"
+        , "\\vartheta"
+        , "\\iota"
+        , "\\kappa"
+        , "\\lambda"
+        , "\\mu"
+        , "\\nu"
+        , "\\xi"
+        , "\\pi"
+        , "\\rho"
+        , "\\sigma"
+        , "\\tau"
+        , "\\upsilon"
+        , "\\phi"
+        , "\\chi"
+        , "\\psi"
+        , "\\omega"
+        ]
 
 
 symbolIdentifier : Parser String
@@ -149,35 +180,37 @@ factorial expr =
 
 program : Parser Types.Program
 program =
-    loop []
-        (\expressions ->
-            let
-                appendExpr expr =
-                    case List.head expressions of
-                        Just (Block name items) ->
-                            Loop (Block name (items ++ [ expr ]) :: List.drop 1 expressions)
+    loop [] programLoop
 
-                        _ ->
-                            Loop (expr :: expressions)
 
-                statementBreak =
-                    succeed ()
-                        |. chompWhile (\c -> c == ' ')
-                        |. chompIf (\c -> c == '\n')
-                        |. spaces
-            in
-            oneOf
-                [ succeed (Done (List.reverse expressions))
-                    |. symbol "EOF"
-                , succeed (\name -> Loop (Block name [] :: expressions))
-                    |= backtrackable (getChompedString (chompWhile (\c -> c /= ':' && c /= '\n')))
-                    |. symbol ":"
-                    |. statementBreak
-                , succeed appendExpr
-                    |= expression_ True
-                    |. statementBreak
-                ]
-        )
+programLoop : List Expression -> Parser (Step (List Expression) (List Expression))
+programLoop expressions =
+    let
+        appendExpr expr =
+            case List.head expressions of
+                Just (Block name items) ->
+                    Loop (Block name (items ++ [ expr ]) :: List.drop 1 expressions)
+
+                _ ->
+                    Loop (expr :: expressions)
+
+        statementBreak =
+            succeed ()
+                |. chompWhile (\c -> c == ' ')
+                |. chompIf (\c -> c == '\n')
+                |. spaces
+    in
+    oneOf
+        [ succeed (Done (List.reverse expressions))
+            |. symbol "EOF"
+        , succeed (\name -> Loop (Block name [] :: expressions))
+            |= backtrackable (getChompedString (chompWhile (\c -> c /= ':' && c /= '\n')))
+            |. symbol ":"
+            |. statementBreak
+        , succeed appendExpr
+            |= expression_ True
+            |. statementBreak
+        ]
 
 
 expression : Parser Expression
