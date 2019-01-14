@@ -23,6 +23,7 @@ newState =
     , mapFunctions = Dict.empty
     }
         |> setScalar "e" e
+        |> setScalar "\\pi" pi
 
 
 type alias LineResult =

@@ -91,6 +91,10 @@ suite =
                 \_ ->
                     parseAndRun "e"
                         |> isEq (Expression <| Number 2.718281828459045)
+            , test "starts with pi number" <|
+                \_ ->
+                    parseAndRun "\\pi"
+                        |> isEq (Expression <| Number 3.141592653589793)
             ]
         , describe "symbols"
             [ test "sqrt" <|
