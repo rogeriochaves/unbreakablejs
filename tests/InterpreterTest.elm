@@ -340,6 +340,10 @@ suite =
                     parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
                         |> isEqLast (Expression (Number 5))
             ]
+        , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
+            \_ ->
+                parseAndRun "x = 1\ny(z) = z + x\nx = 2\ny(3)"
+                    |> isEqLast (Expression (Number 5))
         ]
 
 

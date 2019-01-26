@@ -102,14 +102,12 @@ runExpression state expr =
 
         Abstraction param body ->
             ( state
-            , eval state body
-                |> Return.map (Abstraction param)
+            , Expression (Abstraction param body)
             )
 
         MapAbstraction param index body ->
             ( state
-            , eval state body
-                |> Return.map (MapAbstraction param index)
+            , Expression (MapAbstraction param index body)
             )
 
         SingleArity func e ->

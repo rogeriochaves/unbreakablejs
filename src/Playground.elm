@@ -407,7 +407,7 @@ update msg model =
                             , newCell 4 "Outliers:\no = f - 1.5 * i\np = t + 1.5 * i\n(o, p)"
                             , newCell 5 "Variance:\nv = \\frac{\\sum_{i = 1}^{n} (x_{i} - \\bar{x}) ^ 2}{n - 1}"
                             , newCell 6 "Standard\\ Deviation:\ns = \\sqrt{v}"
-                            , newCell 7 "Z-Score:\nz(\\mathbf{y})_{i} = \\frac{y_{i} - \\bar{x}}{s}\nz(\\mathbf{x})"
+                            , newCell 7 "Z-Score:\nz(\\mathbf{x})_{i} = \\frac{x_{i} - \\bar{x}}{s}\nz(\\mathbf{x})"
                             ]
                     }
                         |> update (SelectCell 0)
