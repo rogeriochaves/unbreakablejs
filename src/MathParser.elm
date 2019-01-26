@@ -43,6 +43,15 @@ scalarIdentifier =
                     |. braces (chompIf (\c -> Char.isLower c && Char.isAlphaNum c))
                , succeed ()
                     |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+               , succeed ()
+                    |. symbol "\\operatorname"
+                    |. braces
+                        (variable
+                            { start = Char.isAlphaNum
+                            , inner = \c -> Char.isAlphaNum c
+                            , reserved = Set.empty
+                            }
+                        )
                ]
         )
         |> getChompedString

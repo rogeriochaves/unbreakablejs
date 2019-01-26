@@ -182,6 +182,10 @@ suite =
                 \_ ->
                     MathParser.parse "(\\alpha, \\beta, \\gamma, \\delta, \\epsilon, \\varepsilon, \\zeta, \\eta, \\theta, \\vartheta, \\iota, \\kappa, \\lambda, \\mu, \\nu, \\xi, \\pi, \\rho, \\sigma, \\tau, \\upsilon, \\phi, \\chi, \\psi, \\omega)"
                         |> isEq (Vector [ Variable (ScalarIdentifier "\\alpha"), Variable (ScalarIdentifier "\\beta"), Variable (ScalarIdentifier "\\gamma"), Variable (ScalarIdentifier "\\delta"), Variable (ScalarIdentifier "\\epsilon"), Variable (ScalarIdentifier "\\varepsilon"), Variable (ScalarIdentifier "\\zeta"), Variable (ScalarIdentifier "\\eta"), Variable (ScalarIdentifier "\\theta"), Variable (ScalarIdentifier "\\vartheta"), Variable (ScalarIdentifier "\\iota"), Variable (ScalarIdentifier "\\kappa"), Variable (ScalarIdentifier "\\lambda"), Variable (ScalarIdentifier "\\mu"), Variable (ScalarIdentifier "\\nu"), Variable (ScalarIdentifier "\\xi"), Variable (ScalarIdentifier "\\pi"), Variable (ScalarIdentifier "\\rho"), Variable (ScalarIdentifier "\\sigma"), Variable (ScalarIdentifier "\\tau"), Variable (ScalarIdentifier "\\upsilon"), Variable (ScalarIdentifier "\\phi"), Variable (ScalarIdentifier "\\chi"), Variable (ScalarIdentifier "\\psi"), Variable (ScalarIdentifier "\\omega") ])
+            , test "allows operatornames as scalars" <|
+                \_ ->
+                    MathParser.parse "\\operatorname{Q2} = 5"
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "\\operatorname{Q2}")) (Number 5))
             ]
         , describe "functions"
             [ test "parses function declaration" <|

@@ -403,11 +403,15 @@ update msg model =
                             [ newCell 0 "\\mathbf{x} = (1, 3, 3, 6, 7, 8, 9)\nn = |\\mathbf{x}|"
                             , newCell 1 "Mean:\n\\bar{x} = \\frac{\\sum{\\mathbf{x}}}{n}"
                             , newCell 2 "Median:\n\\tilde{x} = x_{(n \\div 2 + 1)}"
-                            , newCell 3 "Quartiles\\ and\\ IQR:\nf = x_{(n \\div 4 + 1)}\nt = x_{(n - n \\div 4)}\ni = t - f"
-                            , newCell 4 "Outliers:\no = f - 1.5 * i\np = t + 1.5 * i\n(o, p)"
+                            , newCell 3 "Quartiles\\ and\\ IQR:\n\\operatorname{Q1} = x_{(n \\div 4 + 1)}\n\\operatorname{Q3} = x_{(n - n \\div 4)}\n\\operatorname{IQR} = \\operatorname{Q3} - \\operatorname{Q1}"
+                            , newCell 4 "Outliers:\n\\operatorname{lower} = \\operatorname{Q1} - 1.5 * \\operatorname{IQR}\n\\operatorname{upper} = \\operatorname{Q3} + 1.5 * \\operatorname{IQR}\n(\\operatorname{lower}, \\operatorname{upper})"
                             , newCell 5 "Variance:\nv = \\frac{\\sum_{i = 1}^{n} (x_{i} - \\bar{x}) ^ 2}{n - 1}"
                             , newCell 6 "Standard\\ Deviation:\ns = \\sqrt{v}"
                             , newCell 7 "Z-Score:\nz(\\mathbf{x})_{i} = \\frac{x_{i} - \\bar{x}}{s}\nz(\\mathbf{x})"
+                            , newCell 8 "Pearson's\\ R:\n\\mathbf{x} = (50, 100, 200, 300)\n\\bar{x} = 162.5\ns = 110.9\n\\mathbf{a} = z(\\mathbf{x})\n\n\\mathbf{y} = (50, 70, 70, 95)\n\\bar{x} = 71.3\ns = 18.4\n\\mathbf{b} = z(\\mathbf{y})\n\nn = |\\mathbf{x}|\nr = \\frac{\\sum_{i = 1}^{n} a_{i}*b_{i}}{n - 1}\n"
+                            , newCell 9 "Regression\\ Coefficient:\ns = 110.9\nt = 18.4\nb = r * (\\frac{t}{s})"
+                            , newCell 10 "Intercept:\n\\bar{x} = 162.5\n\\bar{y} = 71.3\na = \\bar{y} - b * \\bar{x}"
+                            , newCell 11 "Regression\\ Line:\ny(\\mathbf{x})_{i} = a + b * x_{i}\ny(\\mathbf{x})"
                             ]
                     }
                         |> update (SelectCell 0)
