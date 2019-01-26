@@ -412,6 +412,23 @@ update msg model =
                             , newCell 9 "Regression\\ Coefficient:\ns = 110.9\nt = 18.4\nb = r * (\\frac{t}{s})"
                             , newCell 10 "Intercept:\n\\bar{x} = 162.5\n\\bar{y} = 71.3\na = \\bar{y} - b * \\bar{x}"
                             , newCell 11 "Regression\\ Line:\ny(\\mathbf{x})_{i} = a + b * x_{i}\ny(\\mathbf{x})"
+                            , newCell 12 "Coefficient\\ of\\ Determination:\nr ^ 2"
+                            , newCell 13 "Probability\\ Mass\\ Function:\n\\mathbf{x} = (1, 2, 3, 4, 5, 6)\n\\mathbf{f} = (10, 20, 40, 80, 40, 20)\np(\\mathbf{x})_{i} = \\frac{f_{i}}{\\sum{\\mathbf{f}}}\np(\\mathbf{x})"
+                            , newCell 14 "Expected\\ Value:\nn = |\\mathbf{x}|\n\\operatorname{E}(\\mathbf{x}) = \\sum_{i = 1}^{n} x_{i} * p(\\mathbf{x})_{i}\n\\mu = \\operatorname{E}(\\mathbf{x})"
+                            , newCell 15 "Variance\\ of\\ a\\ Random\\ Value:\ng(\\mathbf{x})_{i} = (x_{i} - \\mu) ^ 2\nv = \\operatorname{E}(g(\\mathbf{x}))\n\\sigma = \\sqrt{v}"
+                            , newCell 16 "Normal\\ Distribution:\nf(x) = \\frac{1}{\\sigma * \\sqrt{2 * \\pi}} * e ^ {-0.5 * (\\frac{x - \\mu}{\\sigma}) ^ 2}\nf(4)"
+                            , newCell 17 "Standard\\ Normal\\ Distribution:\nx = \\mu + z * \\sigma"
+                            , newCell 18 "Binomial\\ Distribution:\nn = 4\np = 0.48\n\\operatorname{P}(x) = \\frac{n!}{x! * (n-x)!} * p ^ x * (1 - p) ^ {n - x}\n\\operatorname{P}(3)"
+                            , newCell 19 "Cumulative\\ Binomial:\n\\operatorname{F}(x) = \\sum_{k = 0}^{x} \\frac{n!}{k! * (n-k)!} * p ^ k * (1 - p) ^ {n - k}\n\\operatorname{F}(3)"
+                            , newCell 20 "Binomial\\ Mean:\n\\mu = n * p"
+                            , newCell 21 "Binomial\\ Standard\\ Deviation:\n\\sigma = \\sqrt{n * p * (1 - p)}"
+                            , newCell 22 "Sampling\\ Distribution\\ of\\ the\\ Sample\\ Mean:\n\\mu = 3.85\n\\sigma = 1.25\nn = 6\n\\bar{\\mu} = \\mu\n\\bar{\\sigma} = \\frac{\\sigma}{\\sqrt{n}}"
+                            , newCell 23 "Sampling\\ Proportion\\ Standard\\ Deviation:\n\\pi = 0.2\nn = 400\n\\bar{\\sigma} = \\sqrt{\\frac{\\pi * (1 - \\pi)}{n}}"
+                            , newCell 24 "Confidence\\ Interval\\ with\\ Population\\ Standard\\ Deviation:\n\\sigma = 0.8\n\\bar{x} = 3.8\nn = 150\n\\operatorname{CI} = \\frac{\\sigma}{\\sqrt{n}}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
+                            , newCell 25 "Confidence\\ Interval\\ without\\ Population\\ Standard\\ Deviation:\nz = 1.96\n\\operatorname{SE} = \\frac{s}{\\sqrt{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
+                            , newCell 26 "Confidence\\ Interval\\ for\\ Proportion\\ without\\ Population\\ Standard\\ Deviation:\nn = 55\np = 0.77\nz = 2.58\n\\operatorname{SE} = \\sqrt{\\frac{p * (1 - p)}{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
+                            , newCell 27 "Selecting\\ a\\ Sample\\ Size:\n\\sigma = 1.25\nz = 1.96\nm = 0.3\nn = \\frac{\\sigma ^ 2 * z ^ 2}{m ^ 2}"
+                            , newCell 28 "Selecting\\ a\\ Sample\\ Size\\ for\\ Proportion:\np = 0.5\nz = 1.645\nm = 0.1\nn = \\frac{p * (1 - p) * z ^ 2}{m ^ 2}"
                             ]
                     }
                         |> update (SelectCell 0)

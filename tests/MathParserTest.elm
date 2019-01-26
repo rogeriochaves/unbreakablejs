@@ -186,6 +186,10 @@ suite =
                 \_ ->
                     MathParser.parse "\\operatorname{Q2} = 5"
                         |> isEq (SingleArity (Assignment (ScalarIdentifier "\\operatorname{Q2}")) (Number 5))
+            , test "allows have a greek variables with a bar" <|
+                \_ ->
+                    MathParser.parse "\\bar{\\sigma} = 2"
+                        |> isEq (SingleArity (Assignment (ScalarIdentifier "\\bar{\\sigma}")) (Number 2))
             ]
         , describe "functions"
             [ test "parses function declaration" <|

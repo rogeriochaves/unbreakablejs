@@ -36,24 +36,33 @@ vectorIdentifier =
 
 scalarIdentifier : Parser String
 scalarIdentifier =
+    let
+        decorators =
+            succeed ()
+                |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
+                |. braces names
+
+        names =
+            oneOf
+                (lowercaseGreek
+                    ++ [ succeed ()
+                            |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+                       , succeed ()
+                            |. symbol "\\operatorname"
+                            |. braces
+                                (variable
+                                    { start = Char.isAlphaNum
+                                    , inner = \c -> Char.isAlphaNum c
+                                    , reserved = Set.empty
+                                    }
+                                )
+                       ]
+                )
+    in
     oneOf
-        (lowercaseGreek
-            ++ [ succeed ()
-                    |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
-                    |. braces (chompIf (\c -> Char.isLower c && Char.isAlphaNum c))
-               , succeed ()
-                    |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
-               , succeed ()
-                    |. symbol "\\operatorname"
-                    |. braces
-                        (variable
-                            { start = Char.isAlphaNum
-                            , inner = \c -> Char.isAlphaNum c
-                            , reserved = Set.empty
-                            }
-                        )
-               ]
-        )
+        [ decorators
+        , names
+        ]
         |> getChompedString
 
 
