@@ -409,7 +409,7 @@ update msg model =
                             , newCell 6 "Standard\\ Deviation:\ns = \\sqrt{v}"
                             , newCell 7 "Z-Score:\nz(\\mathbf{x})_{i} = \\frac{x_{i} - \\bar{x}}{s}\nz(\\mathbf{x})"
                             , newCell 8 "Pearson's\\ R:\n\\mathbf{x} = (50, 100, 200, 300)\n\\bar{x} = 162.5\ns = 110.9\n\\mathbf{a} = z(\\mathbf{x})\n\n\\mathbf{y} = (50, 70, 70, 95)\n\\bar{x} = 71.3\ns = 18.4\n\\mathbf{b} = z(\\mathbf{y})\n\nn = |\\mathbf{x}|\nr = \\frac{\\sum_{i = 1}^{n} a_{i}*b_{i}}{n - 1}\n"
-                            , newCell 9 "Regression\\ Coefficient:\ns = 110.9\nt = 18.4\nb = r * (\\frac{t}{s})"
+                            , newCell 9 "Regression\\ Coefficient:\n\\operatorname{Sx} = 110.9\n\\operatorname{Sy} = 18.4\nb = r * (\\frac{\\operatorname{Sy}}{\\operatorname{Sx}})"
                             , newCell 10 "Intercept:\n\\bar{x} = 162.5\n\\bar{y} = 71.3\na = \\bar{y} - b * \\bar{x}"
                             , newCell 11 "Regression\\ Line:\ny(\\mathbf{x})_{i} = a + b * x_{i}\ny(\\mathbf{x})"
                             , newCell 12 "Coefficient\\ of\\ Determination:\nr ^ 2"
@@ -425,10 +425,12 @@ update msg model =
                             , newCell 22 "Sampling\\ Distribution\\ of\\ the\\ Sample\\ Mean:\n\\mu = 3.85\n\\sigma = 1.25\nn = 6\n\\bar{\\mu} = \\mu\n\\bar{\\sigma} = \\frac{\\sigma}{\\sqrt{n}}"
                             , newCell 23 "Sampling\\ Proportion\\ Standard\\ Deviation:\n\\pi = 0.2\nn = 400\n\\bar{\\sigma} = \\sqrt{\\frac{\\pi * (1 - \\pi)}{n}}"
                             , newCell 24 "Confidence\\ Interval\\ with\\ Population\\ Standard\\ Deviation:\n\\sigma = 0.8\n\\bar{x} = 3.8\nn = 150\n\\operatorname{CI} = \\frac{\\sigma}{\\sqrt{n}}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
-                            , newCell 25 "Confidence\\ Interval\\ without\\ Population\\ Standard\\ Deviation:\nz = 1.96\n\\operatorname{SE} = \\frac{s}{\\sqrt{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
-                            , newCell 26 "Confidence\\ Interval\\ for\\ Proportion\\ without\\ Population\\ Standard\\ Deviation:\nn = 55\np = 0.77\nz = 2.58\n\\operatorname{SE} = \\sqrt{\\frac{p * (1 - p)}{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
+                            , newCell 25 "Confidence\\ Interval\\ without\\ Population\\ Standard\\ Deviation:\nz = 1.96\ns = 0.7\n\\operatorname{SE} = \\frac{s}{\\sqrt{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(\\bar{x} - \\operatorname{CI}, \\bar{x} + \\operatorname{CI})"
+                            , newCell 26 "Confidence\\ Interval\\ for\\ Proportion\\ without\\ Population\\ Standard\\ Deviation:\nn = 55\np = 0.77\nz = 2.58\n\\operatorname{SE} = \\sqrt{\\frac{p * (1 - p)}{n}}\n\\operatorname{CI} = z * \\operatorname{SE}\n(p - \\operatorname{CI}, p + \\operatorname{CI})"
                             , newCell 27 "Selecting\\ a\\ Sample\\ Size:\n\\sigma = 1.25\nz = 1.96\nm = 0.3\nn = \\frac{\\sigma ^ 2 * z ^ 2}{m ^ 2}"
                             , newCell 28 "Selecting\\ a\\ Sample\\ Size\\ for\\ Proportion:\np = 0.5\nz = 1.645\nm = 0.1\nn = \\frac{p * (1 - p) * z ^ 2}{m ^ 2}"
+                            , newCell 29 "Hypothesis\\ Testing:\n\\operatorname{null} = 68\nn = 40\n\\bar{x} = 64\ns = 3\n\\alpha = 0.05\n\\operatorname{SE} = \\frac{s}{\\sqrt{n}}\nt = \\frac{\\bar{x} - \\operatorname{null}}{\\operatorname{SE}}\n\\operatorname{df} = n - 1\n\\operatorname{t95} = 2.042\n(t, -\\operatorname{t95}, \\operatorname{t95})"
+                            , newCell 30 "Hypothesis\\ Testing\\ for\\ Proportion:\n\\operatorname{null} = 0.86\nn = 900\np = 0.84\n\\alpha = 0.05\n\\operatorname{SE} = \\sqrt{\\frac{\\operatorname{null} * (1 - \\operatorname{null})}{n}}\nz = \\frac{p - \\operatorname{null}}{\\operatorname{SE}}\n\\operatorname{z95} = 1.96\n(-\\operatorname{z95}, z, \\operatorname{z95})"
                             ]
                     }
                         |> update (SelectCell 0)
