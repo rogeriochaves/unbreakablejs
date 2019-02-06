@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "elm-test",
-    "playground": "elm make src/Playground.elm --output Playground.js && http-server"
+    "playground": "npm run build && http-server",
+    "build": "elm make src/Playground.elm --output Playground.js"
   },
   "author": "",
   "license": "ISC",
