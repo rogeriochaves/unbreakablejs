@@ -6,7 +6,8 @@
   "scripts": {
     "test": "elm-test",
     "playground": "npm run build && http-server",
-    "build": "elm make src/Playground.elm --output Playground.js"
+    "build": "elm make src/Playground.elm --output Playground.js",
+    "deploy": "git checkout gh-pages && git pull --rebase origin master && npm run build && git add -A && git commit --amend --no-edit && git push --force-with-lease origin gh-pages && git checkout -"
   },
   "author": "",
   "license": "ISC",
