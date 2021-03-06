@@ -4,7 +4,6 @@ import Expect exposing (Expectation)
 import Interpreter exposing (..)
 import MathParser exposing (..)
 import Parser exposing (Problem(..))
-import Return exposing (Value(..))
 import Test exposing (..)
 import Types exposing (..)
 
@@ -16,52 +15,52 @@ suite =
             [ test "sum integer numbers" <|
                 \_ ->
                     parseAndRun "1 + 1"
-                        |> isEq (Expression <| Number 2)
+                        |> isEq (Number 2)
             , test "sum float numbers" <|
                 \_ ->
                     parseAndRun "1.5 + 1.3"
-                        |> isEq (Expression <| Number 2.8)
+                        |> isEq (Number 2.8)
             , test "execute nested expressions" <|
                 \_ ->
                     parseAndRun "1 - (3 - 2)"
-                        |> isEq (Expression <| Number 0)
+                        |> isEq (Number 0)
 
             --     , test "respects math priority" <|
             --         \_ ->
             --             parseAndRun "2 + 3 * 2"
-            --                 |> isEq (Expression <| Number 8)
+            --                 |> isEq (Number 8)
             --     , test "respects math priority #2" <|
             --         \_ ->
             --             parseAndRun "2 * 3 + 2"
-            --                 |> isEq (Expression <| Number 8)
+            --                 |> isEq (Number 8)
             --     , test "symbol function aplication with other expression" <|
             --         \_ ->
             --             parseAndRun "\\sqrt{9} + 2"
-            --                 |> isEq (Expression <| Number 5)
+            --                 |> isEq (Number 5)
             --     , test "symbol function aplication on a expression" <|
             --         \_ ->
             --             parseAndRun "\\sqrt{7 + 2}"
-            --                 |> isEq (Expression <| Number 3)
+            --                 |> isEq (Number 3)
             --     , test "exponentiation" <|
             --         \_ ->
             --             parseAndRun "2 ^ 5"
-            --                 |> isEq (Expression <| Number 32)
+            --                 |> isEq (Number 32)
             --     , test "respects math priority #3" <|
             --         \_ ->
             --             parseAndRun "2 * 3 ^ 5"
-            --                 |> isEq (Expression <| Number 486)
+            --                 |> isEq (Number 486)
             --     , test "negation" <|
             --         \_ ->
             --             parseAndRun "5 * -3"
-            --                 |> isEq (Expression <| Number -15)
+            --                 |> isEq (Number -15)
             --     , test "factorial" <|
             --         \_ ->
             --             parseAndRun "5!"
-            --                 |> isEq (Expression <| Number 120)
+            --                 |> isEq (Number 120)
             --     , test "respects math priority #4" <|
             --         \_ ->
             --             parseAndRun "-5!"
-            --                 |> isEq (Expression <| Number -120)
+            --                 |> isEq (Number -120)
             --     , test "factorial should break for float numbers" <|
             --         \_ ->
             --             parseAndRun "5.1!"
@@ -73,47 +72,47 @@ suite =
             --     , test "factorial of 0 is 1" <|
             --         \_ ->
             --             parseAndRun "0!"
-            --                 |> isEq (Expression <| Number 1)
+            --                 |> isEq (Number 1)
             --     , test "respects math priority #5" <|
             --         \_ ->
             --             parseAndRun "2 ^ 5 * 4"
-            --                 |> isEq (Expression <| Number 128)
+            --                 |> isEq (Number 128)
             --     , test "evaluates modulo" <|
             --         \_ ->
             --             parseAndRun "5 \\mod 2"
-            --                 |> isEq (Expression <| Number 1)
+            --                 |> isEq (Number 1)
             --     , test "evaluates euclidean division" <|
             --         \_ ->
             --             parseAndRun "5 \\div 2"
-            --                 |> isEq (Expression <| Number 2)
+            --                 |> isEq (Number 2)
             --     ]
             -- , describe "constants"
             --     [ test "starts with euler number" <|
             --         \_ ->
             --             parseAndRun "e"
-            --                 |> isEq (Expression <| Number 2.718281828459045)
+            --                 |> isEq (Number 2.718281828459045)
             --     , test "starts with pi number" <|
             --         \_ ->
             --             parseAndRun "\\pi"
-            --                 |> isEq (Expression <| Number 3.141592653589793)
+            --                 |> isEq (Number 3.141592653589793)
             --     ]
             -- , describe "symbols"
             --     [ test "sqrt" <|
             --         \_ ->
             --             parseAndRun "\\sqrt{9}"
-            --                 |> isEq (Expression <| Number 3)
+            --                 |> isEq (Number 3)
             --     , test "frac" <|
             --         \_ ->
             --             parseAndRun "\\frac{3}{2}"
-            --                 |> isEq (Expression <| Number 1.5)
+            --                 |> isEq (Number 1.5)
             --     , test "summation" <|
             --         \_ ->
             --             parseAndRun "\\sum_{x=1}^{3} 5"
-            --                 |> isEq (Expression <| Number 15)
+            --                 |> isEq (Number 15)
             --     , test "summation using the variable" <|
             --         \_ ->
             --             parseAndRun "\\sum_{x=1}^{3} x + 1"
-            --                 |> isEq (Expression <| Number 9)
+            --                 |> isEq (Number 9)
             --     , test "summation with a float upper limit should break" <|
             --         \_ ->
             --             parseAndRun "\\sum_{x=1}^{3.9} 5"
@@ -135,7 +134,7 @@ suite =
             --     \_ ->
             --         parseAndRun "1 + 1\n2 + 2"
             --             |> Result.map (List.map Tuple.second)
-            --             |> Expect.equal (Ok [ Expression <| Number 2, Expression <| Number 4 ])
+            --             |> Expect.equal (Ok [ Number 2, Number 4 ])
             , describe "assignments" <|
                 [ test "parses a simple assignment and return Void" <|
                     \_ ->
@@ -144,7 +143,7 @@ suite =
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
-                            |> isEqLast (Expression <| Number 5)
+                            |> isEqLast (Number 5)
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
@@ -170,12 +169,12 @@ suite =
                     \_ ->
                         parseAndRun "f = (x) => x + 1\nf(5)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Void, Expression <| Number 6 ])
+                            |> Expect.equal (Ok [ Void, Number 6 ])
                 , test "declares a function with multiple arguments" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, 2)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Void, Expression <| Number 5 ])
+                            |> Expect.equal (Ok [ Void, Number 5 ])
                 ]
 
             --     , test "return unapplied expression if function is not defined" <|
@@ -223,23 +222,23 @@ suite =
             --     [ test "reads a vector" <|
             --         \_ ->
             --             parseAndRun "(1, 2, 3)"
-            --                 |> isEq (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
             --     , test "reads a vector with operations inside" <|
             --         \_ ->
             --             parseAndRun "(1, 1 + 1, 3)"
-            --                 |> isEq (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
             --     , test "parses a simple assignment and return void" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)"
-            --                 |> isEq (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
             --     , test "saves the value to the variable" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
-            --                 |> isEqLast (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEqLast (Vector [ Number 1, Number 2, Number 3 ])
             --     , test "calls a function with vec as param" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
-            --                 |> isEqLast (Expression <| Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEqLast (Vector [ Number 1, Number 2, Number 3 ])
             --     , test "replaces variables inside vector" <|
             --         \_ ->
             --             parseAndRun "f(x) = (1, x, 3)\nf(2)"

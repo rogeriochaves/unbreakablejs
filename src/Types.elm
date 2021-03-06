@@ -21,6 +21,8 @@ type Expression
     | Reserved Reserved
     | Abstraction (List String) Expression
     | Block String (List Expression)
+    | Void
+    | Error DeadEnd
 
 
 type Reserved

@@ -2,8 +2,8 @@ module Interpreter exposing (LineResult, State, newState, run)
 
 import Dict exposing (Dict)
 import List.Extra
-import Parser exposing (DeadEnd, Problem(..))
-import Return exposing (Value(..), throwError)
+import Parser exposing (Problem(..))
+import Return exposing (throwError)
 import Types exposing (..)
 
 
@@ -30,7 +30,7 @@ newState =
 
 
 type alias LineResult =
-    ( State, Return.Value )
+    ( State, Expression )
 
 
 run : State -> Types.Program -> Result Error (List LineResult)
@@ -66,17 +66,14 @@ runExpression : State -> Expression -> LineResult
 runExpression state expr =
     case expr of
         Number val ->
-            ( state, Expression (Number val) )
+            ( state, Number val )
 
         Vector items ->
             let
                 appendOrLiftError curr acc =
                     case ( acc, curr ) of
-                        ( Expression (Vector items_), Expression e ) ->
-                            Expression (Vector (items_ ++ [ e ]))
-
-                        ( Expression (Vector _), invalid ) ->
-                            invalid
+                        ( Vector items_, e ) ->
+                            Vector (items_ ++ [ e ])
 
                         _ ->
                             acc
@@ -84,18 +81,18 @@ runExpression state expr =
             ( state
             , items
                 |> List.map (eval state)
-                |> List.foldl appendOrLiftError (Expression <| Vector [])
+                |> List.foldl appendOrLiftError (Vector [])
             )
 
         Variable identifier ->
             ( state
             , Dict.get identifier state.scalars
-                |> Maybe.map (Expression << Number)
-                |> Maybe.withDefault (Expression (Variable identifier))
+                |> Maybe.map Number
+                |> Maybe.withDefault (Variable identifier)
             )
 
         Reserved symbol ->
-            ( state, Expression (Reserved symbol) )
+            ( state, Reserved symbol )
 
         Application fn args ->
             let
@@ -103,10 +100,10 @@ runExpression state expr =
                     List.map (eval state) args
             in
             case eval state fn of
-                Expression (Reserved reserved) ->
+                Reserved reserved ->
                     applyReserved state reserved evaluatedArgs
 
-                Expression (Variable name) ->
+                Variable name ->
                     ( state
                     , case Dict.get name state.functions of
                         Just fn_ ->
@@ -123,7 +120,7 @@ runExpression state expr =
 
         Abstraction param body ->
             ( state
-            , Expression (Abstraction param body)
+            , Abstraction param body
             )
 
         -- MapAbstraction param index body ->
@@ -151,8 +148,14 @@ runExpression state expr =
                         |> List.head
                         |> Maybe.withDefault ( state, Void )
 
+        Void ->
+            ( state, Void )
 
-applyReserved : State -> Reserved -> List Value -> ( State, Value )
+        Error e ->
+            ( state, Error e )
+
+
+applyReserved : State -> Reserved -> List Expression -> ( State, Expression )
 applyReserved state reserved evaluatedArgs =
     case reserved of
         Addition ->
@@ -163,10 +166,10 @@ applyReserved state reserved evaluatedArgs =
 
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs of
-                Expression (Number num) ->
+                Number num ->
                     ( setScalar name num state, Void )
 
-                Expression (Abstraction params body) ->
+                Abstraction params body ->
                     ( setFunction name params body state, Void )
 
                 Void ->
@@ -282,14 +285,14 @@ applyReserved state reserved evaluatedArgs =
 --             )
 
 
-callFunction : State -> ( List String, Expression ) -> List Value -> Return.Value
+callFunction : State -> ( List String, Expression ) -> List Expression -> Expression
 callFunction state ( paramNames, functionBody ) args =
     let
         closure =
             List.Extra.indexedFoldl
                 (\index paramName state_ ->
                     case Return.argOrDefault index args of
-                        Expression (Number float) ->
+                        Number float ->
                             setScalar paramName float state_
 
                         _ ->
@@ -428,7 +431,7 @@ callFunction state ( paramNames, functionBody ) args =
 --                 (eval state expr2)
 
 
-eval : State -> Expression -> Return.Value
+eval : State -> Expression -> Expression
 eval state =
     runExpression state >> Tuple.second
 

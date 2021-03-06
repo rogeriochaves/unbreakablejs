@@ -1,62 +1,34 @@
-module Return exposing (Value(..), andThen, andThenArgs2, andThenVector, argOrDefault, map, mapNumArgs2, throwError)
+module Return exposing (andThen, andThenArgs2, argOrDefault, map, mapNumArgs2, throwError)
 
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
 
 
-type Value
-    = Expression Types.Expression
-    | Error DeadEnd
-    | Void
-
-
-throwError : String -> Value
+throwError : String -> Expression
 throwError error =
     Error { row = 0, col = 0, problem = Problem error }
 
 
-map : (Types.Expression -> Types.Expression) -> Value -> Value
+map : (Types.Expression -> Types.Expression) -> Expression -> Expression
 map fn =
-    andThen (fn >> Expression)
+    andThen fn
 
 
-andThen : (Types.Expression -> Value) -> Value -> Value
+andThen : (Types.Expression -> Expression) -> Expression -> Expression
 andThen fn val =
-    case val of
-        Expression e ->
-            fn e
-
-        Error e ->
-            Error e
-
-        Void ->
-            throwError "Void return inside another expression"
+    fn val
 
 
-andThen2 : (Types.Expression -> Types.Expression -> Value) -> Value -> Value -> Value
+andThen2 : (Types.Expression -> Types.Expression -> Expression) -> Expression -> Expression -> Expression
 andThen2 fn val val2 =
-    case ( val, val2 ) of
-        ( Expression e, Expression e2 ) ->
-            fn e e2
-
-        ( Error _, _ ) ->
-            val
-
-        ( _, Error _ ) ->
-            val2
-
-        ( Void, _ ) ->
-            throwError "Cannot apply function to void"
-
-        ( _, Void ) ->
-            throwError "Cannot apply void to function"
+    fn val val2
 
 
 
--- mapNum : (Types.Expression -> Types.Expression) -> (Float -> Float) -> Value -> Value
+-- mapNum : (Types.Expression -> Types.Expression) -> (Float -> Float) -> Expression -> Expression
 -- mapNum builder fn =
 --     andThenNum builder (fn >> Types.Number >> Expression)
--- andThenNum : (Types.Expression -> Types.Expression) -> (Float -> Value) -> Value -> Value
+-- andThenNum : (Types.Expression -> Types.Expression) -> (Float -> Expression) -> Expression -> Expression
 -- andThenNum builder fn =
 --     andThen
 --         (\expr ->
@@ -68,29 +40,22 @@ andThen2 fn val val2 =
 --                 other ->
 --                     Expression (builder other)
 --         )
-
-
-andThenVector : (Types.Expression -> Types.Expression) -> (List Expression -> Value) -> Value -> Value
-andThenVector builder fn =
-    andThen
-        (\expr ->
-            case expr of
-                Types.Number float ->
-                    throwError "Vector expected"
-
-                Types.Vector items ->
-                    fn items
-
-                other ->
-                    Expression (builder other)
-        )
-
-
-
--- mapNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Float) -> Value -> Value -> Value
+-- andThenVector : (Types.Expression -> Types.Expression) -> (List Expression -> Expression) -> Expression -> Expression
+-- andThenVector builder fn =
+--     andThen
+--         (\expr ->
+--             case expr of
+--                 Types.Number float ->
+--                     throwError "Vector expected"
+--                 Types.Vector items ->
+--                     fn items
+--                 other ->
+--                     Expression (builder other)
+--         )
+-- mapNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Float) -> Expression -> Expression -> Expression
 -- mapNum2 builder fn =
 --     andThenNum2 builder (\a -> fn a >> Types.Number >> Expression)
--- andThenNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Value) -> Value -> Value -> Value
+-- andThenNum2 : (Types.Expression -> Types.Expression -> Types.Expression) -> (Float -> Float -> Expression) -> Expression -> Expression -> Expression
 -- andThenNum2 builder fn =
 --     andThen2
 --         (\expr1 expr2 ->
@@ -106,20 +71,20 @@ andThenVector builder fn =
 --         )
 
 
-mapNumArgs2 : (Float -> Float -> Float) -> List Value -> Value
+mapNumArgs2 : (Float -> Float -> Float) -> List Expression -> Expression
 mapNumArgs2 fn =
-    andThenNumArgs2 (\a -> fn a >> Types.Number >> Expression)
+    andThenNumArgs2 (\a -> fn a >> Types.Number)
 
 
-andThenNumArgs2 : (Float -> Float -> Value) -> List Value -> Value
+andThenNumArgs2 : (Float -> Float -> Expression) -> List Expression -> Expression
 andThenNumArgs2 fn =
     andThenArgs2
         (\arg0 arg1 ->
             case ( arg0, arg1 ) of
-                ( Expression (Number float1), Expression (Number float2) ) ->
+                ( Number float1, Number float2 ) ->
                     fn float1 float2
 
-                ( Expression (Number _), e ) ->
+                ( Number _, e ) ->
                     e
 
                 ( e, _ ) ->
@@ -127,12 +92,12 @@ andThenNumArgs2 fn =
         )
 
 
-andThenArgs2 : (Value -> Value -> Value) -> List Value -> Value
+andThenArgs2 : (Expression -> Expression -> Expression) -> List Expression -> Expression
 andThenArgs2 fn args =
     fn (argOrDefault 0 args) (argOrDefault 1 args)
 
 
-argOrDefault : Int -> List Value -> Value
+argOrDefault : Int -> List Expression -> Expression
 argOrDefault index args =
     List.drop index args
         |> List.head
