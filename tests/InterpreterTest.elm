@@ -171,6 +171,11 @@ suite =
                         parseAndRun "f = (x) => x + 1\nf(5)"
                             |> Result.map (List.map Tuple.second)
                             |> Expect.equal (Ok [ Void, Expression <| Number 6 ])
+                , test "declares a function with multiple arguments" <|
+                    \_ ->
+                        parseAndRun "f = (x, y) => x + y\nf(3, 2)"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal (Ok [ Void, Expression <| Number 5 ])
                 ]
 
             --     , test "return unapplied expression if function is not defined" <|

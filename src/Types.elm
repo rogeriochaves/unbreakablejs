@@ -19,7 +19,7 @@ type Expression
     | Variable String
     | Application Expression (List Expression)
     | Reserved Reserved
-    | Abstraction String Expression
+    | Abstraction (List String) Expression
     | Block String (List Expression)
 
 

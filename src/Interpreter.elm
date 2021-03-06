@@ -10,7 +10,7 @@ import Types exposing (..)
 type alias State =
     { scalars : Dict String Float
     , vectors : Dict String (List Expression)
-    , functions : Dict String ( String, Expression )
+    , functions : Dict String ( List String, Expression )
     , mapFunctions : Dict String ( String, String, Expression )
     }
 
@@ -282,18 +282,23 @@ applyReserved state reserved evaluatedArgs =
 --             )
 
 
-callFunction : State -> ( String, Expression ) -> List Value -> Return.Value
-callFunction state ( paramName, functionBody ) args =
+callFunction : State -> ( List String, Expression ) -> List Value -> Return.Value
+callFunction state ( paramNames, functionBody ) args =
     let
-        arg0 =
-            Return.argOrDefault 0 args
-    in
-    case arg0 of
-        Expression (Number float) ->
-            eval (setScalar paramName float state) functionBody
+        closure =
+            List.Extra.indexedFoldl
+                (\index paramName state_ ->
+                    case Return.argOrDefault index args of
+                        Expression (Number float) ->
+                            setScalar paramName float state_
 
-        _ ->
-            Debug.todo "not implemented"
+                        _ ->
+                            Debug.todo "not implemented"
+                )
+                state
+                paramNames
+    in
+    eval closure functionBody
 
 
 
@@ -438,9 +443,9 @@ setVector name value state =
     { state | vectors = Dict.insert name value state.vectors }
 
 
-setFunction : String -> String -> Expression -> State -> State
-setFunction name param body state =
-    { state | functions = Dict.insert name ( param, body ) state.functions }
+setFunction : String -> List String -> Expression -> State -> State
+setFunction name params body state =
+    { state | functions = Dict.insert name ( params, body ) state.functions }
 
 
 setMapFunction : String -> String -> String -> Expression -> State -> State

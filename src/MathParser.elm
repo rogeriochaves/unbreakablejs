@@ -107,7 +107,16 @@ functionCall : Parser Expression
 functionCall =
     succeed (Application << Variable)
         |= backtrackable scalarIdentifier
-        |= backtrackable (map (\x -> [ x ]) (parens expression))
+        |= backtrackable
+            (sequence
+                { start = "("
+                , separator = ","
+                , end = ")"
+                , spaces = spaces
+                , item = expression
+                , trailing = Forbidden
+                }
+            )
 
 
 operators : OperatorTable Expression
@@ -146,7 +155,16 @@ functionDeclaration =
         |. backtrackable spaces
         |. backtrackable (symbol "=")
         |. backtrackable spaces
-        |= backtrackable (parens identifier)
+        |= backtrackable
+            (sequence
+                { start = "("
+                , separator = ","
+                , end = ")"
+                , spaces = spaces
+                , item = identifier
+                , trailing = Forbidden
+                }
+            )
         |. backtrackable spaces
         |. backtrackable (symbol "=>")
         |. spaces

@@ -170,7 +170,17 @@ suite =
                         |> isEq
                             (Application
                                 (Reserved (Assignment "f"))
-                                [ Abstraction "x"
+                                [ Abstraction [ "x" ]
+                                    (Application (Reserved Addition) [ Variable "x", Number 1 ])
+                                ]
+                            )
+            , test "parses function declaration with multiple arguments" <|
+                \_ ->
+                    MathParser.parse "f = (x, y) => x + 1"
+                        |> isEq
+                            (Application
+                                (Reserved (Assignment "f"))
+                                [ Abstraction [ "x", "y" ]
                                     (Application (Reserved Addition) [ Variable "x", Number 1 ])
                                 ]
                             )
@@ -183,6 +193,10 @@ suite =
                 \_ ->
                     MathParser.parse "f(5)"
                         |> isEq (Application (Variable "f") [ Number 5 ])
+            , test "parses function call with multiple arguments" <|
+                \_ ->
+                    MathParser.parse "f(3, 2)"
+                        |> isEq (Application (Variable "f") [ Number 3, Number 2 ])
             ]
 
         -- , describe "vectors"
