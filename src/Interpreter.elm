@@ -34,7 +34,7 @@ run state expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( state, Value Void )
+                        |> Maybe.withDefault ( state, Value Undefined )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
@@ -122,7 +122,7 @@ runExpression state expr =
                 Ok results ->
                     List.reverse results
                         |> List.head
-                        |> Maybe.withDefault ( state, Value Void )
+                        |> Maybe.withDefault ( state, Value Undefined )
 
         Error e ->
             ( state, Error e )
@@ -140,7 +140,7 @@ applyReserved state reserved evaluatedArgs =
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs of
                 Value val ->
-                    ( setVariable name val state, Value Void )
+                    ( setVariable name val state, Value Undefined )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -158,14 +158,14 @@ applyReserved state reserved evaluatedArgs =
 --                             ( setVariable name num state, Expression (Number num) )
 --                         Expression (Vector _) ->
 --                             ( state, throwError ("Cannot assign vector to scalar variables, use \\vec{" ++ name ++ "} instead") )
---                         Void ->
---                             ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
+--                         Undefined ->
+--                             ( state, throwError ("Cannot set variable " ++ name ++ " to Undefined") )
 --                         Error error ->
 --                             ( state, Error error )
 --                         Expression (Abstraction params body) ->
---                             ( setFunction name params body state, Void )
+--                             ( setFunction name params body state, Undefined )
 --                         Expression (MapAbstraction params index body) ->
---                             ( setMapFunction name params index body state, Void )
+--                             ( setMapFunction name params index body state, Undefined )
 --                         Expression e ->
 --                             ( state, Expression (SingleArity (Assignment identifier) e) )
 --                 VectorIdentifier name ->
@@ -174,8 +174,8 @@ applyReserved state reserved evaluatedArgs =
 --                             ( state, throwError "Cannot assign scalar to vector variables" )
 --                         Expression (Vector v) ->
 --                             ( setVector name v state, Expression (Vector v) )
---                         Void ->
---                             ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
+--                         Undefined ->
+--                             ( state, throwError ("Cannot set variable " ++ name ++ " to Undefined") )
 --                         Error error ->
 --                             ( state, Error error )
 --                         Expression e ->

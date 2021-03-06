@@ -237,7 +237,7 @@ renderResult item =
                 , text msg
                 ]
 
-        Just Void ->
+        Just Undefined ->
             div [] []
 
         Nothing ->
@@ -319,7 +319,7 @@ update msg model =
                 result =
                     List.Extra.getAt model.selectedCell model.cells
                         |> Maybe.andThen runCell
-                        |> Maybe.withDefault ( model.state, Void )
+                        |> Maybe.withDefault ( model.state, Undefined )
 
                 updateCell cell_ =
                     { cell_ | result = Just <| Tuple.second result }

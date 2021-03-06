@@ -101,4 +101,4 @@ argOrDefault : Int -> List Expression -> Expression
 argOrDefault index args =
     List.drop index args
         |> List.head
-        |> Maybe.withDefault (Value Void)
+        |> Maybe.withDefault (Value Undefined)

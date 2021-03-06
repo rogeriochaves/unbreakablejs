@@ -26,7 +26,7 @@ type Value
     = Number Float
     | Vector (List Expression)
     | Abstraction (List String) Expression
-    | Void
+    | Undefined
 
 
 type Reserved

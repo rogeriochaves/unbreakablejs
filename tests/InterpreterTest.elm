@@ -136,10 +136,10 @@ suite =
             --             |> Result.map (List.map Tuple.second)
             --             |> Expect.equal (Ok [ Number 2, Number 4 ])
             , describe "assignments" <|
-                [ test "parses a simple assignment and return Void" <|
+                [ test "parses a simple assignment and return Undefined" <|
                     \_ ->
                         parseAndRun "x = 2 + 2"
-                            |> isEq (Value Void)
+                            |> isEq (Value Undefined)
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
@@ -169,17 +169,17 @@ suite =
                     \_ ->
                         parseAndRun "f = (x) => x + 1\nf(5)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Void, Value (Number 6) ])
+                            |> Expect.equal (Ok [ Value Undefined, Value (Number 6) ])
                 , test "declares a function with multiple arguments" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, 2)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Void, Value (Number 5) ])
+                            |> Expect.equal (Ok [ Value Undefined, Value (Number 5) ])
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Void, Value Void ])
+                            |> Expect.equal (Ok [ Value Undefined, Value Undefined ])
                 ]
 
             --     , test "return unapplied expression if function is not defined" <|
@@ -202,7 +202,7 @@ suite =
             --                 |> Result.map (List.map Tuple.second)
             --                 |> Expect.equal
             --                     (Ok
-            --                         [ Void
+            --                         [ Undefined
             --                         , Expression
             --                             (SingleArity (Application (Variable (ScalarIdentifier "f")))
             --                                 (DoubleArity Addition (Number 1) (Variable (ScalarIdentifier "y")))
@@ -215,7 +215,7 @@ suite =
             --                 |> Result.map (List.map Tuple.second)
             --                 |> Expect.equal
             --                     (Ok
-            --                         [ Void
+            --                         [ Undefined
             --                         , Expression
             --                             (SingleArity (Application (Variable (ScalarIdentifier "f")))
             --                                 (SingleArity (Application (Variable (ScalarIdentifier "g"))) (Number 1))
@@ -232,7 +232,7 @@ suite =
             --         \_ ->
             --             parseAndRun "(1, 1 + 1, 3)"
             --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
-            --     , test "parses a simple assignment and return void" <|
+            --     , test "parses a simple assignment and return Undefined" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)"
             --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
@@ -250,7 +250,7 @@ suite =
             --                 |> Result.map (List.map Tuple.second)
             --                 |> Expect.equal
             --                     (Ok
-            --                         [ Void
+            --                         [ Undefined
             --                         , Expression <|
             --                             Vector [ Number 1, Number 2, Number 3 ]
             --                         ]
@@ -269,8 +269,8 @@ suite =
             --                 |> Result.map (List.map Tuple.second)
             --                 |> Expect.equal
             --                     (Ok
-            --                         [ Void
-            --                         , Void
+            --                         [ Undefined
+            --                         , Undefined
             --                         , Expression <|
             --                             Vector [ Number 1, Number 2, Number 3 ]
             --                         ]
@@ -326,7 +326,7 @@ suite =
             --         \_ ->
             --             parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
             --                 |> Result.map (List.map Tuple.second)
-            --                 |> Expect.equal (Ok [ Void, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
+            --                 |> Expect.equal (Ok [ Undefined, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
             --     , test "evaluates a vector summation" <|
             --         \_ ->
             --             parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"
