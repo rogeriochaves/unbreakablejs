@@ -8,19 +8,13 @@ import Types exposing (..)
 
 
 type alias State =
-    { scalars : Dict String Value
-    , vectors : Dict String (List Expression)
-    , functions : Dict String ( List String, Expression )
-    , mapFunctions : Dict String ( String, String, Expression )
+    { variables : Dict String Value
     }
 
 
 newState : State
 newState =
-    { scalars = Dict.empty
-    , vectors = Dict.empty
-    , functions = Dict.empty
-    , mapFunctions = Dict.empty
+    { variables = Dict.empty
     }
 
 
@@ -82,7 +76,7 @@ runExpression state expr =
 
         Variable identifier ->
             ( state
-            , Dict.get identifier state.scalars
+            , Dict.get identifier state.variables
                 |> Maybe.map Value
                 |> Maybe.withDefault (Variable identifier)
             )
@@ -146,7 +140,7 @@ applyReserved state reserved evaluatedArgs =
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs of
                 Value val ->
-                    ( setScalar name val state, Value Void )
+                    ( setVariable name val state, Value Void )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -161,7 +155,7 @@ applyReserved state reserved evaluatedArgs =
 --                 ScalarIdentifier name ->
 --                     case eval state expr of
 --                         Expression (Number num) ->
---                             ( setScalar name num state, Expression (Number num) )
+--                             ( setVariable name num state, Expression (Number num) )
 --                         Expression (Vector _) ->
 --                             ( state, throwError ("Cannot assign vector to scalar variables, use \\vec{" ++ name ++ "} instead") )
 --                         Void ->
@@ -263,7 +257,7 @@ callFunction state ( paramNames, functionBody ) args =
                 (\index paramName state_ ->
                     case Return.argOrDefault index args of
                         Value val ->
-                            setScalar paramName val state_
+                            setVariable paramName val state_
 
                         _ ->
                             Debug.todo "not implemented"
@@ -279,7 +273,7 @@ callFunction state ( paramNames, functionBody ) args =
 -- eval state args
 --     |> Return.andThenNum (SingleArity func)
 --         (\param_ ->
---             eval (setScalar paramName param_ state) functionBody
+--             eval (setVariable paramName param_ state) functionBody
 --         )
 -- callMapFunction : SingleArity -> State -> Expression -> ( String, String, Expression ) -> Return.Value
 -- callMapFunction func state args ( functionParam, functionIndex, functionBody ) =
@@ -292,7 +286,7 @@ callFunction state ( paramNames, functionBody ) args =
 --                             state_ =
 --                                 state
 --                                     |> setVector functionParam items
---                                     |> setScalar functionIndex (toFloat <| i + 1)
+--                                     |> setVariable functionIndex (toFloat <| i + 1)
 --                         in
 --                         case ( acc, eval state_ functionBody ) of
 --                             ( Expression (Vector items_), Expression e ) ->
@@ -390,7 +384,7 @@ callFunction state ( paramNames, functionBody ) args =
 --                 iterate curr total =
 --                     let
 --                         state_ =
---                             setScalar identifier (toFloat curr) state
+--                             setVariable identifier (toFloat curr) state
 --                     in
 --                     eval state_ expr3
 --                         |> Return.mapNum2 (\_ -> TripleArity func expr1 expr2) (\result total_ -> total_ + result) total
@@ -406,21 +400,6 @@ eval state =
     runExpression state >> Tuple.second
 
 
-setScalar : String -> Value -> State -> State
-setScalar name value state =
-    { state | scalars = Dict.insert name value state.scalars }
-
-
-setVector : String -> List Expression -> State -> State
-setVector name value state =
-    { state | vectors = Dict.insert name value state.vectors }
-
-
-setFunction : String -> List String -> Expression -> State -> State
-setFunction name params body state =
-    { state | functions = Dict.insert name ( params, body ) state.functions }
-
-
-setMapFunction : String -> String -> String -> Expression -> State -> State
-setMapFunction name param index body state =
-    { state | mapFunctions = Dict.insert name ( param, index, body ) state.mapFunctions }
+setVariable : String -> Value -> State -> State
+setVariable name value state =
+    { state | variables = Dict.insert name value state.variables }
