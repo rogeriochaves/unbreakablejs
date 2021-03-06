@@ -17,15 +17,15 @@ suite =
                 \_ ->
                     parseAndRun "1 + 1"
                         |> isEq (Expression <| Number 2)
+            , test "sum float numbers" <|
+                \_ ->
+                    parseAndRun "1.5 + 1.3"
+                        |> isEq (Expression <| Number 2.8)
+            , test "execute nested expressions" <|
+                \_ ->
+                    parseAndRun "1 - (3 - 2)"
+                        |> isEq (Expression <| Number 0)
 
-            --     , test "sum float numbers" <|
-            --         \_ ->
-            --             parseAndRun "1.5 + 1.3"
-            --                 |> isEq (Expression <| Number 2.8)
-            --     , test "execute nested expressions" <|
-            --         \_ ->
-            --             parseAndRun "1 - (3 - 2)"
-            --                 |> isEq (Expression <| Number 0)
             --     , test "respects math priority" <|
             --         \_ ->
             --             parseAndRun "2 + 3 * 2"
@@ -136,15 +136,17 @@ suite =
             --         parseAndRun "1 + 1\n2 + 2"
             --             |> Result.map (List.map Tuple.second)
             --             |> Expect.equal (Ok [ Expression <| Number 2, Expression <| Number 4 ])
-            -- , describe "assignments" <|
-            --     [ test "parses a simple assignment and return the result" <|
-            --         \_ ->
-            --             parseAndRun "x = 2 + 2"
-            --                 |> isEq (Expression (Number 4))
-            --     , test "saves the value to the variable" <|
-            --         \_ ->
-            --             parseAndRun "x = 2 + 2\nx + 1"
-            --                 |> isEqLast (Expression <| Number 5)
+            , describe "assignments" <|
+                [ test "parses a simple assignment and return Void" <|
+                    \_ ->
+                        parseAndRun "x = 2 + 2"
+                            |> isEq Void
+                , test "saves the value to the variable" <|
+                    \_ ->
+                        parseAndRun "x = 2 + 2\nx + 1"
+                            |> isEqLast (Expression <| Number 5)
+                ]
+
             --     , test "returns unapplied expression if the variable is not defined" <|
             --         \_ ->
             --             parseAndRun "x + 1"

@@ -24,6 +24,8 @@ type Expression
 
 type Reserved
     = Addition
+    | Subtraction
+    | Assignment String
 
 
 

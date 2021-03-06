@@ -104,26 +104,11 @@ runExpression state expr =
             in
             case eval state fn of
                 Expression (Reserved reserved) ->
-                    ( state
-                    , case reserved of
-                        Addition ->
-                            Return.mapNumArgs2 (+) evaluatedArgs
-                    )
+                    applyReserved state reserved evaluatedArgs
 
                 _ ->
                     Debug.todo "not implemented"
 
-        -- case args of
-        --     [ arg1, arg2 ] ->
-        --         let
-        --             numOp operator =
-        -- Return.mapNum2 (\a1 a2 -> Application fn [ a1, a2 ])
-        --                     operator
-        --                     (eval state arg1)
-        --                     (eval state arg2)
-        --         in
-        --     _ ->
-        --         Debug.todo "not implemented"
         -- Abstraction param body ->
         --     ( state
         --     , Expression (Abstraction param body)
@@ -152,6 +137,30 @@ runExpression state expr =
                     List.reverse results
                         |> List.head
                         |> Maybe.withDefault ( state, Void )
+
+
+applyReserved : State -> Reserved -> List Value -> ( State, Value )
+applyReserved state reserved evaluatedArgs =
+    case reserved of
+        Addition ->
+            ( state, Return.mapNumArgs2 (+) evaluatedArgs )
+
+        Subtraction ->
+            ( state, Return.mapNumArgs2 (-) evaluatedArgs )
+
+        Assignment name ->
+            case Return.argOrDefault 0 evaluatedArgs of
+                Expression (Number num) ->
+                    ( setScalar name num state, Void )
+
+                Void ->
+                    ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
+
+                Error error ->
+                    ( state, Error error )
+
+                _ ->
+                    Debug.todo "not implemented"
 
 
 

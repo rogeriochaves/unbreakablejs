@@ -1,4 +1,4 @@
-module Return exposing (Value(..), andThen, andThenArgs2, andThenVector, map, mapNumArgs2, throwError)
+module Return exposing (Value(..), andThen, andThenArgs2, andThenVector, argOrDefault, map, mapNumArgs2, throwError)
 
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
@@ -134,6 +134,6 @@ andThenArgs2 fn args =
 
 argOrDefault : Int -> List Value -> Value
 argOrDefault index args =
-    List.drop (index - 1) args
+    List.drop index args
         |> List.head
         |> Maybe.withDefault Void

@@ -19,18 +19,16 @@ suite =
                 MathParser.parse "1.5 + 1.3"
                     |> isEq
                         (Application (Reserved Addition) [ Number 1.5, Number 1.3 ])
+        , test "read nested operations" <|
+            \_ ->
+                MathParser.parse "1 - (3 - 2)"
+                    |> isEq
+                        (Application (Reserved Subtraction)
+                            [ Number 1
+                            , Application (Reserved Subtraction) [ Number 3, Number 2 ]
+                            ]
+                        )
 
-        -- , test "read nested operations" <|
-        --     \_ ->
-        --         MathParser.parse "1 - (3 - 2)"
-        --             |> isEq
-        --                 (DoubleArity Subtraction
-        --                     (Number 1)
-        --                     (DoubleArity Subtraction
-        --                         (Number 3)
-        --                         (Number 2)
-        --                     )
-        --                 )
         -- , test "read single-arity symbolic function" <|
         --     \_ ->
         --         MathParser.parse "\\sqrt{5}"
@@ -142,11 +140,17 @@ suite =
         --                         ]
         --                     )
         --     ]
-        -- , describe "assignments"
-        --     [ test "parses simple assignment" <|
-        --         \_ ->
-        --             MathParser.parse "x = 1 + 1"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Number 1) (Number 1)))
+        , describe "assignments"
+            [ test "parses simple assignment" <|
+                \_ ->
+                    MathParser.parse "x = 1 + 1"
+                        |> isEq
+                            (Application (Reserved (Assignment "x"))
+                                [ Application (Reserved Addition) [ Number 1, Number 1 ]
+                                ]
+                            )
+            ]
+
         --     , test "allows have a variable with a bar" <|
         --         \_ ->
         --             MathParser.parse "\\bar{x} = 2"

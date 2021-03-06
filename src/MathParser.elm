@@ -114,7 +114,7 @@ operators : OperatorTable Expression
 operators =
     let
         infixOp op =
-            infixOperator (\arg1 arg2 -> Application (Reserved op) [ arg1, arg2 ])
+            infixOperator (doubleArity op)
 
         symb sign =
             succeed identity
@@ -125,19 +125,31 @@ operators =
     -- , [ infixOp Exponentiation (symb "^") AssocLeft ]
     -- , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
     -- , [ infixOp Modulo (symb "\\mod") AssocLeft, infixOp EuclideanDivision (symb "\\div") AssocLeft ]
-    [ [ infixOp Addition (symb "+") AssocLeft ] --, infixOp Subtraction (symb "-") AssocLeft ]
+    [ [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
     ]
 
 
+assignment : Parser Expression
+assignment =
+    succeed (singleArity << Assignment)
+        |= backtrackable identifier
+        |. backtrackable spaces
+        |. symbol "="
+        |. spaces
+        |= expression
 
--- assignment : Parser Expression
--- assignment =
---     succeed (SingleArity << Assignment)
---         |= backtrackable identifier
---         |. backtrackable spaces
---         |. symbol "="
---         |. spaces
---         |= expression
+
+singleArity : Reserved -> Expression -> Expression
+singleArity fn expr =
+    Application (Reserved fn) [ expr ]
+
+
+doubleArity : Reserved -> Expression -> Expression -> Expression
+doubleArity fn expr1 expr2 =
+    Application (Reserved fn) [ expr1, expr2 ]
+
+
+
 -- functionDeclaration : Parser Expression
 -- functionDeclaration =
 --     succeed (\name param body -> SingleArity (Assignment (ScalarIdentifier name)) (Abstraction param body))
@@ -237,11 +249,13 @@ expression_ withDeclarations =
 expressionParsers : Bool -> Parser Expression
 expressionParsers withDeclarations =
     let
-        -- declarations =
-        --     [ mapFunctionDeclaration
-        --     , functionDeclaration
-        --     , assignment
-        --     ]
+        declarations =
+            [ assignment ]
+
+        -- [ mapFunctionDeclaration
+        -- , functionDeclaration
+        -- , assignment
+        -- ]
         expressions =
             [ backtrackable <| parens <| lazy (\_ -> expression)
             , functionCall
@@ -249,10 +263,11 @@ expressionParsers withDeclarations =
             , vectors
             ]
     in
-    -- if withDeclarations then
-    --     oneOf (declarations ++ expressions)
-    -- else
-    oneOf expressions
+    if withDeclarations then
+        oneOf (declarations ++ expressions)
+
+    else
+        oneOf expressions
 
 
 atoms : Parser Expression
