@@ -149,67 +149,42 @@ suite =
                                 [ Application (Reserved Addition) [ Number 1, Number 1 ]
                                 ]
                             )
+            , test "does not allow nested assignments" <|
+                \_ ->
+                    MathParser.parse "x = 1 + (x = 2)"
+                        |> isErr
+                        |> Expect.true "nested assignments"
+            , test "parses expression with variables" <|
+                \_ ->
+                    MathParser.parse "x + 1"
+                        |> isEq (Application (Reserved Addition) [ Variable "x", Number 1 ])
+            , test "parses assignment with variables" <|
+                \_ ->
+                    MathParser.parse "x = y + 1"
+                        |> isEq (Application (Reserved (Assignment "x")) [ Application (Reserved Addition) [ Variable "y", Number 1 ] ])
+            ]
+        , describe "functions"
+            [ test "parses function declaration" <|
+                \_ ->
+                    MathParser.parse "f = (x) => x + 1"
+                        |> isEq
+                            (Application
+                                (Reserved (Assignment "f"))
+                                [ Abstraction "x"
+                                    (Application (Reserved Addition) [ Variable "x", Number 1 ])
+                                ]
+                            )
+            , test "does not allow nested function declarations" <|
+                \_ ->
+                    MathParser.parse "fn(x) = fn(y) = 1"
+                        |> isErr
+                        |> Expect.true "nested functions"
+            , test "parses function call" <|
+                \_ ->
+                    MathParser.parse "f(5)"
+                        |> isEq (Application (Variable "f") [ Number 5 ])
             ]
 
-        --     , test "allows have a variable with a bar" <|
-        --         \_ ->
-        --             MathParser.parse "\\bar{x} = 2"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "\\bar{x}")) (Number 2))
-        --     , test "allows have a variable with a tilde" <|
-        --         \_ ->
-        --             MathParser.parse "\\tilde{x} = 3"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "\\tilde{x}")) (Number 3))
-        --     , test "does not allow nested assignments" <|
-        --         \_ ->
-        --             MathParser.parse "x = 1 + (x = 2)"
-        --                 |> isErr
-        --                 |> Expect.true "nested assignments"
-        --     , test "parses expression with variables" <|
-        --         \_ ->
-        --             MathParser.parse "x + 1"
-        --                 |> isEq (DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1))
-        --     , test "parses assignment with variables" <|
-        --         \_ ->
-        --             MathParser.parse "x = y + 1"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "x")) (DoubleArity Addition (Variable (ScalarIdentifier "y")) (Number 1)))
-        --     , test "parses sigma as a variable" <|
-        --         \_ ->
-        --             MathParser.parse "\\sigma + 1"
-        --                 |> isEq (DoubleArity Addition (Variable (ScalarIdentifier "\\sigma")) (Number 1))
-        --     , test "parses all lowercase greek letters" <|
-        --         \_ ->
-        --             MathParser.parse "(\\alpha, \\beta, \\gamma, \\delta, \\epsilon, \\varepsilon, \\zeta, \\eta, \\theta, \\vartheta, \\iota, \\kappa, \\lambda, \\mu, \\nu, \\xi, \\pi, \\rho, \\sigma, \\tau, \\upsilon, \\phi, \\chi, \\psi, \\omega)"
-        --                 |> isEq (Vector [ Variable (ScalarIdentifier "\\alpha"), Variable (ScalarIdentifier "\\beta"), Variable (ScalarIdentifier "\\gamma"), Variable (ScalarIdentifier "\\delta"), Variable (ScalarIdentifier "\\epsilon"), Variable (ScalarIdentifier "\\varepsilon"), Variable (ScalarIdentifier "\\zeta"), Variable (ScalarIdentifier "\\eta"), Variable (ScalarIdentifier "\\theta"), Variable (ScalarIdentifier "\\vartheta"), Variable (ScalarIdentifier "\\iota"), Variable (ScalarIdentifier "\\kappa"), Variable (ScalarIdentifier "\\lambda"), Variable (ScalarIdentifier "\\mu"), Variable (ScalarIdentifier "\\nu"), Variable (ScalarIdentifier "\\xi"), Variable (ScalarIdentifier "\\pi"), Variable (ScalarIdentifier "\\rho"), Variable (ScalarIdentifier "\\sigma"), Variable (ScalarIdentifier "\\tau"), Variable (ScalarIdentifier "\\upsilon"), Variable (ScalarIdentifier "\\phi"), Variable (ScalarIdentifier "\\chi"), Variable (ScalarIdentifier "\\psi"), Variable (ScalarIdentifier "\\omega") ])
-        --     , test "allows operatornames as scalars" <|
-        --         \_ ->
-        --             MathParser.parse "\\operatorname{Q2} = 5"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "\\operatorname{Q2}")) (Number 5))
-        --     , test "allows have a greek variables with a bar" <|
-        --         \_ ->
-        --             MathParser.parse "\\bar{\\sigma} = 2"
-        --                 |> isEq (SingleArity (Assignment (ScalarIdentifier "\\bar{\\sigma}")) (Number 2))
-        --     ]
-        -- , describe "functions"
-        --     [ test "parses function declaration" <|
-        --         \_ ->
-        --             MathParser.parse "f(x) = x + 1"
-        --                 |> isEq
-        --                     (SingleArity
-        --                         (Assignment (ScalarIdentifier "f"))
-        --                         (Abstraction (ScalarIdentifier "x")
-        --                             (DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1))
-        --                         )
-        --                     )
-        --     , test "does not allow nested function declarations" <|
-        --         \_ ->
-        --             MathParser.parse "fn(x) = fn(y) = 1"
-        --                 |> isErr
-        --                 |> Expect.true "nested functions"
-        --     , test "parses function call" <|
-        --         \_ ->
-        --             MathParser.parse "f(5)"
-        --                 |> isEq (SingleArity (Application (Variable (ScalarIdentifier "f"))) (Number 5))
-        --     ]
         -- , describe "vectors"
         --     [ test "parses simple vector" <|
         --         \_ ->

@@ -139,6 +139,20 @@ assignment =
         |= expression
 
 
+functionDeclaration : Parser Expression
+functionDeclaration =
+    succeed (\name param body -> Application (Reserved (Assignment name)) [ Abstraction param body ])
+        |= backtrackable identifier
+        |. backtrackable spaces
+        |. backtrackable (symbol "=")
+        |. backtrackable spaces
+        |= backtrackable (parens identifier)
+        |. backtrackable spaces
+        |. backtrackable (symbol "=>")
+        |. spaces
+        |= expression
+
+
 singleArity : Reserved -> Expression -> Expression
 singleArity fn expr =
     Application (Reserved fn) [ expr ]
@@ -150,15 +164,6 @@ doubleArity fn expr1 expr2 =
 
 
 
--- functionDeclaration : Parser Expression
--- functionDeclaration =
---     succeed (\name param body -> SingleArity (Assignment (ScalarIdentifier name)) (Abstraction param body))
---         |= backtrackable scalarIdentifier
---         |= backtrackable (parens identifier)
---         |. backtrackable spaces
---         |. backtrackable (symbol "=")
---         |. spaces
---         |= expression
 -- mapFunctionDeclaration : Parser Expression
 -- mapFunctionDeclaration =
 --     succeed (\name param idx body -> SingleArity (Assignment (ScalarIdentifier name)) (MapAbstraction param idx body))
@@ -250,7 +255,9 @@ expressionParsers : Bool -> Parser Expression
 expressionParsers withDeclarations =
     let
         declarations =
-            [ assignment ]
+            [ functionDeclaration
+            , assignment
+            ]
 
         -- [ mapFunctionDeclaration
         -- , functionDeclaration

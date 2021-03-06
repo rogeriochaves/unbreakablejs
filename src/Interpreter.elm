@@ -106,13 +106,26 @@ runExpression state expr =
                 Expression (Reserved reserved) ->
                     applyReserved state reserved evaluatedArgs
 
+                Expression (Variable name) ->
+                    ( state
+                    , case Dict.get name state.functions of
+                        Just fn_ ->
+                            callFunction state fn_ evaluatedArgs
+
+                        Nothing ->
+                            Debug.todo "not implemented"
+                      -- eval state expr
+                      --     |> Return.andThenNum (SingleArity func) (Expression << SingleArity func << Number)
+                    )
+
                 _ ->
                     Debug.todo "not implemented"
 
-        -- Abstraction param body ->
-        --     ( state
-        --     , Expression (Abstraction param body)
-        --     )
+        Abstraction param body ->
+            ( state
+            , Expression (Abstraction param body)
+            )
+
         -- MapAbstraction param index body ->
         --     ( state
         --     , Expression (MapAbstraction param index body)
@@ -152,6 +165,9 @@ applyReserved state reserved evaluatedArgs =
             case Return.argOrDefault 0 evaluatedArgs of
                 Expression (Number num) ->
                     ( setScalar name num state, Void )
+
+                Expression (Abstraction params body) ->
+                    ( setFunction name params body state, Void )
 
                 Void ->
                     ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
@@ -264,21 +280,29 @@ applyReserved state reserved evaluatedArgs =
 --                 |> Return.andThenVector (SingleArity func)
 --                     (\items -> List.length items |> toFloat |> Number |> Expression)
 --             )
--- callFunction : SingleArity -> State -> Expression -> ( Identifier, Expression ) -> Return.Value
--- callFunction func state args ( functionParam, functionBody ) =
---     case functionParam of
---         ScalarIdentifier paramName ->
---             eval state args
---                 |> Return.andThenNum (SingleArity func)
---                     (\param_ ->
---                         eval (setScalar paramName param_ state) functionBody
---                     )
---         VectorIdentifier paramName ->
---             eval state args
---                 |> Return.andThenVector (SingleArity func)
---                     (\param_ ->
---                         eval (setVector paramName param_ state) functionBody
---                     )
+
+
+callFunction : State -> ( String, Expression ) -> List Value -> Return.Value
+callFunction state ( paramName, functionBody ) args =
+    let
+        arg0 =
+            Return.argOrDefault 0 args
+    in
+    case arg0 of
+        Expression (Number float) ->
+            eval (setScalar paramName float state) functionBody
+
+        _ ->
+            Debug.todo "not implemented"
+
+
+
+-- Debug.todo "call function"
+-- eval state args
+--     |> Return.andThenNum (SingleArity func)
+--         (\param_ ->
+--             eval (setScalar paramName param_ state) functionBody
+--         )
 -- callMapFunction : SingleArity -> State -> Expression -> ( String, String, Expression ) -> Return.Value
 -- callMapFunction func state args ( functionParam, functionIndex, functionBody ) =
 --     eval state args

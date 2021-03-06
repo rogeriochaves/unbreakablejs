@@ -17,8 +17,9 @@ type Expression
     = Number Float
     | Vector (List Expression)
     | Variable String
-    | Reserved Reserved
     | Application Expression (List Expression)
+    | Reserved Reserved
+    | Abstraction String Expression
     | Block String (List Expression)
 
 

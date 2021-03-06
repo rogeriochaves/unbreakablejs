@@ -165,12 +165,14 @@ suite =
             --                         )
             --                     )
             --     ]
-            -- , describe "functions"
-            --     [ test "declares a simple function" <|
-            --         \_ ->
-            --             parseAndRun "f(x) = x + 1\nf(5)"
-            --                 |> Result.map (List.map Tuple.second)
-            --                 |> Expect.equal (Ok [ Void, Expression <| Number 6 ])
+            , describe "functions"
+                [ test "declares a simple function" <|
+                    \_ ->
+                        parseAndRun "f = (x) => x + 1\nf(5)"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal (Ok [ Void, Expression <| Number 6 ])
+                ]
+
             --     , test "return unapplied expression if function is not defined" <|
             --         \_ ->
             --             parseAndRun "f(x)"

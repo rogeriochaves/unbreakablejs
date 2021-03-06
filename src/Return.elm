@@ -114,8 +114,8 @@ mapNumArgs2 fn =
 andThenNumArgs2 : (Float -> Float -> Value) -> List Value -> Value
 andThenNumArgs2 fn =
     andThenArgs2
-        (\arg1 arg2 ->
-            case ( arg1, arg2 ) of
+        (\arg0 arg1 ->
+            case ( arg0, arg1 ) of
                 ( Expression (Number float1), Expression (Number float2) ) ->
                     fn float1 float2
 
