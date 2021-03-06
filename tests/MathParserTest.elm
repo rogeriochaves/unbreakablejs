@@ -13,19 +13,19 @@ suite =
             \_ ->
                 MathParser.parse "1 + 1"
                     |> isEq
-                        (Application (Reserved Addition) [ Number 1, Number 1 ])
+                        (Application (Reserved Addition) [ Value (Number 1), Value (Number 1) ])
         , test "read float numbers" <|
             \_ ->
                 MathParser.parse "1.5 + 1.3"
                     |> isEq
-                        (Application (Reserved Addition) [ Number 1.5, Number 1.3 ])
+                        (Application (Reserved Addition) [ Value (Number 1.5), Value (Number 1.3) ])
         , test "read nested operations" <|
             \_ ->
                 MathParser.parse "1 - (3 - 2)"
                     |> isEq
                         (Application (Reserved Subtraction)
-                            [ Number 1
-                            , Application (Reserved Subtraction) [ Number 3, Number 2 ]
+                            [ Value (Number 1)
+                            , Application (Reserved Subtraction) [ Value (Number 3), Value (Number 2) ]
                             ]
                         )
 
@@ -146,7 +146,7 @@ suite =
                     MathParser.parse "x = 1 + 1"
                         |> isEq
                             (Application (Reserved (Assignment "x"))
-                                [ Application (Reserved Addition) [ Number 1, Number 1 ]
+                                [ Application (Reserved Addition) [ Value (Number 1), Value (Number 1) ]
                                 ]
                             )
             , test "does not allow nested assignments" <|
@@ -157,11 +157,11 @@ suite =
             , test "parses expression with variables" <|
                 \_ ->
                     MathParser.parse "x + 1"
-                        |> isEq (Application (Reserved Addition) [ Variable "x", Number 1 ])
+                        |> isEq (Application (Reserved Addition) [ Variable "x", Value (Number 1) ])
             , test "parses assignment with variables" <|
                 \_ ->
                     MathParser.parse "x = y + 1"
-                        |> isEq (Application (Reserved (Assignment "x")) [ Application (Reserved Addition) [ Variable "y", Number 1 ] ])
+                        |> isEq (Application (Reserved (Assignment "x")) [ Application (Reserved Addition) [ Variable "y", Value (Number 1) ] ])
             ]
         , describe "functions"
             [ test "parses function declaration" <|
@@ -170,8 +170,10 @@ suite =
                         |> isEq
                             (Application
                                 (Reserved (Assignment "f"))
-                                [ Abstraction [ "x" ]
-                                    (Application (Reserved Addition) [ Variable "x", Number 1 ])
+                                [ Value
+                                    (Abstraction [ "x" ]
+                                        (Application (Reserved Addition) [ Variable "x", Value (Number 1) ])
+                                    )
                                 ]
                             )
             , test "parses function declaration with multiple arguments" <|
@@ -180,8 +182,10 @@ suite =
                         |> isEq
                             (Application
                                 (Reserved (Assignment "f"))
-                                [ Abstraction [ "x", "y" ]
-                                    (Application (Reserved Addition) [ Variable "x", Number 1 ])
+                                [ Value
+                                    (Abstraction [ "x", "y" ]
+                                        (Application (Reserved Addition) [ Variable "x", Value (Number 1) ])
+                                    )
                                 ]
                             )
             , test "does not allow nested function declarations" <|
@@ -192,11 +196,11 @@ suite =
             , test "parses function call" <|
                 \_ ->
                     MathParser.parse "f(5)"
-                        |> isEq (Application (Variable "f") [ Number 5 ])
+                        |> isEq (Application (Variable "f") [ Value (Number 5) ])
             , test "parses function call with multiple arguments" <|
                 \_ ->
                     MathParser.parse "f(3, 2)"
-                        |> isEq (Application (Variable "f") [ Number 3, Number 2 ])
+                        |> isEq (Application (Variable "f") [ Value (Number 3), Value (Number 2) ])
             ]
 
         -- , describe "vectors"

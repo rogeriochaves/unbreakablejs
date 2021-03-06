@@ -8,7 +8,7 @@ import Types exposing (..)
 
 
 type alias State =
-    { scalars : Dict String Float
+    { scalars : Dict String Value
     , vectors : Dict String (List Expression)
     , functions : Dict String ( List String, Expression )
     , mapFunctions : Dict String ( String, String, Expression )
@@ -22,11 +22,6 @@ newState =
     , functions = Dict.empty
     , mapFunctions = Dict.empty
     }
-
-
-
--- |> setScalar "e" e
--- |> setScalar "\\pi" pi
 
 
 type alias LineResult =
@@ -45,7 +40,7 @@ run state expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( state, Void )
+                        |> Maybe.withDefault ( state, Value Void )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
@@ -65,10 +60,7 @@ run state expressions =
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
     case expr of
-        Number val ->
-            ( state, Number val )
-
-        Vector items ->
+        Value (Vector items) ->
             let
                 appendOrLiftError curr acc =
                     case ( acc, curr ) of
@@ -82,12 +74,16 @@ runExpression state expr =
             , items
                 |> List.map (eval state)
                 |> List.foldl appendOrLiftError (Vector [])
+                |> Value
             )
+
+        Value val ->
+            ( state, Value val )
 
         Variable identifier ->
             ( state
             , Dict.get identifier state.scalars
-                |> Maybe.map Number
+                |> Maybe.map Value
                 |> Maybe.withDefault (Variable identifier)
             )
 
@@ -103,25 +99,11 @@ runExpression state expr =
                 Reserved reserved ->
                     applyReserved state reserved evaluatedArgs
 
-                Variable name ->
-                    ( state
-                    , case Dict.get name state.functions of
-                        Just fn_ ->
-                            callFunction state fn_ evaluatedArgs
-
-                        Nothing ->
-                            Debug.todo "not implemented"
-                      -- eval state expr
-                      --     |> Return.andThenNum (SingleArity func) (Expression << SingleArity func << Number)
-                    )
+                Value (Abstraction paramNames functionBody) ->
+                    ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 
                 _ ->
                     Debug.todo "not implemented"
-
-        Abstraction param body ->
-            ( state
-            , Abstraction param body
-            )
 
         -- MapAbstraction param index body ->
         --     ( state
@@ -146,10 +128,7 @@ runExpression state expr =
                 Ok results ->
                     List.reverse results
                         |> List.head
-                        |> Maybe.withDefault ( state, Void )
-
-        Void ->
-            ( state, Void )
+                        |> Maybe.withDefault ( state, Value Void )
 
         Error e ->
             ( state, Error e )
@@ -166,17 +145,8 @@ applyReserved state reserved evaluatedArgs =
 
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs of
-                Number num ->
-                    ( setScalar name num state, Void )
-
-                Abstraction params body ->
-                    ( setFunction name params body state, Void )
-
-                Void ->
-                    ( state, throwError ("Cannot set variable " ++ name ++ " to void") )
-
-                Error error ->
-                    ( state, Error error )
+                Value val ->
+                    ( setScalar name val state, Value Void )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -292,8 +262,8 @@ callFunction state ( paramNames, functionBody ) args =
             List.Extra.indexedFoldl
                 (\index paramName state_ ->
                     case Return.argOrDefault index args of
-                        Number float ->
-                            setScalar paramName float state_
+                        Value val ->
+                            setScalar paramName val state_
 
                         _ ->
                             Debug.todo "not implemented"
@@ -436,7 +406,7 @@ eval state =
     runExpression state >> Tuple.second
 
 
-setScalar : String -> Float -> State -> State
+setScalar : String -> Value -> State -> State
 setScalar name value state =
     { state | scalars = Dict.insert name value state.scalars }
 

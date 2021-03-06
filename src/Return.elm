@@ -73,7 +73,7 @@ andThen2 fn val val2 =
 
 mapNumArgs2 : (Float -> Float -> Float) -> List Expression -> Expression
 mapNumArgs2 fn =
-    andThenNumArgs2 (\a -> fn a >> Types.Number)
+    andThenNumArgs2 (\a -> fn a >> Number >> Value)
 
 
 andThenNumArgs2 : (Float -> Float -> Expression) -> List Expression -> Expression
@@ -81,10 +81,10 @@ andThenNumArgs2 fn =
     andThenArgs2
         (\arg0 arg1 ->
             case ( arg0, arg1 ) of
-                ( Number float1, Number float2 ) ->
+                ( Value (Number float1), Value (Number float2) ) ->
                     fn float1 float2
 
-                ( Number _, e ) ->
+                ( Value (Number _), e ) ->
                     e
 
                 ( e, _ ) ->
@@ -101,4 +101,4 @@ argOrDefault : Int -> List Expression -> Expression
 argOrDefault index args =
     List.drop index args
         |> List.head
-        |> Maybe.withDefault Void
+        |> Maybe.withDefault (Value Void)

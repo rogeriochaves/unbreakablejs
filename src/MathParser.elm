@@ -11,11 +11,11 @@ import Types exposing (..)
 digits : Parser Expression
 digits =
     number
-        { int = Just (toFloat >> Number)
+        { int = Just (toFloat >> Number >> Value)
         , hex = Nothing
         , octal = Nothing
         , binary = Nothing
-        , float = Just Number
+        , float = Just (Number >> Value)
         }
 
 
@@ -150,7 +150,7 @@ assignment =
 
 functionDeclaration : Parser Expression
 functionDeclaration =
-    succeed (\name param body -> Application (Reserved (Assignment name)) [ Abstraction param body ])
+    succeed (\name param body -> Application (Reserved (Assignment name)) [ Value (Abstraction param body) ])
         |= backtrackable identifier
         |. backtrackable spaces
         |. backtrackable (symbol "=")
@@ -305,7 +305,7 @@ atoms =
 
 vectors : Parser Expression
 vectors =
-    succeed Vector
+    succeed (Vector >> Value)
         |= sequence
             { start = "("
             , separator = ","

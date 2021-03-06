@@ -14,15 +14,19 @@ type alias Error =
 {-| λ-calculus
 -}
 type Expression
-    = Number Float
-    | Vector (List Expression)
+    = Value Value
     | Variable String
     | Application Expression (List Expression)
     | Reserved Reserved
-    | Abstraction (List String) Expression
     | Block String (List Expression)
-    | Void
     | Error DeadEnd
+
+
+type Value
+    = Number Float
+    | Vector (List Expression)
+    | Abstraction (List String) Expression
+    | Void
 
 
 type Reserved
