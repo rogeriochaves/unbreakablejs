@@ -180,15 +180,12 @@ suite =
                         parseAndRun "f = (x, y) => x + y\nf(3)"
                             |> Result.map (List.map Tuple.second)
                             |> Expect.equal (Ok [ Value Undefined, Value Undefined ])
+                , test "returns undefined if function is not defined" <|
+                    \_ ->
+                        parseAndRun "f(x)"
+                            |> isEq (Value Undefined)
                 ]
 
-            --     , test "return unapplied expression if function is not defined" <|
-            --         \_ ->
-            --             parseAndRun "f(x)"
-            --                 |> isEq
-            --                     (Expression
-            --                         (SingleArity (Application (Variable (ScalarIdentifier "f"))) (Variable (ScalarIdentifier "x")))
-            --                     )
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
             --         \_ ->
             --             parseAndRun "f(1 + 1)"

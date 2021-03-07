@@ -78,7 +78,7 @@ runExpression state expr =
             ( state
             , Dict.get identifier state.variables
                 |> Maybe.map Value
-                |> Maybe.withDefault (Variable identifier)
+                |> Maybe.withDefault (Value Undefined)
             )
 
         Reserved symbol ->
@@ -95,6 +95,9 @@ runExpression state expr =
 
                 Value (Abstraction paramNames functionBody) ->
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
+
+                Value Undefined ->
+                    ( state, Value Undefined )
 
                 _ ->
                     Debug.todo "not implemented"
