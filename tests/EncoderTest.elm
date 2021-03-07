@@ -1,8 +1,8 @@
 module EncoderTest exposing (suite)
 
+import AstParser exposing (..)
 import Encoder exposing (..)
 import Expect exposing (Expectation)
-import MathParser exposing (..)
 import Return exposing (Value(..))
 import Test exposing (..)
 import Types exposing (..)
@@ -31,7 +31,7 @@ suite =
                     original =
                         "\\mathbf{x} = (\\frac{2}{3}, \\sum_{x = 1}^{3} 5, g(x), x_{5})"
                 in
-                MathParser.parse original
+                AstParser.parse original
                     |> Result.map (List.map encode)
                     |> Expect.equal (Ok [ original ])
         , test "encodes more cases" <|
@@ -40,7 +40,7 @@ suite =
                     original =
                         "f(\\mathbf{x})_{z} = (1 ^ {x + 1}, 1 - 1, 2 * 2, 3 / 3, \\sqrt{4}, -5!)"
                 in
-                MathParser.parse original
+                AstParser.parse original
                     |> Result.map (List.map encode)
                     |> Expect.equal (Ok [ original ])
         , test "encodes block" <|
@@ -52,7 +52,7 @@ suite =
                     secondBlock =
                         "Second\\ Block:\n5"
                 in
-                MathParser.parse (firstBlock ++ "\n" ++ secondBlock)
+                AstParser.parse (firstBlock ++ "\n" ++ secondBlock)
                     |> Result.map (List.map encode)
                     |> Expect.equal (Ok [ firstBlock, secondBlock ])
         ]

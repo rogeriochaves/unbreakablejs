@@ -1,4 +1,4 @@
-module MathParser exposing (parse)
+module AstParser exposing (parse)
 
 import Dict
 import Parser exposing (..)

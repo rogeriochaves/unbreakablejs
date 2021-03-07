@@ -1,5 +1,6 @@
 module Playground exposing (main)
 
+import AstParser
 import AutoExpand as AutoExpand
 import Browser exposing (UrlRequest(..))
 import Browser.Dom exposing (focus)
@@ -14,7 +15,6 @@ import Interpreter
 import Json.Decode as Json
 import List.Extra
 import Markdown
-import MathParser
 import Parser exposing (Problem(..))
 import Playground.Components exposing (..)
 import Playground.Routes exposing (..)
@@ -312,7 +312,7 @@ update msg model =
                         Nothing
 
                     else
-                        MathParser.parse cell_.input
+                        AstParser.parse cell_.input
                             |> Result.andThen (Interpreter.run model.state)
                             |> getLastResult
 

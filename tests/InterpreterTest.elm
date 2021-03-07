@@ -1,8 +1,8 @@
 module InterpreterTest exposing (suite)
 
+import AstParser exposing (..)
 import Expect exposing (Expectation)
 import Interpreter exposing (..)
-import MathParser exposing (..)
 import Parser exposing (Problem(..))
 import Test exposing (..)
 import Types exposing (..)
@@ -361,7 +361,7 @@ suite =
 
 parseAndRun : String -> Result Error (List LineResult)
 parseAndRun code =
-    MathParser.parse code
+    AstParser.parse code
         |> Result.andThen (Interpreter.run newState)
 
 
