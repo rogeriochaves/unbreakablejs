@@ -26,11 +26,7 @@ run : State -> Types.Program -> List LineResult
 run state expressions =
     let
         iterate : Expression -> List LineResult -> List LineResult
-        iterate expr accummulated =
-            iterateWithoutError expr accummulated
-
-        iterateWithoutError : Expression -> List LineResult -> List LineResult
-        iterateWithoutError expr acc =
+        iterate expr acc =
             let
                 lastLineResult =
                     List.head acc
