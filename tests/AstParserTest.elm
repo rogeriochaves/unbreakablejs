@@ -13,28 +13,33 @@ suite =
             \_ ->
                 AstParser.parse "1 + 1"
                     |> isEq
-                        (Tracked { line = 1, column = 2 }
-                            (Application (Untracked (Reserved Addition))
+                        (Tracked { line = 1, column = 3 }
+                            (ReservedApplication Addition
                                 [ Untracked (Value (Number 1))
                                 , Untracked (Value (Number 1))
                                 ]
                             )
                         )
+        , test "read float numbers" <|
+            \_ ->
+                AstParser.parse "1.5 + 1.3"
+                    |> isEq
+                        (Tracked { line = 1, column = 5 }
+                            (ReservedApplication Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
+                        )
+        , test "read nested operations" <|
+            \_ ->
+                AstParser.parse "1 - (3 - 2)"
+                    |> isEq
+                        (Tracked { line = 1, column = 3 }
+                            (ReservedApplication Subtraction
+                                [ Untracked (Value (Number 1))
+                                , Tracked { line = 1, column = 8 }
+                                    (ReservedApplication Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
+                                ]
+                            )
+                        )
 
-        -- , test "read float numbers" <|
-        --     \_ ->
-        --         AstParser.parse "1.5 + 1.3"
-        --             |> isEq
-        --                 (Application (Reserved Addition) [ Value (Number 1.5), Value (Number 1.3) ])
-        -- , test "read nested operations" <|
-        --     \_ ->
-        --         AstParser.parse "1 - (3 - 2)"
-        --             |> isEq
-        --                 (Application (Reserved Subtraction)
-        --                     [ Value (Number 1)
-        --                     , Application (Reserved Subtraction) [ Value (Number 3), Value (Number 2) ]
-        --                     ]
-        --                 )
         -- , test "read single-arity symbolic function" <|
         --     \_ ->
         --         AstParser.parse "\\sqrt{5}"

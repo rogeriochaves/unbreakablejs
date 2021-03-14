@@ -22,7 +22,7 @@ type UntrackedExp
     = Value Value
     | Variable String
     | Application Expression (List Expression)
-    | Reserved Reserved
+    | ReservedApplication Reserved (List Expression)
     | Block String (List Expression)
     | Error DeadEnd
 

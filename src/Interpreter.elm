@@ -87,8 +87,12 @@ runExpression state expr =
                 |> Untracked
             )
 
-        Reserved symbol ->
-            ( state, Untracked (Reserved symbol) )
+        ReservedApplication symbol args ->
+            let
+                evaluatedArgs =
+                    List.map (eval state) args
+            in
+            applyReserved state symbol evaluatedArgs
 
         Application fn args ->
             let
@@ -96,9 +100,6 @@ runExpression state expr =
                     List.map (eval state) args
             in
             case eval state fn |> removeTracking of
-                Reserved reserved ->
-                    applyReserved state reserved evaluatedArgs
-
                 Value (Abstraction paramNames functionBody) ->
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 

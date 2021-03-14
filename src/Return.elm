@@ -73,6 +73,7 @@ andThen2 fn val val2 =
 
 mapNumArgs2 : (Float -> Float -> Float) -> List Expression -> Expression
 mapNumArgs2 fn =
+    -- TODO: keep tracking of original function
     andThenNumArgs2 (\a -> fn a >> Number >> Value >> Untracked)
 
 
@@ -80,19 +81,27 @@ andThenNumArgs2 : (Float -> Float -> Expression) -> List Expression -> Expressio
 andThenNumArgs2 fn =
     andThenArgs2
         (\arg0 arg1 ->
-            case ( arg0, arg1 ) of
-                ( Tracked info (Value (Number float1)), Tracked info2 (Value (Number float2)) ) ->
+            -- TODO: maybe add tracking of whatever was undef?
+            case ( removeTracking arg0, removeTracking arg1 ) of
+                ( Value (Number float1), Value (Number float2) ) ->
                     fn float1 float2
 
-                ( Tracked info (Value (Number _)), e ) ->
-                    e
-
-                ( Untracked (Value (Number _)), e ) ->
-                    e
+                ( Value (Number _), e ) ->
+                    Untracked e
 
                 ( e, _ ) ->
-                    e
+                    Untracked e
         )
+
+
+removeTracking : Expression -> UntrackedExp
+removeTracking expr =
+    case expr of
+        Tracked _ e ->
+            e
+
+        Untracked e ->
+            e
 
 
 andThenArgs2 : (Expression -> Expression -> Expression) -> List Expression -> Expression

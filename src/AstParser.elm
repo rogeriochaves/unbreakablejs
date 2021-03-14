@@ -131,8 +131,7 @@ infixOperator operation opParser assoc =
     let
         binaryOp =
             succeed (\pos expr1 expr2 -> tracked pos (doubleArity operation expr1 expr2))
-                |= getPosition
-                |. opParser
+                |= opParser
                 |. spaces
     in
     Infix binaryOp assoc
@@ -172,8 +171,7 @@ functionDeclaration =
     succeed
         (\name param body ->
             Untracked
-                (Application
-                    (Untracked (Reserved (Assignment name)))
+                (ReservedApplication (Assignment name)
                     [ Untracked (Value (Abstraction param body)) ]
                 )
         )
@@ -199,12 +197,12 @@ functionDeclaration =
 
 singleArity : Reserved -> Expression -> UntrackedExp
 singleArity fn expr =
-    Application (Untracked (Reserved fn)) [ expr ]
+    ReservedApplication fn [ expr ]
 
 
 doubleArity : Reserved -> Expression -> Expression -> UntrackedExp
 doubleArity fn expr1 expr2 =
-    Application (Untracked (Reserved fn)) [ expr1, expr2 ]
+    ReservedApplication fn [ expr1, expr2 ]
 
 
 
