@@ -21,7 +21,7 @@ type alias Model =
 type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
-    , result : Maybe Types.Expression
+    , result : Result Types.Error (Maybe Interpreter.LineResult)
     }
 
 

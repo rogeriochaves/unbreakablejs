@@ -5,6 +5,7 @@ import AutoExpand as AutoExpand
 import Browser exposing (UrlRequest(..))
 import Browser.Dom exposing (focus)
 import Browser.Navigation exposing (Key, load, pushUrl)
+import Debug
 import Dict
 import Encoder exposing (encode)
 import Html exposing (..)
@@ -15,7 +16,7 @@ import Interpreter
 import Json.Decode as Json
 import List.Extra
 import Markdown
-import Parser exposing (Problem(..))
+import Parser exposing (DeadEnd, Problem(..))
 import Playground.Components exposing (..)
 import Playground.Routes exposing (..)
 import Playground.Style as Style
@@ -55,13 +56,13 @@ newCell : Int -> String -> Cell
 newCell index input =
     { input = input
     , autoexpand = AutoExpand.initState (autoExpandConfig (List.length <| String.split "\n" input) index)
-    , result = Nothing
+    , result = Ok Nothing
     }
 
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Rubber - Evaluate LaTeX math code"
+    { title = "Untypescript"
     , body =
         [ row (Style.general ++ [ id "main", style "margin" "-8px", style "min-height" "90vh" ])
             (case model.page of
@@ -195,11 +196,7 @@ cellView model index item =
     row (cellStyle ++ [ onClick (SelectCell index), style "padding" "5px" ])
         [ column []
             [ cellLabelView Style.cellLabelInput "Input:"
-            , if item.result == Nothing || index == model.selectedCell then
-                AutoExpand.view (autoExpandConfig 1 index) item.autoexpand item.input
-
-              else
-                renderLatex item.input
+            , AutoExpand.view (autoExpandConfig 1 index) item.autoexpand item.input
             ]
         , renderResult item
         ]
@@ -217,45 +214,75 @@ removeTracking expr =
 
 renderResult : Cell -> Html Msg
 renderResult item =
-    case Maybe.map removeTracking item.result of
-        Just (Types.Value (Types.Undefined stack)) ->
+    let
+        getLine line input =
+            List.Extra.getAt line (String.split "\n" input) |> Maybe.withDefault ("<line " ++ String.fromInt line ++ " not found>")
+    in
+    case Result.map (Maybe.map (\( _, y ) -> removeTracking y)) item.result of
+        Err error ->
             let
+                firstError =
+                    List.head error
+                        |> Maybe.withDefault { row = 0, col = 0, problem = Problem "There is an error on the playground, please report" }
+
                 msg =
-                    "Undefined. Stacktrace: "
-                        ++ Debug.toString stack
+                    "Syntax error. I could not parse the code. The problem happened here:\n\n"
+                        ++ getLine firstError.row item.input
+                        ++ "\n"
+                        ++ String.repeat firstError.col "-"
+                        ++ "^\n\n"
+                        ++ Debug.toString firstError.problem
+
+                -- ++ Debug.toString error
             in
-            column (Style.errorMessage ++ [ style "padding-bottom" "20px" ])
+            column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])
                 [ cellLabelView Style.cellLabelOutput ""
-                , text msg
+                , pre [ style "font-size" "14px", style "margin" "0" ] [ text msg ]
                 ]
 
-        Just expr ->
+        Ok (Just (Types.Value (Types.Undefined stack))) ->
+            let
+                stackMsgs =
+                    stack
+                        |> List.map
+                            (\error ->
+                                getLine (error.line - 1) item.input
+                                    ++ "\n"
+                                    ++ String.repeat (error.column - 1) "-"
+                                    ++ "^\n\n"
+                            )
+                        |> List.intersperse "Then here:\n"
+
+                msg =
+                    "Undefined. How come?\n\n\n"
+                        ++ "First I got undefined from here:\n\n"
+                        ++ String.join "\n" stackMsgs
+            in
+            column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])
+                [ cellLabelView Style.cellLabelOutput ""
+                , pre [ style "font-size" "14px", style "margin" "0" ] [ text msg ]
+                ]
+
+        Ok (Just expr) ->
             column []
                 [ cellLabelView Style.cellLabelOutput "Output:"
-                , renderLatex (encode expr)
+                , div [ style "padding-top" "7px", Style.monospace ] [ text <| encode expr ]
                 ]
 
-        Nothing ->
+        Ok Nothing ->
             div [] []
+
+
+breakLines : String -> List (Html Msg)
+breakLines msg =
+    String.split "\n" msg
+        |> List.map text
+        |> List.intersperse (br [] [])
 
 
 cellLabelView : List (Attribute Msg) -> String -> Html Msg
 cellLabelView attrs str =
     row (attrs ++ [ style "width" "90px", style "padding-right" "5px", style "padding-top" "8px" ]) [ text str ]
-
-
-renderLatex : String -> Html Msg
-renderLatex str =
-    let
-        convertedText =
-            "$$\n" ++ String.replace "\n" "\\\\" str ++ "\n$$"
-    in
-    row [ style "width" "80%", style "margin-top" "-8px", style "padding-left" "5px" ]
-        [ Html.Keyed.node "div"
-            []
-            [ ( str, div [ class "raw-math" ] [ text <| convertedText ] )
-            ]
-        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -292,38 +319,40 @@ update msg model =
 
         RunCell ->
             let
-                getLastResult res =
-                    case res of
-                        Ok values ->
-                            List.Extra.last values
-
-                        Err errs ->
-                            List.Extra.last errs
-                                -- TODO: map syntax errors
-                                |> Maybe.map (\e -> ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] ))
-
-                runCell : Cell -> Maybe Interpreter.LineResult
+                -- List.Extra.last errs
+                --     -- TODO: map syntax errors
+                --     |> Maybe.map (\e -> ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] ))
+                runCell : Cell -> Result Error (Maybe Interpreter.LineResult)
                 runCell cell_ =
                     if String.isEmpty (String.trim cell_.input) then
-                        Nothing
+                        Ok Nothing
 
                     else
                         AstParser.parse cell_.input
                             |> Result.map (Interpreter.run model.state)
-                            |> getLastResult
+                            |> Result.map List.Extra.last
 
                 result =
                     List.Extra.getAt model.selectedCell model.cells
-                        |> Maybe.andThen runCell
-                        -- TODO: map syntax errors
-                        |> Maybe.withDefault ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] )
+                        |> Maybe.map runCell
+                        |> Maybe.withDefault (Ok Nothing)
 
+                -- TODO: map syntax errors
                 updateCell cell_ =
-                    { cell_ | result = Just <| Tuple.second result }
+                    { cell_ | result = result }
 
                 updated =
+                    let
+                        state =
+                            case result of
+                                Ok (Just ( state_, _ )) ->
+                                    state_
+
+                                _ ->
+                                    model.state
+                    in
                     { model
-                        | state = Tuple.first result
+                        | state = state
                         , cells = List.Extra.updateIfIndex ((==) model.selectedCell) updateCell model.cells
                     }
                         |> update (SelectCell (model.selectedCell + 1))
