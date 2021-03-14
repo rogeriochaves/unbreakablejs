@@ -11,11 +11,11 @@ import Types exposing (..)
 digits : Parser Expression
 digits =
     number
-        { int = Just (toFloat >> Number >> Value)
+        { int = Just (toFloat >> Number >> Value >> Untracked)
         , hex = Nothing
         , octal = Nothing
         , binary = Nothing
-        , float = Just (Number >> Value)
+        , float = Just (Number >> Value >> Untracked)
         }
 
 
@@ -103,9 +103,16 @@ symbolIdentifier =
         }
 
 
+tracked : ( Int, Int ) -> UntrackedExp -> Expression
+tracked ( row, col ) =
+    Tracked { line = row, column = col }
+
+
 functionCall : Parser Expression
 functionCall =
-    succeed (Application << Variable)
+    -- TODO: separate application of variables from reserved
+    succeed (\pos name -> tracked pos << Application (Untracked (Variable name)))
+        |= getPosition
         |= backtrackable scalarIdentifier
         |= backtrackable
             (sequence
@@ -119,28 +126,40 @@ functionCall =
             )
 
 
+infixOperator : Reserved -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator operation opParser assoc =
+    let
+        binaryOp =
+            succeed (\pos expr1 expr2 -> tracked pos (doubleArity operation expr1 expr2))
+                |= getPosition
+                |. opParser
+                |. spaces
+    in
+    Infix binaryOp assoc
+
+
 operators : OperatorTable Expression
 operators =
     let
-        infixOp op =
-            infixOperator (doubleArity op)
-
+        symb : String -> Parser ( Int, Int )
         symb sign =
             succeed identity
                 |. backtrackable spaces
-                |= symbol sign
+                |= getPosition
+                |. symbol sign
     in
     -- [ [ prefixOperator (SingleArity Negation) (symbol "-") ]
-    -- , [ infixOp Exponentiation (symb "^") AssocLeft ]
-    -- , [ infixOp Multiplication (symb "*") AssocLeft, infixOp Division (symb "/") AssocLeft ]
-    -- , [ infixOp Modulo (symb "\\mod") AssocLeft, infixOp EuclideanDivision (symb "\\div") AssocLeft ]
-    [ [ infixOp Addition (symb "+") AssocLeft, infixOp Subtraction (symb "-") AssocLeft ]
+    -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
+    -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
+    -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
+    [ [ infixOperator Addition (symb "+") AssocLeft, infixOperator Subtraction (symb "-") AssocLeft ]
     ]
 
 
 assignment : Parser Expression
 assignment =
-    succeed (singleArity << Assignment)
+    succeed (\pos name -> tracked pos << singleArity (Assignment name))
+        |= getPosition
         |= backtrackable identifier
         |. backtrackable spaces
         |. symbol "="
@@ -150,7 +169,14 @@ assignment =
 
 functionDeclaration : Parser Expression
 functionDeclaration =
-    succeed (\name param body -> Application (Reserved (Assignment name)) [ Value (Abstraction param body) ])
+    succeed
+        (\name param body ->
+            Untracked
+                (Application
+                    (Untracked (Reserved (Assignment name)))
+                    [ Untracked (Value (Abstraction param body)) ]
+                )
+        )
         |= backtrackable identifier
         |. backtrackable spaces
         |. backtrackable (symbol "=")
@@ -171,14 +197,14 @@ functionDeclaration =
         |= expression
 
 
-singleArity : Reserved -> Expression -> Expression
+singleArity : Reserved -> Expression -> UntrackedExp
 singleArity fn expr =
-    Application (Reserved fn) [ expr ]
+    Application (Untracked (Reserved fn)) [ expr ]
 
 
-doubleArity : Reserved -> Expression -> Expression -> Expression
+doubleArity : Reserved -> Expression -> Expression -> UntrackedExp
 doubleArity fn expr1 expr2 =
-    Application (Reserved fn) [ expr1, expr2 ]
+    Application (Untracked (Reserved fn)) [ expr1, expr2 ]
 
 
 
@@ -221,8 +247,8 @@ programLoop expressions =
     let
         appendExpr expr =
             case List.head expressions of
-                Just (Block name items) ->
-                    Loop (Block name (items ++ [ expr ]) :: List.drop 1 expressions)
+                Just (Tracked _ (Block name items)) ->
+                    Loop (Untracked (Block name (items ++ [ expr ])) :: List.drop 1 expressions)
 
                 _ ->
                     Loop (expr :: expressions)
@@ -236,7 +262,7 @@ programLoop expressions =
     oneOf
         [ succeed (Done (List.reverse expressions))
             |. symbol "EOF"
-        , succeed (\name -> Loop (Block name [] :: expressions))
+        , succeed (\name -> Loop (Untracked (Block name []) :: expressions))
             |= backtrackable (getChompedString (chompWhile (\c -> c /= ':' && c /= '\n')))
             |. symbol ":"
             |. statementBreak
@@ -298,14 +324,16 @@ expressionParsers withDeclarations =
 atoms : Parser Expression
 atoms =
     oneOf
-        [ map Variable identifier
+        [ succeed (\pos name -> tracked pos (Variable name))
+            |= getPosition
+            |= identifier
         , digits
         ]
 
 
 vectors : Parser Expression
 vectors =
-    succeed (Vector >> Value)
+    succeed (Vector >> Value >> Untracked)
         |= sequence
             { start = "("
             , separator = ","

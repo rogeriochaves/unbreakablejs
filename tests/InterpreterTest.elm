@@ -15,15 +15,15 @@ suite =
             [ test "sum integer numbers" <|
                 \_ ->
                     parseAndRun "1 + 1"
-                        |> isEq (Value (Number 2))
+                        |> isEq (Untracked <| Value (Number 2))
             , test "sum float numbers" <|
                 \_ ->
                     parseAndRun "1.5 + 1.3"
-                        |> isEq (Value (Number 2.8))
+                        |> isEq (Untracked <| Value (Number 2.8))
             , test "execute nested expressions" <|
                 \_ ->
                     parseAndRun "1 - (3 - 2)"
-                        |> isEq (Value (Number 0))
+                        |> isEq (Untracked <| Value (Number 0))
 
             --     , test "respects math priority" <|
             --         \_ ->
@@ -139,11 +139,11 @@ suite =
                 [ test "parses a simple assignment and return Undefined" <|
                     \_ ->
                         parseAndRun "x = 2 + 2"
-                            |> isEq (Value Undefined)
+                            |> isEq (Untracked <| Value Undefined)
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
-                            |> isEqLast (Value (Number 5))
+                            |> isEqLast (Untracked <| Value (Number 5))
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
@@ -169,21 +169,21 @@ suite =
                     \_ ->
                         parseAndRun "f = (x) => x + 1\nf(5)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Undefined, Value (Number 6) ])
+                            |> Expect.equal (Ok [ Untracked <| Value Undefined, Untracked <| Value (Number 6) ])
                 , test "declares a function with multiple arguments" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, 2)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Undefined, Value (Number 5) ])
+                            |> Expect.equal (Ok [ Untracked <| Value Undefined, Untracked <| Value (Number 5) ])
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
                             |> Result.map (List.map Tuple.second)
-                            |> Expect.equal (Ok [ Value Undefined, Value Undefined ])
+                            |> Expect.equal (Ok [ Untracked <| Value Undefined, Untracked <| Value Undefined ])
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
-                            |> isEq (Value Undefined)
+                            |> isEq (Untracked <| Value Undefined)
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

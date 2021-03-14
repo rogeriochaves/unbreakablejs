@@ -34,13 +34,17 @@ run state expressions =
             let
                 lastLineResult =
                     List.head acc
-                        |> Maybe.withDefault ( state, Value Undefined )
+                        -- TODO: track here
+                        |> Maybe.withDefault ( state, Untracked (Value Undefined) )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
             in
             case Tuple.second lineResult of
-                Error error ->
+                Untracked (Error error) ->
+                    Err [ error ]
+
+                Tracked _ (Error error) ->
                     Err [ error ]
 
                 _ ->
@@ -53,7 +57,7 @@ run state expressions =
 
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
-    case expr of
+    case expr |> removeTracking of
         Value (Vector items) ->
             let
                 appendOrLiftError curr acc =
@@ -69,27 +73,29 @@ runExpression state expr =
                 |> List.map (eval state)
                 |> List.foldl appendOrLiftError (Vector [])
                 |> Value
+                |> Untracked
             )
 
         Value val ->
-            ( state, Value val )
+            ( state, Untracked (Value val) )
 
         Variable identifier ->
             ( state
             , Dict.get identifier state.variables
                 |> Maybe.map Value
                 |> Maybe.withDefault (Value Undefined)
+                |> Untracked
             )
 
         Reserved symbol ->
-            ( state, Reserved symbol )
+            ( state, Untracked (Reserved symbol) )
 
         Application fn args ->
             let
                 evaluatedArgs =
                     List.map (eval state) args
             in
-            case eval state fn of
+            case eval state fn |> removeTracking of
                 Reserved reserved ->
                     applyReserved state reserved evaluatedArgs
 
@@ -97,7 +103,7 @@ runExpression state expr =
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 
                 Value Undefined ->
-                    ( state, Value Undefined )
+                    ( state, Untracked (Value Undefined) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -118,17 +124,17 @@ runExpression state expr =
                     ( state
                     , List.reverse errors
                         |> List.head
-                        |> Maybe.map Error
+                        |> Maybe.map (Untracked << Error)
                         |> Maybe.withDefault (throwError "error in block with no error")
                     )
 
                 Ok results ->
                     List.reverse results
                         |> List.head
-                        |> Maybe.withDefault ( state, Value Undefined )
+                        |> Maybe.withDefault ( state, Untracked (Value Undefined) )
 
         Error e ->
-            ( state, Error e )
+            ( state, Untracked (Error e) )
 
 
 applyReserved : State -> Reserved -> List Expression -> ( State, Expression )
@@ -141,9 +147,9 @@ applyReserved state reserved evaluatedArgs =
             ( state, Return.mapNumArgs2 (-) evaluatedArgs )
 
         Assignment name ->
-            case Return.argOrDefault 0 evaluatedArgs of
+            case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
                 Value val ->
-                    ( setVariable name val state, Value Undefined )
+                    ( setVariable name val state, Untracked (Value Undefined) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -258,7 +264,7 @@ callFunction state ( paramNames, functionBody ) args =
         closure =
             List.Extra.indexedFoldl
                 (\index paramName state_ ->
-                    case Return.argOrDefault index args of
+                    case Return.argOrDefault index args |> removeTracking of
                         Value val ->
                             setVariable paramName val state_
 
@@ -269,6 +275,36 @@ callFunction state ( paramNames, functionBody ) args =
                 paramNames
     in
     eval closure functionBody
+
+
+
+-- mapTracking : (UntrackedExp -> UntrackedExp) -> Expression -> Expression
+-- mapTracking fn expr =
+--     case expr of
+--         Tracked info e ->
+--             Tracked info (fn e)
+--         Untracked e ->
+--             Untracked e
+
+
+removeTracking : Expression -> UntrackedExp
+removeTracking expr =
+    case expr of
+        Tracked _ e ->
+            e
+
+        Untracked e ->
+            e
+
+
+mapTracking : (UntrackedExp -> UntrackedExp) -> Expression -> Expression
+mapTracking fn expr =
+    case expr of
+        Tracked info e ->
+            Tracked info (fn e)
+
+        Untracked e ->
+            Untracked (fn e)
 
 
 

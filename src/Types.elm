@@ -11,9 +11,14 @@ type alias Error =
     List DeadEnd
 
 
+type Expression
+    = Tracked { line : Int, column : Int } UntrackedExp
+    | Untracked UntrackedExp
+
+
 {-| λ-calculus
 -}
-type Expression
+type UntrackedExp
     = Value Value
     | Variable String
     | Application Expression (List Expression)

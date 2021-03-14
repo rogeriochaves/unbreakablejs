@@ -6,7 +6,7 @@ import Types exposing (..)
 
 throwError : String -> Expression
 throwError error =
-    Error { row = 0, col = 0, problem = Problem error }
+    Untracked (Error { row = 0, col = 0, problem = Problem error })
 
 
 map : (Types.Expression -> Types.Expression) -> Expression -> Expression
@@ -73,7 +73,7 @@ andThen2 fn val val2 =
 
 mapNumArgs2 : (Float -> Float -> Float) -> List Expression -> Expression
 mapNumArgs2 fn =
-    andThenNumArgs2 (\a -> fn a >> Number >> Value)
+    andThenNumArgs2 (\a -> fn a >> Number >> Value >> Untracked)
 
 
 andThenNumArgs2 : (Float -> Float -> Expression) -> List Expression -> Expression
@@ -81,10 +81,13 @@ andThenNumArgs2 fn =
     andThenArgs2
         (\arg0 arg1 ->
             case ( arg0, arg1 ) of
-                ( Value (Number float1), Value (Number float2) ) ->
+                ( Tracked info (Value (Number float1)), Tracked info2 (Value (Number float2)) ) ->
                     fn float1 float2
 
-                ( Value (Number _), e ) ->
+                ( Tracked info (Value (Number _)), e ) ->
+                    e
+
+                ( Untracked (Value (Number _)), e ) ->
                     e
 
                 ( e, _ ) ->
@@ -101,4 +104,5 @@ argOrDefault : Int -> List Expression -> Expression
 argOrDefault index args =
     List.drop index args
         |> List.head
-        |> Maybe.withDefault (Value Undefined)
+        -- TODO: track here
+        |> Maybe.withDefault (Untracked <| Value Undefined)
