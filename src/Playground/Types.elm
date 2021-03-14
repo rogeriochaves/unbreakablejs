@@ -5,7 +5,7 @@ import Browser exposing (UrlRequest(..))
 import Browser.Navigation exposing (Key, load, pushUrl)
 import Interpreter
 import Playground.Routes exposing (..)
-import Return exposing (Value(..))
+import Types
 import Url exposing (Url)
 
 
@@ -21,7 +21,7 @@ type alias Model =
 type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
-    , result : Maybe Return.Value
+    , result : Maybe Types.Expression
     }
 
 

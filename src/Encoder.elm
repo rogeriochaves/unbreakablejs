@@ -1,28 +1,39 @@
 module Encoder exposing (encode)
 
-import Return exposing (Value(..), throwError)
 import Types exposing (..)
 
 
-encode : Expression -> String
+removeTracking : Types.Expression -> Types.UntrackedExp
+removeTracking expr =
+    case expr of
+        Types.Tracked _ e ->
+            e
+
+        Types.Untracked e ->
+            e
+
+
+encode : UntrackedExp -> String
 encode expr =
-    "not implemented yet"
+    case expr of
+        Value val ->
+            case val of
+                Number num ->
+                    String.fromFloat num
 
+                Vector items ->
+                    "["
+                        ++ (items
+                                |> List.map (removeTracking >> encode)
+                                |> String.join ", "
+                           )
+                        ++ "]"
 
+                Abstraction args body ->
+                    "(" ++ String.join "," args ++ ") => " ++ encode (removeTracking body)
 
--- case expr of
---     Number num ->
---         String.fromFloat num
---     Vector items ->
---         "("
---             ++ (List.map encode items
---                     |> String.join ", "
---                )
---             ++ ")"
---     Variable id ->
---         id
---     Reserved reserved ->
---         case reserved of
---             Addition ->
---                 "+"
---     Application
+                Undefined _ ->
+                    "undefined"
+
+        _ ->
+            "not implemented yet"

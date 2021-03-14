@@ -20,7 +20,6 @@ import Playground.Components exposing (..)
 import Playground.Routes exposing (..)
 import Playground.Style as Style
 import Playground.Types exposing (..)
-import Return exposing (Value(..))
 import Task
 import Types exposing (Error)
 import Url exposing (Url)
@@ -206,39 +205,35 @@ cellView model index item =
         ]
 
 
+removeTracking : Types.Expression -> Types.UntrackedExp
+removeTracking expr =
+    case expr of
+        Types.Tracked _ e ->
+            e
+
+        Types.Untracked e ->
+            e
+
+
 renderResult : Cell -> Html Msg
 renderResult item =
-    case item.result of
-        Just (Expression expr) ->
-            column []
-                [ cellLabelView Style.cellLabelOutput "Output:"
-                , renderLatex (encode expr)
-                ]
-
-        Just (Error err) ->
+    case Maybe.map removeTracking item.result of
+        Just (Types.Value (Types.Undefined stack)) ->
             let
-                row_ =
-                    err.row - 1
-
                 msg =
-                    if row_ <= 0 then
-                        Debug.toString err.problem
-
-                    else
-                        "Error on line "
-                            ++ String.fromInt row_
-                            ++ ", column "
-                            ++ String.fromInt err.col
-                            ++ ": "
-                            ++ Debug.toString err.problem
+                    "Undefined. Stacktrace: "
+                        ++ Debug.toString stack
             in
             column (Style.errorMessage ++ [ style "padding-bottom" "20px" ])
                 [ cellLabelView Style.cellLabelOutput ""
                 , text msg
                 ]
 
-        Just Undefined ->
-            div [] []
+        Just expr ->
+            column []
+                [ cellLabelView Style.cellLabelOutput "Output:"
+                , renderLatex (encode expr)
+                ]
 
         Nothing ->
             div [] []
@@ -304,7 +299,8 @@ update msg model =
 
                         Err errs ->
                             List.Extra.last errs
-                                |> Maybe.map (\e -> ( model.state, Error e ))
+                                -- TODO: map syntax errors
+                                |> Maybe.map (\e -> ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] ))
 
                 runCell : Cell -> Maybe Interpreter.LineResult
                 runCell cell_ =
@@ -313,13 +309,14 @@ update msg model =
 
                     else
                         AstParser.parse cell_.input
-                            |> Result.andThen (Interpreter.run model.state)
+                            |> Result.map (Interpreter.run model.state)
                             |> getLastResult
 
                 result =
                     List.Extra.getAt model.selectedCell model.cells
                         |> Maybe.andThen runCell
-                        |> Maybe.withDefault ( model.state, Undefined )
+                        -- TODO: map syntax errors
+                        |> Maybe.withDefault ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] )
 
                 updateCell cell_ =
                     { cell_ | result = Just <| Tuple.second result }
