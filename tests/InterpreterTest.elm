@@ -181,15 +181,40 @@ suite =
                 --         parseAndRun "f = (x, y) => x + y\nf(3, 2)"
                 --             |> Result.map (List.map Tuple.second)
                 --             |> Expect.equal (Ok [ Untracked <| Value Undefined, Untracked <| Value (Number 5) ])
-                -- , test "returns undefined when missing params" <|
-                --     \_ ->
-                --         parseAndRun "f = (x, y) => x + y\nf(3)"
-                --             |> Result.map (List.map Tuple.second)
-                --             |> Expect.equal (Ok [ Untracked <| Value Undefined, Untracked <| Value Undefined ])
-                -- , test "returns undefined if function is not defined" <|
-                --     \_ ->
-                --         parseAndRun "f(x)"
-                --             |> isEq (Untracked <| Value Undefined)
+                , test "returns undefined when missing params" <|
+                    \_ ->
+                        parseAndRun "f = (x, y) => x + y\nf(3)"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal
+                                (Ok
+                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
+                                    , Untracked <| Value (Undefined [ { column = 17, line = 1 } ])
+                                    ]
+                                )
+                , test "returns undefined if function is not defined" <|
+                    \_ ->
+                        parseAndRun "f(x)"
+                            |> isEq (Untracked <| Value (Undefined [ { column = 1, line = 1 } ]))
+                , test "accumulates undefined stack" <|
+                    \_ ->
+                        parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal
+                                (Ok
+                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
+                                    , Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ])
+                                    ]
+                                )
+                , test "accumulates undefined stack on second param" <|
+                    \_ ->
+                        parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal
+                                (Ok
+                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
+                                    , Untracked <| Value (Undefined [ { column = 6, line = 2 }, { column = 17, line = 1 } ])
+                                    ]
+                                )
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

@@ -1,5 +1,6 @@
 module Return exposing (andThen, andThenArgs2, argOrDefault, map, mapNumArgs2, throwError)
 
+import Html exposing (track)
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
 
@@ -71,26 +72,28 @@ andThen2 fn val val2 =
 --         )
 
 
-mapNumArgs2 : (Float -> Float -> Float) -> List Expression -> Expression
-mapNumArgs2 fn =
+mapNumArgs2 : List TrackInfo -> (Float -> Float -> Float) -> List Expression -> Expression
+mapNumArgs2 trackStack fn =
     -- TODO: keep tracking of original function
-    andThenNumArgs2 (\a -> fn a >> Number >> Value >> Untracked)
+    andThenNumArgs2 trackStack (\a -> fn a >> Number >> Value >> Untracked)
 
 
-andThenNumArgs2 : (Float -> Float -> Expression) -> List Expression -> Expression
-andThenNumArgs2 fn =
+andThenNumArgs2 : List TrackInfo -> (Float -> Float -> Expression) -> List Expression -> Expression
+andThenNumArgs2 trackStack fn =
     andThenArgs2
         (\arg0 arg1 ->
-            -- TODO: maybe add tracking of whatever was undef?
             case ( removeTracking arg0, removeTracking arg1 ) of
                 ( Value (Number float1), Value (Number float2) ) ->
                     fn float1 float2
 
-                ( Value (Number _), e ) ->
-                    Untracked e
+                ( Value (Undefined stack), _ ) ->
+                    Untracked (Value (Undefined (stack ++ trackStack)))
 
-                ( e, _ ) ->
-                    Untracked e
+                ( _, Value (Undefined stack) ) ->
+                    Untracked (Value (Undefined (stack ++ trackStack)))
+
+                _ ->
+                    Untracked (Value (Undefined trackStack))
         )
 
 

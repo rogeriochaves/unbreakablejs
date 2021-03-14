@@ -57,6 +57,15 @@ run state expressions =
 
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
+    let
+        trackStack =
+            case expr of
+                Tracked info _ ->
+                    [ info ]
+
+                _ ->
+                    []
+    in
     case expr |> removeTracking of
         Value (Vector items) ->
             let
@@ -91,16 +100,8 @@ runExpression state expr =
             let
                 evaluatedArgs =
                     List.map (eval state) args
-
-                trackInfo =
-                    case expr of
-                        Tracked info _ ->
-                            Just info
-
-                        _ ->
-                            Nothing
             in
-            applyReserved state symbol evaluatedArgs trackInfo
+            applyReserved state symbol evaluatedArgs trackStack
 
         Application fn args ->
             let
@@ -112,8 +113,7 @@ runExpression state expr =
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 
                 Value (Undefined stacktrace) ->
-                    -- TODO: add to the stack here
-                    ( state, Untracked (Value (Undefined stacktrace)) )
+                    ( state, Untracked (Value (Undefined (stacktrace ++ trackStack))) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -147,24 +147,19 @@ runExpression state expr =
             ( state, Untracked (Error e) )
 
 
-applyReserved : State -> Reserved -> List Expression -> Maybe TrackInfo -> ( State, Expression )
-applyReserved state reserved evaluatedArgs trackInfo =
+applyReserved : State -> Reserved -> List Expression -> List TrackInfo -> ( State, Expression )
+applyReserved state reserved evaluatedArgs trackStack =
     case reserved of
         Addition ->
-            ( state, Return.mapNumArgs2 (+) evaluatedArgs )
+            ( state, Return.mapNumArgs2 trackStack (+) evaluatedArgs )
 
         Subtraction ->
-            ( state, Return.mapNumArgs2 (-) evaluatedArgs )
+            ( state, Return.mapNumArgs2 trackStack (-) evaluatedArgs )
 
         Assignment name ->
-            let
-                stacktrace =
-                    Maybe.map (\x -> [ x ]) trackInfo
-                        |> Maybe.withDefault []
-            in
             case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
                 Value val ->
-                    ( setVariable name val state, Untracked (Value (Undefined stacktrace)) )
+                    ( setVariable name val state, Untracked (Value (Undefined trackStack)) )
 
                 _ ->
                     Debug.todo "not implemented"
