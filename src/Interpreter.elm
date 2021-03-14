@@ -3,7 +3,7 @@ module Interpreter exposing (LineResult, State, newState, run)
 import Dict exposing (Dict)
 import List.Extra
 import Parser exposing (Problem(..))
-import Return exposing (throwError)
+import Return
 import Types exposing (..)
 
 
@@ -22,14 +22,14 @@ type alias LineResult =
     ( State, Expression )
 
 
-run : State -> Types.Program -> Result Error (List LineResult)
+run : State -> Types.Program -> List LineResult
 run state expressions =
     let
-        iterate : Expression -> Result Error (List LineResult) -> Result Error (List LineResult)
+        iterate : Expression -> List LineResult -> List LineResult
         iterate expr accummulated =
-            Result.andThen (iterateWithoutError expr) accummulated
+            iterateWithoutError expr accummulated
 
-        iterateWithoutError : Expression -> List LineResult -> Result Error (List LineResult)
+        iterateWithoutError : Expression -> List LineResult -> List LineResult
         iterateWithoutError expr acc =
             let
                 lastLineResult =
@@ -40,19 +40,11 @@ run state expressions =
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
             in
-            case Tuple.second lineResult of
-                Untracked (Error error) ->
-                    Err [ error ]
-
-                Tracked _ (Error error) ->
-                    Err [ error ]
-
-                _ ->
-                    Ok (lineResult :: acc)
+            lineResult :: acc
     in
     expressions
-        |> List.foldl iterate (Ok [])
-        |> Result.map List.reverse
+        |> List.foldl iterate []
+        |> List.reverse
 
 
 runExpression : State -> Expression -> LineResult
@@ -129,22 +121,10 @@ runExpression state expr =
         -- TripleArity func e1 e2 e3 ->
         --     ( state, runTripleArity state func e1 e2 e3 )
         Block name blockExpressions ->
-            case run state blockExpressions of
-                Err errors ->
-                    ( state
-                    , List.reverse errors
-                        |> List.head
-                        |> Maybe.map (Untracked << Error)
-                        |> Maybe.withDefault (throwError "error in block with no error")
-                    )
-
-                Ok results ->
-                    List.reverse results
-                        |> List.head
-                        |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
-
-        Error e ->
-            ( state, Untracked (Error e) )
+            run state blockExpressions
+                |> List.reverse
+                |> List.head
+                |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
 
 
 applyReserved : State -> Reserved -> List Expression -> List TrackInfo -> ( State, Expression )

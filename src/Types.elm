@@ -28,7 +28,6 @@ type UntrackedExp
     | Application Expression (List Expression)
     | ReservedApplication Reserved (List Expression)
     | Block String (List Expression)
-    | Error DeadEnd
 
 
 type Value

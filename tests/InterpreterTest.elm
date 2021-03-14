@@ -393,7 +393,7 @@ suite =
 parseAndRun : String -> Result Error (List LineResult)
 parseAndRun code =
     AstParser.parse code
-        |> Result.andThen (Interpreter.run newState)
+        |> Result.map (Interpreter.run newState)
 
 
 isEq expected actual =

@@ -1,13 +1,8 @@
-module Return exposing (andThen, andThenArgs2, argOrDefault, map, mapNumArgs2, throwError)
+module Return exposing (andThen, andThenArgs2, argOrDefault, map, mapNumArgs2)
 
 import Html exposing (track)
 import Parser exposing (DeadEnd, Problem(..))
 import Types exposing (..)
-
-
-throwError : String -> Expression
-throwError error =
-    Untracked (Error { row = 0, col = 0, problem = Problem error })
 
 
 map : (Types.Expression -> Types.Expression) -> Expression -> Expression
