@@ -157,10 +157,10 @@ operators =
 
 assignment : Parser Expression
 assignment =
-    succeed (\pos name -> tracked pos << singleArity (Assignment name))
-        |= getPosition
+    succeed (\name pos -> tracked pos << singleArity (Assignment name))
         |= backtrackable identifier
         |. backtrackable spaces
+        |= getPosition
         |. symbol "="
         |. spaces
         |= expression
@@ -169,14 +169,15 @@ assignment =
 functionDeclaration : Parser Expression
 functionDeclaration =
     succeed
-        (\name param body ->
-            Untracked
+        (\name pos param body ->
+            tracked pos
                 (ReservedApplication (Assignment name)
                     [ Untracked (Value (Abstraction param body)) ]
                 )
         )
         |= backtrackable identifier
         |. backtrackable spaces
+        |= getPosition
         |. backtrackable (symbol "=")
         |. backtrackable spaces
         |= backtrackable

@@ -35,7 +35,7 @@ run state expressions =
                 lastLineResult =
                     List.head acc
                         -- TODO: track here
-                        |> Maybe.withDefault ( state, Untracked (Value Undefined) )
+                        |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
 
                 lineResult =
                     runExpression (Tuple.first lastLineResult) expr
@@ -83,7 +83,7 @@ runExpression state expr =
             ( state
             , Dict.get identifier state.variables
                 |> Maybe.map Value
-                |> Maybe.withDefault (Value Undefined)
+                |> Maybe.withDefault (Value (Undefined []))
                 |> Untracked
             )
 
@@ -91,8 +91,16 @@ runExpression state expr =
             let
                 evaluatedArgs =
                     List.map (eval state) args
+
+                trackInfo =
+                    case expr of
+                        Tracked info _ ->
+                            Just info
+
+                        _ ->
+                            Nothing
             in
-            applyReserved state symbol evaluatedArgs
+            applyReserved state symbol evaluatedArgs trackInfo
 
         Application fn args ->
             let
@@ -103,8 +111,9 @@ runExpression state expr =
                 Value (Abstraction paramNames functionBody) ->
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 
-                Value Undefined ->
-                    ( state, Untracked (Value Undefined) )
+                Value (Undefined stacktrace) ->
+                    -- TODO: add to the stack here
+                    ( state, Untracked (Value (Undefined stacktrace)) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -132,14 +141,14 @@ runExpression state expr =
                 Ok results ->
                     List.reverse results
                         |> List.head
-                        |> Maybe.withDefault ( state, Untracked (Value Undefined) )
+                        |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
 
         Error e ->
             ( state, Untracked (Error e) )
 
 
-applyReserved : State -> Reserved -> List Expression -> ( State, Expression )
-applyReserved state reserved evaluatedArgs =
+applyReserved : State -> Reserved -> List Expression -> Maybe TrackInfo -> ( State, Expression )
+applyReserved state reserved evaluatedArgs trackInfo =
     case reserved of
         Addition ->
             ( state, Return.mapNumArgs2 (+) evaluatedArgs )
@@ -148,9 +157,14 @@ applyReserved state reserved evaluatedArgs =
             ( state, Return.mapNumArgs2 (-) evaluatedArgs )
 
         Assignment name ->
+            let
+                stacktrace =
+                    Maybe.map (\x -> [ x ]) trackInfo
+                        |> Maybe.withDefault []
+            in
             case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
                 Value val ->
-                    ( setVariable name val state, Untracked (Value Undefined) )
+                    ( setVariable name val state, Untracked (Value (Undefined stacktrace)) )
 
                 _ ->
                     Debug.todo "not implemented"

@@ -11,8 +11,12 @@ type alias Error =
     List DeadEnd
 
 
+type alias TrackInfo =
+    { line : Int, column : Int }
+
+
 type Expression
-    = Tracked { line : Int, column : Int } UntrackedExp
+    = Tracked TrackInfo UntrackedExp
     | Untracked UntrackedExp
 
 
@@ -31,7 +35,7 @@ type Value
     = Number Float
     | Vector (List Expression)
     | Abstraction (List String) Expression
-    | Undefined
+    | Undefined (List TrackInfo)
 
 
 type Reserved

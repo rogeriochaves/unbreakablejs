@@ -151,15 +151,20 @@ suite =
         --                         ]
         --                     )
         --     ]
-        -- , describe "assignments"
-        --     [ test "parses simple assignment" <|
-        --         \_ ->
-        --             AstParser.parse "x = 1 + 1"
-        --                 |> isEq
-        --                     (Application (Reserved (Assignment "x"))
-        --                         [ Application (Reserved Addition) [ Value (Number 1), Value (Number 1) ]
-        --                         ]
-        --                     )
+        , describe "assignments"
+            [ test "parses simple assignment" <|
+                \_ ->
+                    AstParser.parse "x = 1 + 1"
+                        |> isEq
+                            (Tracked { line = 1, column = 3 }
+                                (ReservedApplication (Assignment "x")
+                                    [ Tracked { line = 1, column = 7 }
+                                        (ReservedApplication Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
+                                    ]
+                                )
+                            )
+            ]
+
         --     , test "does not allow nested assignments" <|
         --         \_ ->
         --             AstParser.parse "x = 1 + (x = 2)"
@@ -174,19 +179,31 @@ suite =
         --             AstParser.parse "x = y + 1"
         --                 |> isEq (Application (Reserved (Assignment "x")) [ Application (Reserved Addition) [ Variable "y", Value (Number 1) ] ])
         --     ]
-        -- , describe "functions"
-        --     [ test "parses function declaration" <|
-        --         \_ ->
-        --             AstParser.parse "f = (x) => x + 1"
-        --                 |> isEq
-        --                     (Application
-        --                         (Reserved (Assignment "f"))
-        --                         [ Value
-        --                             (Abstraction [ "x" ]
-        --                                 (Application (Reserved Addition) [ Variable "x", Value (Number 1) ])
-        --                             )
-        --                         ]
-        --                     )
+        , describe "functions"
+            [ test "parses function declaration" <|
+                \_ ->
+                    AstParser.parse "f = (x) => x + 1"
+                        |> isEq
+                            (Tracked { line = 1, column = 3 }
+                                (ReservedApplication
+                                    (Assignment "f")
+                                    [ Untracked
+                                        (Value
+                                            (Abstraction [ "x" ]
+                                                (Tracked { line = 1, column = 14 }
+                                                    (ReservedApplication Addition
+                                                        [ Tracked { line = 1, column = 12 } (Variable "x")
+                                                        , Untracked (Value (Number 1))
+                                                        ]
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+            ]
+
         --     , test "parses function declaration with multiple arguments" <|
         --         \_ ->
         --             AstParser.parse "f = (x, y) => x + 1"

@@ -114,4 +114,4 @@ argOrDefault index args =
     List.drop index args
         |> List.head
         -- TODO: track here
-        |> Maybe.withDefault (Untracked <| Value Undefined)
+        |> Maybe.withDefault (Untracked <| Value (Undefined []))
