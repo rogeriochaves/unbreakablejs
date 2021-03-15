@@ -197,6 +197,16 @@ suite =
                             |> isEq (Untracked <| Value (Undefined [ { column = 1, line = 1 } ]))
                 , test "accumulates undefined stack" <|
                     \_ ->
+                        parseAndRun "f = (x, y) => x + y\nf(g, 1)"
+                            |> Result.map (List.map Tuple.second)
+                            |> Expect.equal
+                                (Ok
+                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
+                                    , Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ])
+                                    ]
+                                )
+                , test "accumulates undefined stack of functions" <|
+                    \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
                             |> Result.map (List.map Tuple.second)
                             |> Expect.equal

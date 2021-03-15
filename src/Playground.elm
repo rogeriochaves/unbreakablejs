@@ -227,7 +227,8 @@ renderResult item =
 
                 msg =
                     "Syntax error. I could not parse the code. The problem happened here:\n\n"
-                        ++ getLine firstError.row item.input
+                        -- TODO: fix syntax errors searching for a new line problem
+                        ++ getLine (firstError.row - 1) item.input
                         ++ "\n"
                         ++ String.repeat firstError.col "-"
                         ++ "^\n\n"
@@ -255,7 +256,13 @@ renderResult item =
 
                 msg =
                     "Undefined. How come?\n\n\n"
-                        ++ "First I got undefined from here:\n\n"
+                        -- TODO: cannot get line from function defined on previous cell
+                        ++ (if List.length stackMsgs > 1 then
+                                "First I got undefined from here:\n\n"
+
+                            else
+                                "I got undefined from here:\n\n"
+                           )
                         ++ String.join "\n" stackMsgs
             in
             column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])

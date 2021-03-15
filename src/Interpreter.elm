@@ -80,7 +80,7 @@ runExpression state expr =
             ( state
             , Dict.get identifier state.variables
                 |> Maybe.map Value
-                |> Maybe.withDefault (Value (Undefined []))
+                |> Maybe.withDefault (Value (Undefined trackStack))
                 |> Untracked
             )
 
