@@ -135,7 +135,7 @@ applyReserved state reserved evaluatedArgs trackStack =
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
                 Value val ->
-                    ( setVariable name val state, Untracked (Value (Undefined trackStack)) )
+                    ( setVariable name val state, Untracked (Value val) )
 
                 _ ->
                     Debug.todo "not implemented"

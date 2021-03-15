@@ -29,8 +29,8 @@ encode expr =
                            )
                         ++ "]"
 
-                Abstraction args body ->
-                    "(" ++ String.join "," args ++ ") => " ++ encode (removeTracking body)
+                Abstraction _ _ ->
+                    "[Function]"
 
                 Undefined _ ->
                     "undefined"

@@ -1,7 +1,7 @@
 module InterpreterTest exposing (suite)
 
 import AstParser exposing (..)
-import Expect exposing (Expectation)
+import Expect
 import Interpreter exposing (..)
 import Parser exposing (Problem(..))
 import Test exposing (..)
@@ -136,10 +136,10 @@ suite =
             --             |> Result.map (List.map Tuple.second)
             --             |> Expect.equal (Ok [ Number 2, Number 4 ])
             , describe "assignments" <|
-                [ test "parses a simple assignment and return Undefined" <|
+                [ test "parses a simple assignment and return the result" <|
                     \_ ->
                         parseAndRun "x = 2 + 2"
-                            |> isEq (Untracked <| Value (Undefined [ { line = 1, column = 3 } ]))
+                            |> isEq (Untracked <| Value (Number 4))
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
@@ -171,7 +171,17 @@ suite =
                             |> Result.map (List.map Tuple.second)
                             |> Expect.equal
                                 (Ok
-                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
+                                    [ Untracked <|
+                                        Value
+                                            (Abstraction [ "x" ]
+                                                (Tracked { column = 14, line = 1 }
+                                                    (ReservedApplication Addition
+                                                        [ Tracked { column = 12, line = 1 } (Variable "x")
+                                                        , Untracked (Value (Number 1))
+                                                        ]
+                                                    )
+                                                )
+                                            )
                                     , Untracked <| Value (Number 6)
                                     ]
                                 )
@@ -184,13 +194,7 @@ suite =
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
-                            |> Result.map (List.map Tuple.second)
-                            |> Expect.equal
-                                (Ok
-                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
-                                    , Untracked <| Value (Undefined [ { column = 17, line = 1 } ])
-                                    ]
-                                )
+                            |> isEqLast (Untracked <| Value (Undefined [ { column = 17, line = 1 } ]))
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
@@ -198,33 +202,15 @@ suite =
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
-                            |> Result.map (List.map Tuple.second)
-                            |> Expect.equal
-                                (Ok
-                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
-                                    , Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ])
-                                    ]
-                                )
+                            |> isEqLast (Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ]))
                 , test "accumulates undefined stack of functions" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
-                            |> Result.map (List.map Tuple.second)
-                            |> Expect.equal
-                                (Ok
-                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
-                                    , Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ])
-                                    ]
-                                )
+                            |> isEqLast (Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ]))
                 , test "accumulates undefined stack on second param" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
-                            |> Result.map (List.map Tuple.second)
-                            |> Expect.equal
-                                (Ok
-                                    [ Untracked <| Value (Undefined [ { column = 3, line = 1 } ])
-                                    , Untracked <| Value (Undefined [ { column = 6, line = 2 }, { column = 17, line = 1 } ])
-                                    ]
-                                )
+                            |> isEqLast (Untracked <| Value (Undefined [ { column = 6, line = 2 }, { column = 17, line = 1 } ]))
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
