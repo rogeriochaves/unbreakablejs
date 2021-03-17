@@ -6,14 +6,22 @@ import Test exposing (..)
 import Types exposing (..)
 
 
+tracked ( line, column ) =
+    Tracked { line = line, column = column, filename = "test.us" }
+
+
+parse =
+    AstParser.parse "test.us"
+
+
 suite : Test
 suite =
     describe "AstParser suite"
         [ test "read int numbers" <|
             \_ ->
-                AstParser.parse "1 + 1"
+                parse "1 + 1"
                     |> isEq
-                        (Tracked { line = 1, column = 3 }
+                        (tracked ( 1, 3 )
                             (ReservedApplication Addition
                                 [ Untracked (Value (Number 1))
                                 , Untracked (Value (Number 1))
@@ -22,19 +30,19 @@ suite =
                         )
         , test "read float numbers" <|
             \_ ->
-                AstParser.parse "1.5 + 1.3"
+                parse "1.5 + 1.3"
                     |> isEq
-                        (Tracked { line = 1, column = 5 }
+                        (tracked ( 1, 5 )
                             (ReservedApplication Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
                         )
         , test "read nested operations" <|
             \_ ->
-                AstParser.parse "1 - (3 - 2)"
+                parse "1 - (3 - 2)"
                     |> isEq
-                        (Tracked { line = 1, column = 3 }
+                        (tracked ( 1, 3 )
                             (ReservedApplication Subtraction
                                 [ Untracked (Value (Number 1))
-                                , Tracked { line = 1, column = 8 }
+                                , tracked ( 1, 8 )
                                     (ReservedApplication Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
                                 ]
                             )
@@ -42,24 +50,24 @@ suite =
 
         -- , test "read single-arity symbolic function" <|
         --     \_ ->
-        --         AstParser.parse "\\sqrt{5}"
+        --         parse "\\sqrt{5}"
         --             |> isEq (SingleArity Sqrt (Number 5))
         -- , test "read simple summation function" <|
         --     \_ ->
-        --         AstParser.parse "\\sum{\\mathbf{x}}"
+        --         parse "\\sum{\\mathbf{x}}"
         --             |> isEq (SingleArity Summation (Variable (VectorIdentifier "x")))
         -- , test "read double-arity symbolic function" <|
         --     \_ ->
-        --         AstParser.parse "\\frac{2}{3}"
+        --         parse "\\frac{2}{3}"
         --             |> isEq (DoubleArity Frac (Number 2) (Number 3))
         -- -- https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits#Sums_and_products
         -- , test "read iterator functions" <|
         --     \_ ->
-        --         AstParser.parse "\\sum_{x = 1}^{3} 5"
+        --         parse "\\sum_{x = 1}^{3} 5"
         --             |> isEq (TripleArity (Sum_ "x") (Number 1) (Number 3) (Number 5))
         -- , test "read symbol function aplication with other expression" <|
         --     \_ ->
-        --         AstParser.parse "\\sqrt{9} + 2"
+        --         parse "\\sqrt{9} + 2"
         --             |> isEq
         --                 (DoubleArity Addition
         --                     (SingleArity Sqrt (Number 9))
@@ -67,7 +75,7 @@ suite =
         --                 )
         -- , test "read exponentiation" <|
         --     \_ ->
-        --         AstParser.parse "2 ^ 5"
+        --         parse "2 ^ 5"
         --             |> isEq
         --                 (DoubleArity Exponentiation
         --                     (Number 2)
@@ -75,7 +83,7 @@ suite =
         --                 )
         -- , test "read modulo" <|
         --     \_ ->
-        --         AstParser.parse "2 \\mod 5"
+        --         parse "2 \\mod 5"
         --             |> isEq
         --                 (DoubleArity Modulo
         --                     (Number 2)
@@ -83,7 +91,7 @@ suite =
         --                 )
         -- , test "read integer div" <|
         --     \_ ->
-        --         AstParser.parse "5 \\div 2"
+        --         parse "5 \\div 2"
         --             |> isEq
         --                 (DoubleArity EuclideanDivision
         --                     (Number 5)
@@ -91,7 +99,7 @@ suite =
         --                 )
         -- , test "read grouped exponentiation" <|
         --     \_ ->
-        --         AstParser.parse "2 ^ {5 + 1}"
+        --         parse "2 ^ {5 + 1}"
         --             |> isEq
         --                 (DoubleArity Exponentiation
         --                     (Number 2)
@@ -102,29 +110,29 @@ suite =
         --                 )
         -- , test "parses factorial" <|
         --     \_ ->
-        --         AstParser.parse "5!"
+        --         parse "5!"
         --             |> isEq (SingleArity Factorial (Number 5))
         -- , test "parses negation" <|
         --     \_ ->
-        --         AstParser.parse "-5"
+        --         parse "-5"
         --             |> isEq (SingleArity Negation (Number 5))
         -- , test "parses cardinality" <|
         --     \_ ->
-        --         AstParser.parse "|\\vec{x}|"
+        --         parse "|\\vec{x}|"
         --             |> isEq (SingleArity Cardinality (Variable (VectorIdentifier "x")))
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->
-                    AstParser.parse "1 + 1\n2 + 2"
+                    parse "1 + 1\n2 + 2"
                         |> Expect.equal
                             (Ok
-                                [ Tracked { line = 1, column = 3 }
+                                [ tracked ( 1, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
-                                , Tracked { line = 2, column = 3 }
+                                , tracked ( 2, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
@@ -134,26 +142,26 @@ suite =
                             )
             , test "breaks for weird things after the end" <|
                 \_ ->
-                    AstParser.parse "1 + 1\n2 + 2[1$51"
+                    parse "1 + 1\n2 + 2[1$51"
                         |> isErr
                         |> Expect.true "it should break if anything is not parseable"
             , test "only one expression per line" <|
                 \_ ->
-                    AstParser.parse "1 + 1 2 + 2"
+                    parse "1 + 1 2 + 2"
                         |> isErr
                         |> Expect.true "it should break there is no line break between expressions"
             , test "allow multiple line breaks" <|
                 \_ ->
-                    AstParser.parse "1 + 1\n\n2 + 2\n"
+                    parse "1 + 1\n\n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ Tracked { line = 1, column = 3 }
+                                [ tracked ( 1, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
-                                , Tracked { line = 3, column = 3 }
+                                , tracked ( 3, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
@@ -163,16 +171,16 @@ suite =
                             )
             , test "allow empty lines and trailing spaces" <|
                 \_ ->
-                    AstParser.parse "1 + 1 \n \n2 + 2\n"
+                    parse "1 + 1 \n \n2 + 2\n"
                         |> Expect.equal
                             (Ok
-                                [ Tracked { line = 1, column = 3 }
+                                [ tracked ( 1, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
-                                , Tracked { line = 3, column = 3 }
+                                , tracked ( 3, 3 )
                                     (ReservedApplication Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
@@ -184,40 +192,40 @@ suite =
         , describe "assignments"
             [ test "parses simple assignment" <|
                 \_ ->
-                    AstParser.parse "x = 1 + 1"
+                    parse "x = 1 + 1"
                         |> isEq
-                            (Tracked { line = 1, column = 3 }
+                            (tracked ( 1, 3 )
                                 (ReservedApplication (Assignment "x")
-                                    [ Tracked { line = 1, column = 7 }
+                                    [ tracked ( 1, 7 )
                                         (ReservedApplication Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
                                     ]
                                 )
                             )
             , test "does not allow nested assignments" <|
                 \_ ->
-                    AstParser.parse "x = 1 + (x = 2)"
+                    parse "x = 1 + (x = 2)"
                         |> isErr
                         |> Expect.true "nested assignments"
             , test "parses expression with variables" <|
                 \_ ->
-                    AstParser.parse "x + 1"
+                    parse "x + 1"
                         |> isEq
-                            (Tracked { line = 1, column = 3 }
+                            (tracked ( 1, 3 )
                                 (ReservedApplication Addition
-                                    [ Tracked { line = 1, column = 1 } <| Variable "x"
+                                    [ tracked ( 1, 1 ) <| Variable "x"
                                     , Untracked <| Value (Number 1)
                                     ]
                                 )
                             )
             , test "parses assignment with variables" <|
                 \_ ->
-                    AstParser.parse "x = y + 1"
+                    parse "x = y + 1"
                         |> isEq
-                            (Tracked { line = 1, column = 3 }
+                            (tracked ( 1, 3 )
                                 (ReservedApplication (Assignment "x")
-                                    [ Tracked { line = 1, column = 7 } <|
+                                    [ tracked ( 1, 7 ) <|
                                         ReservedApplication Addition
-                                            [ Tracked { line = 1, column = 5 } <| Variable "y"
+                                            [ tracked ( 1, 5 ) <| Variable "y"
                                             , Untracked <| Value (Number 1)
                                             ]
                                     ]
@@ -227,17 +235,17 @@ suite =
         , describe "functions"
             [ test "parses function declaration" <|
                 \_ ->
-                    AstParser.parse "f = (x) => x + 1"
+                    parse "f = (x) => x + 1"
                         |> isEq
-                            (Tracked { line = 1, column = 3 }
+                            (tracked ( 1, 3 )
                                 (ReservedApplication
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
                                             (Abstraction [ "x" ]
-                                                (Tracked { line = 1, column = 14 }
+                                                (tracked ( 1, 14 )
                                                     (ReservedApplication Addition
-                                                        [ Tracked { line = 1, column = 12 } (Variable "x")
+                                                        [ tracked ( 1, 12 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
                                                     )
@@ -249,17 +257,17 @@ suite =
                             )
             , test "parses function declaration with multiple arguments" <|
                 \_ ->
-                    AstParser.parse "f = (x, y) => x + 1"
+                    parse "f = (x, y) => x + 1"
                         |> isEq
-                            (Tracked { line = 1, column = 3 }
+                            (tracked ( 1, 3 )
                                 (ReservedApplication
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
                                             (Abstraction [ "x", "y" ]
-                                                (Tracked { line = 1, column = 17 }
+                                                (tracked ( 1, 17 )
                                                     (ReservedApplication Addition
-                                                        [ Tracked { line = 1, column = 15 } (Variable "x")
+                                                        [ tracked ( 1, 15 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
                                                     )
@@ -271,21 +279,21 @@ suite =
                             )
             , test "does not allow nested function declarations" <|
                 \_ ->
-                    AstParser.parse "fn(x) = fn(y) = 1"
+                    parse "fn(x) = fn(y) = 1"
                         |> isErr
                         |> Expect.true "nested functions"
             , test "parses function call" <|
                 \_ ->
-                    AstParser.parse "f(5)"
+                    parse "f(5)"
                         |> isEq
-                            (Tracked { line = 1, column = 1 }
+                            (tracked ( 1, 1 )
                                 (Application (Untracked <| Variable "f") [ Untracked <| Value (Number 5) ])
                             )
             , test "parses function call with multiple arguments" <|
                 \_ ->
-                    AstParser.parse "f(3, 2)"
+                    parse "f(3, 2)"
                         |> isEq
-                            (Tracked { line = 1, column = 1 }
+                            (tracked ( 1, 1 )
                                 (Application (Untracked <| Variable "f")
                                     [ Untracked <| Value (Number 3)
                                     , Untracked <| Value (Number 2)
@@ -297,12 +305,12 @@ suite =
         -- , describe "vectors"
         --     [ test "parses simple vector" <|
         --         \_ ->
-        --             AstParser.parse "(1, 2, 3)"
+        --             parse "(1, 2, 3)"
         --                 |> isEq
         --                     (Vector [ Number 1, Number 2, Number 3 ])
         --     , test "parses vector with expressions inside" <|
         --         \_ ->
-        --             AstParser.parse "(x, x + 1, x + 2)"
+        --             parse "(x, x + 1, x + 2)"
         --                 |> isEq
         --                     (Vector
         --                         [ Variable (ScalarIdentifier "x")
@@ -312,19 +320,19 @@ suite =
         --                     )
         --     , test "parses vector assignment" <|
         --         \_ ->
-        --             AstParser.parse "\\vec{x} = (1, 2, 3)"
+        --             parse "\\vec{x} = (1, 2, 3)"
         --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
         --     , test "vector variables can also use mathbf" <|
         --         \_ ->
-        --             AstParser.parse "\\mathbf{x} = (1, 2, 3)"
+        --             parse "\\mathbf{x} = (1, 2, 3)"
         --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
         --     , test "parses expression with vector variable" <|
         --         \_ ->
-        --             AstParser.parse "\\vec{x} + 1"
+        --             parse "\\vec{x} + 1"
         --                 |> isEq (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
         --     , test "parses function with vector as param" <|
         --         \_ ->
-        --             AstParser.parse "f(\\vec{x}) = \\vec{x} + 1"
+        --             parse "f(\\vec{x}) = \\vec{x} + 1"
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
@@ -334,17 +342,17 @@ suite =
         --                     )
         --     , test "parses vector index position" <|
         --         \_ ->
-        --             AstParser.parse "x_{3}"
+        --             parse "x_{3}"
         --                 |> isEq
         --                     (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
         --     , test "parses vector index position and other operation" <|
         --         \_ ->
-        --             AstParser.parse "x_{3} + 1"
+        --             parse "x_{3} + 1"
         --                 |> isEq
         --                     (DoubleArity Addition (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3)) (Number 1))
         --     , test "parses vector index position inside function assignment" <|
         --         \_ ->
-        --             AstParser.parse "f(\\vec{x}) = x_{3}"
+        --             parse "f(\\vec{x}) = x_{3}"
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
@@ -354,14 +362,14 @@ suite =
         --                     )
         --     , test "parses nested index" <|
         --         \_ ->
-        --             AstParser.parse "x_{y_{3}}"
+        --             parse "x_{y_{3}}"
         --                 |> isEq
         --                     (DoubleArity Index (Variable (ScalarIdentifier "x")) (DoubleArity Index (Variable (ScalarIdentifier "y")) (Number 3)))
         --     ]
         -- , describe "mapping function"
         --     [ test "parses mapping function declaration" <|
         --         \_ ->
-        --             AstParser.parse "f(\\vec{x})_{i} = x_{i} + 1"
+        --             parse "f(\\vec{x})_{i} = x_{i} + 1"
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
@@ -377,7 +385,7 @@ suite =
         -- , describe "blocks"
         --     [ test "parses blocks" <|
         --         \_ ->
-        --             AstParser.parse "Test:\nx = 1\nx + 2"
+        --             parse "Test:\nx = 1\nx + 2"
         --                 |> isEq
         --                     (Block "Test"
         --                         [ SingleArity (Assignment (ScalarIdentifier "x")) (Number 1)
@@ -386,7 +394,7 @@ suite =
         --                     )
         --     , test "parses multiple blocks" <|
         --         \_ ->
-        --             AstParser.parse "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
+        --             parse "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
         --                 |> Expect.equal
         --                     (Ok
         --                         [ Block "First\\ Block"

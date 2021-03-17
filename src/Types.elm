@@ -12,7 +12,7 @@ type alias Error =
 
 
 type alias TrackInfo =
-    { line : Int, column : Int }
+    { line : Int, column : Int, filename : String }
 
 
 type Expression

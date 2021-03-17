@@ -103,15 +103,15 @@ symbolIdentifier =
         }
 
 
-tracked : ( Int, Int ) -> UntrackedExp -> Expression
-tracked ( row, col ) =
-    Tracked { line = row, column = col }
+tracked : String -> ( Int, Int ) -> UntrackedExp -> Expression
+tracked filename ( row, col ) =
+    Tracked { line = row, column = col, filename = filename }
 
 
-functionCall : Parser Expression
-functionCall =
+functionCall : String -> Parser Expression
+functionCall filename =
     -- TODO: separate application of variables from reserved
-    succeed (\pos name -> tracked pos << Application (Untracked (Variable name)))
+    succeed (\pos name -> tracked filename pos << Application (Untracked (Variable name)))
         |= getPosition
         |= backtrackable scalarIdentifier
         |= backtrackable
@@ -120,25 +120,25 @@ functionCall =
                 , separator = ","
                 , end = ")"
                 , spaces = spaces
-                , item = expression
+                , item = expression filename
                 , trailing = Forbidden
                 }
             )
 
 
-infixOperator : Reserved -> Parser ( Int, Int ) -> Assoc -> Operator Expression
-infixOperator operation opParser assoc =
+infixOperator : String -> Reserved -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator filename operation opParser assoc =
     let
         binaryOp =
-            succeed (\pos expr1 expr2 -> tracked pos (doubleArity operation expr1 expr2))
+            succeed (\pos expr1 expr2 -> tracked filename pos (doubleArity operation expr1 expr2))
                 |= opParser
                 |. spaces
     in
     Infix binaryOp assoc
 
 
-operators : OperatorTable Expression
-operators =
+operators : String -> OperatorTable Expression
+operators filename =
     let
         symb : String -> Parser ( Int, Int )
         symb sign =
@@ -151,26 +151,29 @@ operators =
     -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
     -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
     -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
-    [ [ infixOperator Addition (symb "+") AssocLeft, infixOperator Subtraction (symb "-") AssocLeft ]
+    [ [ infixOperator filename Addition (symb "+") AssocLeft
+      , infixOperator filename Subtraction (symb "-") AssocLeft
+      ]
     ]
 
 
-assignment : Parser Expression
-assignment =
-    succeed (\name pos -> tracked pos << singleArity (Assignment name))
+assignment : String -> Parser Expression
+assignment filename =
+    succeed (\name pos -> tracked filename pos << singleArity (Assignment name))
         |= backtrackable identifier
         |. backtrackable spaces
         |= getPosition
         |. symbol "="
         |. spaces
-        |= expression
+        |= expression filename
 
 
-functionDeclaration : Parser Expression
-functionDeclaration =
+functionDeclaration : String -> Parser Expression
+functionDeclaration filename =
     succeed
         (\name pos param body ->
-            tracked pos
+            tracked filename
+                pos
                 (ReservedApplication (Assignment name)
                     [ Untracked (Value (Abstraction param body)) ]
                 )
@@ -193,7 +196,7 @@ functionDeclaration =
         |. backtrackable spaces
         |. backtrackable (symbol "=>")
         |. spaces
-        |= expression
+        |= expression filename
 
 
 singleArity : Reserved -> Expression -> UntrackedExp
@@ -236,13 +239,13 @@ doubleArity fn expr1 expr2 =
 --         |. backtrackable (symbol "!")
 
 
-program : Parser Types.Program
-program =
-    loop [] programLoop
+program : String -> Parser Types.Program
+program filename =
+    loop [] (programLoop filename)
 
 
-programLoop : List Expression -> Parser (Step (List Expression) (List Expression))
-programLoop expressions =
+programLoop : String -> List Expression -> Parser (Step (List Expression) (List Expression))
+programLoop filename expressions =
     let
         appendExpr expr =
             case List.head expressions of
@@ -266,22 +269,22 @@ programLoop expressions =
             |. symbol ":"
             |. statementBreak
         , succeed appendExpr
-            |= expression_ True
+            |= expression_ filename True
             |. statementBreak
         ]
 
 
-expression : Parser Expression
-expression =
-    expression_ False
+expression : String -> Parser Expression
+expression filename =
+    expression_ filename False
 
 
-expression_ : Bool -> Parser Expression
-expression_ withDeclarations =
-    buildExpressionParser operators
+expression_ : String -> Bool -> Parser Expression
+expression_ filename withDeclarations =
+    buildExpressionParser (operators filename)
         (lazy <|
             \_ ->
-                expressionParsers withDeclarations
+                expressionParsers filename withDeclarations
                     |> andThen
                         (\expr ->
                             oneOf
@@ -294,12 +297,12 @@ expression_ withDeclarations =
         )
 
 
-expressionParsers : Bool -> Parser Expression
-expressionParsers withDeclarations =
+expressionParsers : String -> Bool -> Parser Expression
+expressionParsers filename withDeclarations =
     let
         declarations =
-            [ functionDeclaration
-            , assignment
+            [ functionDeclaration filename
+            , assignment filename
             ]
 
         -- [ mapFunctionDeclaration
@@ -307,10 +310,10 @@ expressionParsers withDeclarations =
         -- , assignment
         -- ]
         expressions =
-            [ backtrackable <| parens <| lazy (\_ -> expression)
-            , functionCall
-            , atoms
-            , vectors
+            [ backtrackable <| parens <| lazy (\_ -> expression filename)
+            , functionCall filename
+            , atoms filename
+            , vectors filename
             ]
     in
     if withDeclarations then
@@ -320,29 +323,29 @@ expressionParsers withDeclarations =
         oneOf expressions
 
 
-atoms : Parser Expression
-atoms =
+atoms : String -> Parser Expression
+atoms filename =
     oneOf
-        [ succeed (\pos name -> tracked pos (Variable name))
+        [ succeed (\pos name -> tracked filename pos (Variable name))
             |= getPosition
             |= identifier
         , digits
         ]
 
 
-vectors : Parser Expression
-vectors =
+vectors : String -> Parser Expression
+vectors filename =
     succeed (Vector >> Value >> Untracked)
         |= sequence
             { start = "("
             , separator = ","
             , end = ")"
             , spaces = spaces
-            , item = expression
+            , item = expression filename
             , trailing = Forbidden
             }
 
 
-parse : String -> Result Error Types.Program
-parse string =
-    run program (string ++ "\nEOF")
+parse : String -> String -> Result Error Types.Program
+parse filename content =
+    run (program filename) (content ++ "\nEOF")

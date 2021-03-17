@@ -198,7 +198,7 @@ cellView model index item =
             [ cellLabelView Style.cellLabelInput "Input:"
             , AutoExpand.view (autoExpandConfig 1 index) item.autoexpand item.input
             ]
-        , renderResult item
+        , renderResult model index item
         ]
 
 
@@ -212,11 +212,20 @@ removeTracking expr =
             e
 
 
-renderResult : Cell -> Html Msg
-renderResult item =
+renderResult : Model -> Int -> Cell -> Html Msg
+renderResult model index item =
     let
-        getLine line input =
-            List.Extra.getAt line (String.split "\n" input) |> Maybe.withDefault ("<line " ++ String.fromInt line ++ " not found>")
+        getLine filename line input =
+            let
+                cellIndex =
+                    filename
+                        |> String.replace "Cell " ""
+                        |> String.toInt
+                        |> Maybe.withDefault 0
+            in
+            List.Extra.getAt cellIndex model.cells
+                |> Maybe.andThen (List.Extra.getAt line << String.split "\n" << .input)
+                |> Maybe.withDefault ("<line " ++ String.fromInt line ++ " not found>")
     in
     case Result.map (Maybe.map (\( _, y ) -> removeTracking y)) item.result of
         Err error ->
@@ -227,10 +236,11 @@ renderResult item =
 
                 msg =
                     "Syntax error. I could not parse the code. The problem happened here:\n\n"
-                        -- TODO: fix syntax errors searching for a new line problem
-                        ++ getLine (firstError.row - 1) item.input
+                        ++ String.fromInt firstError.row
+                        ++ "| "
+                        ++ getLine ("Cell " ++ String.fromInt index) (firstError.row - 1) item.input
                         ++ "\n"
-                        ++ String.repeat firstError.col "-"
+                        ++ String.repeat (firstError.col + String.length (String.fromInt firstError.row)) "-"
                         ++ "^\n\n"
                         ++ Debug.toString firstError.problem
 
@@ -245,29 +255,37 @@ renderResult item =
             let
                 stackMsgs =
                     stack
-                        |> List.map
-                            (\error ->
-                                getLine (error.line - 1) item.input
+                        |> List.indexedMap
+                            (\i error ->
+                                let
+                                    msgGotFrom =
+                                        if i == 0 then
+                                            if List.length stack > 0 then
+                                                "First I got undefined from "
+
+                                            else
+                                                "I got undefined from "
+
+                                        else
+                                            "Then from "
+                                in
+                                msgGotFrom
+                                    ++ error.filename
+                                    ++ ":\n\n"
+                                    ++ String.fromInt error.line
+                                    ++ "| "
+                                    -- TODO: cannot get line from function defined on previous cell
+                                    ++ getLine error.filename (error.line - 1) item.input
                                     ++ "\n"
-                                    ++ String.repeat (error.column - 1) "-"
+                                    ++ String.repeat (error.column + String.length (String.fromInt error.line) + 1) "-"
                                     ++ "^\n\n"
                             )
-                        |> List.intersperse "Then here:\n"
-
-                msg =
-                    "Undefined. How come?\n\n\n"
-                        -- TODO: cannot get line from function defined on previous cell
-                        ++ (if List.length stackMsgs > 1 then
-                                "First I got undefined from here:\n\n"
-
-                            else
-                                "I got undefined from here:\n\n"
-                           )
-                        ++ String.join "\n" stackMsgs
             in
             column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])
                 [ cellLabelView Style.cellLabelOutput ""
-                , pre [ style "font-size" "14px", style "margin" "0" ] [ text msg ]
+                , pre [ style "font-size" "14px", style "margin" "0" ]
+                    [ text <| "Undefined. How come?\n\n\n" ++ String.join "\n" stackMsgs
+                    ]
                 ]
 
         Ok (Just expr) ->
@@ -335,7 +353,7 @@ update msg model =
                         Ok Nothing
 
                     else
-                        AstParser.parse cell_.input
+                        AstParser.parse ("Cell " ++ String.fromInt model.selectedCell) cell_.input
                             |> Result.map (Interpreter.run model.state)
                             |> Result.map List.Extra.last
 

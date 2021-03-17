@@ -8,6 +8,16 @@ import Test exposing (..)
 import Types exposing (..)
 
 
+trackInfo : ( Int, Int ) -> TrackInfo
+trackInfo ( line, column ) =
+    { line = line, column = column, filename = "test.us" }
+
+
+tracked : ( Int, Int ) -> UntrackedExp -> Expression
+tracked =
+    Tracked << trackInfo
+
+
 suite : Test
 suite =
     describe "Interpreter suite"
@@ -174,9 +184,9 @@ suite =
                                     [ Untracked <|
                                         Value
                                             (Abstraction [ "x" ]
-                                                (Tracked { column = 14, line = 1 }
+                                                (tracked (1, 14)
                                                     (ReservedApplication Addition
-                                                        [ Tracked { column = 12, line = 1 } (Variable "x")
+                                                        [ tracked (1, 12) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
                                                     )
@@ -194,23 +204,23 @@ suite =
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
-                            |> isEqLast (Untracked <| Value (Undefined [ { column = 17, line = 1 } ]))
+                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (1, 17) ]))
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
-                            |> isEq (Untracked <| Value (Undefined [ { column = 1, line = 1 } ]))
+                            |> isEq (Untracked <| Value (Undefined [ trackInfo (1, 1) ]))
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
-                            |> isEqLast (Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ]))
+                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 3), trackInfo (1, 17) ]))
                 , test "accumulates undefined stack of functions" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
-                            |> isEqLast (Untracked <| Value (Undefined [ { column = 3, line = 2 }, { column = 17, line = 1 } ]))
+                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 3), trackInfo (1, 17) ]))
                 , test "accumulates undefined stack on second param" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
-                            |> isEqLast (Untracked <| Value (Undefined [ { column = 6, line = 2 }, { column = 17, line = 1 } ]))
+                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 6), trackInfo (1, 17) ]))
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
@@ -388,7 +398,7 @@ suite =
 
 parseAndRun : String -> Result Error (List LineResult)
 parseAndRun code =
-    AstParser.parse code
+    AstParser.parse "test.us" code
         |> Result.map (Interpreter.run newState)
 
 
