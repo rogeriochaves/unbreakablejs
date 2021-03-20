@@ -301,6 +301,82 @@ suite =
                                 )
                             )
             ]
+        , describe "blocks"
+            [ test "parses blocks breaking lines" <|
+                \_ ->
+                    parse "{\n1 + 1\n2 + 2\n}"
+                        |> isEq
+                            (Untracked
+                                (Block
+                                    [ tracked ( 2, 3 )
+                                        (ReservedApplication Addition
+                                            [ Untracked (Value (Number 1))
+                                            , Untracked (Value (Number 1))
+                                            ]
+                                        )
+                                    , tracked ( 3, 3 )
+                                        (ReservedApplication Addition
+                                            [ Untracked (Value (Number 2))
+                                            , Untracked (Value (Number 2))
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+            , test "parses blocks in the same line" <|
+                \_ ->
+                    parse "{1 + 1\n2 + 2}"
+                        |> isEq
+                            (Untracked
+                                (Block
+                                    [ tracked ( 1, 4 )
+                                        (ReservedApplication Addition
+                                            [ Untracked (Value (Number 1))
+                                            , Untracked (Value (Number 1))
+                                            ]
+                                        )
+                                    , tracked ( 2, 3 )
+                                        (ReservedApplication Addition
+                                            [ Untracked (Value (Number 2))
+                                            , Untracked (Value (Number 2))
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+            , test "parses blocks in function body" <|
+                \_ ->
+                    parse "f = (x) => { 1 + 1\n2 + 2 }"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (ReservedApplication
+                                    (Assignment "f")
+                                    [ Untracked
+                                        (Value
+                                            (Abstraction [ "x" ]
+                                                (Untracked
+                                                    (Block
+                                                        [ tracked ( 1, 16 )
+                                                            (ReservedApplication Addition
+                                                                [ Untracked (Value (Number 1))
+                                                                , Untracked (Value (Number 1))
+                                                                ]
+                                                            )
+                                                        , tracked ( 2, 3 )
+                                                            (ReservedApplication Addition
+                                                                [ Untracked (Value (Number 2))
+                                                                , Untracked (Value (Number 2))
+                                                                ]
+                                                            )
+                                                        ]
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+            ]
 
         -- , describe "vectors"
         --     [ test "parses simple vector" <|

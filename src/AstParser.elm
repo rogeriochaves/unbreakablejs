@@ -110,7 +110,6 @@ tracked filename ( row, col ) =
 
 functionCall : String -> Parser Expression
 functionCall filename =
-    -- TODO: separate application of variables from reserved
     succeed
         (\posIdentifier name posApplication ->
             tracked filename posApplication << Application (tracked filename posIdentifier (Variable name))
@@ -248,30 +247,28 @@ program filename =
     loop [] (programLoop filename)
 
 
+statementBreak : Parser ()
+statementBreak =
+    succeed ()
+        |. chompWhile (\c -> c == ' ')
+        |. chompIf (\c -> c == '\n')
+        |. spaces
+
+
 programLoop : String -> List Expression -> Parser (Step (List Expression) (List Expression))
 programLoop filename expressions =
     let
         appendExpr expr =
             case List.head expressions of
-                Just (Tracked _ (Block name items)) ->
-                    Loop (Untracked (Block name (items ++ [ expr ])) :: List.drop 1 expressions)
+                Just (Tracked _ (Block items)) ->
+                    Loop (Untracked (Block (items ++ [ expr ])) :: List.drop 1 expressions)
 
                 _ ->
                     Loop (expr :: expressions)
-
-        statementBreak =
-            succeed ()
-                |. chompWhile (\c -> c == ' ')
-                |. chompIf (\c -> c == '\n')
-                |. spaces
     in
     oneOf
         [ succeed (Done (List.reverse expressions))
             |. symbol "EOF"
-        , succeed (\name -> Loop (Untracked (Block name []) :: expressions))
-            |= backtrackable (getChompedString (chompWhile (\c -> c /= ':' && c /= '\n')))
-            |. symbol ":"
-            |. statementBreak
         , succeed appendExpr
             |= expression_ filename True
             |. statementBreak
@@ -314,7 +311,8 @@ expressionParsers filename withDeclarations =
         -- , assignment
         -- ]
         expressions =
-            [ backtrackable <| parens <| lazy (\_ -> expression filename)
+            [ block filename
+            , backtrackable <| parens <| lazy (\_ -> expression filename)
             , functionCall filename
             , atoms filename
             , vectors filename
@@ -325,6 +323,22 @@ expressionParsers filename withDeclarations =
 
     else
         oneOf expressions
+
+
+block : String -> Parser Expression
+block filename =
+    let
+        expressionLine =
+            oneOf
+                [ succeed identity
+                    |= backtrackable (expression filename)
+                    |. backtrackable statementBreak
+                , succeed identity
+                    |= expression filename
+                ]
+    in
+    succeed (\list -> Untracked <| Block list)
+        |= backtrackable (braces (many expressionLine))
 
 
 atoms : String -> Parser Expression

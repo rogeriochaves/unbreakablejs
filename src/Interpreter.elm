@@ -118,7 +118,8 @@ runExpression state expr =
         --     ( state, runDoubleArity state func e1 e2 )
         -- TripleArity func e1 e2 e3 ->
         --     ( state, runTripleArity state func e1 e2 e3 )
-        Block name blockExpressions ->
+        Block blockExpressions ->
+            -- TODO: do not return last, have explicit return instead
             run state blockExpressions
                 |> List.reverse
                 |> List.head
