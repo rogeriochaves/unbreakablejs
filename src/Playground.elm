@@ -6,7 +6,6 @@ import Browser exposing (UrlRequest(..))
 import Browser.Dom exposing (focus)
 import Browser.Navigation exposing (Key, load, pushUrl)
 import Debug
-import Dict
 import Encoder exposing (encode)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -22,12 +21,12 @@ import Playground.Routes exposing (..)
 import Playground.Style as Style
 import Playground.Types exposing (..)
 import Task
-import Types exposing (Error)
+import Types exposing (..)
 import Url exposing (Url)
 import Url.Parser exposing (parse)
 
 
-main : Program () Model Msg
+main : Platform.Program () Model Msg
 main =
     Browser.application
         { init = init
@@ -203,13 +202,13 @@ cellView model index item =
         ]
 
 
-removeTracking : Types.Expression -> Types.UntrackedExp
+removeTracking : Expression -> UntrackedExp
 removeTracking expr =
     case expr of
-        Types.Tracked _ e ->
+        Tracked _ e ->
             e
 
-        Types.Untracked e ->
+        Untracked e ->
             e
 
 
@@ -252,7 +251,7 @@ renderResult model index item =
                 , pre [ style "font-size" "14px", style "margin" "0" ] [ text msg ]
                 ]
 
-        Ok (Just (Types.Value (Types.Undefined stack))) ->
+        Ok (Just (Value (Undefined stack))) ->
             let
                 stackMsgs =
                     stack
@@ -275,11 +274,14 @@ renderResult model index item =
 
                                     reason =
                                         case error.reason of
-                                            Types.VariableNotDefined identifier ->
+                                            VariableNotDefined identifier ->
                                                 identifier ++ " is not defined"
 
-                                            Types.OperationWithUndefined operationName ->
+                                            OperationWithUndefined operationName ->
                                                 operationName ++ " with undefined"
+
+                                            MissingPositionalArgument index_ paramName ->
+                                                "missing argument " ++ paramName ++ " (position " ++ String.fromInt (index_ + 1) ++ ")"
                                 in
                                 msgGotFrom
                                     ++ error.filename
@@ -361,7 +363,7 @@ update msg model =
             let
                 -- List.Extra.last errs
                 --     -- TODO: map syntax errors
-                --     |> Maybe.map (\e -> ( model.state, Types.Untracked <| Types.Value <| Types.Undefined [] ))
+                --     |> Maybe.map (\e -> ( model.state, Untracked <| Value <| Undefined [] ))
                 runCell : Cell -> Result Error (Maybe Interpreter.LineResult)
                 runCell cell_ =
                     if String.isEmpty (String.trim cell_.input) then

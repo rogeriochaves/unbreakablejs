@@ -75,7 +75,7 @@ mapNumArgs2 trackStack fn =
 
 andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Expression) -> List Expression -> Expression
 andThenNumArgs2 trackStack fn =
-    andThenArgs2
+    andThenArgs2 trackStack
         (\arg0 arg1 ->
             case ( removeTracking arg0, removeTracking arg1 ) of
                 ( Value (Number float1), Value (Number float2) ) ->
@@ -102,14 +102,14 @@ removeTracking expr =
             e
 
 
-andThenArgs2 : (Expression -> Expression -> Expression) -> List Expression -> Expression
-andThenArgs2 fn args =
-    fn (argOrDefault 0 args) (argOrDefault 1 args)
+andThenArgs2 : List UndefinedTrackInfo -> (Expression -> Expression -> Expression) -> List Expression -> Expression
+andThenArgs2 trackStack fn args =
+    fn (argOrDefault trackStack 0 args) (argOrDefault trackStack 1 args)
 
 
-argOrDefault : Int -> List Expression -> Expression
-argOrDefault index args =
+argOrDefault : List UndefinedTrackInfo -> Int -> List Expression -> Expression
+argOrDefault trackStack index args =
     List.drop index args
         |> List.head
         -- TODO: track here
-        |> Maybe.withDefault (Untracked <| Value (Undefined []))
+        |> Maybe.withDefault (Untracked <| Value (Undefined trackStack))

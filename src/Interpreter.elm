@@ -99,7 +99,7 @@ runExpression state expr =
             in
             case eval state fn |> removeTracking of
                 Value (Abstraction paramNames functionBody) ->
-                    ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
+                    ( state, callFunction state trackStack ( paramNames, functionBody ) evaluatedArgs )
 
                 Value (Undefined stacktrace) ->
                     -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
@@ -135,7 +135,7 @@ applyReserved state reserved evaluatedArgs trackStack =
             ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) evaluatedArgs )
 
         Assignment name ->
-            case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
+            case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
                 Value val ->
                     ( setVariable name val state, Untracked (Value val) )
 
@@ -246,13 +246,17 @@ applyReserved state reserved evaluatedArgs trackStack =
 --             )
 
 
-callFunction : State -> ( List String, Expression ) -> List Expression -> Expression
-callFunction state ( paramNames, functionBody ) args =
+callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Expression -> Expression
+callFunction state trackStack ( paramNames, functionBody ) args =
     let
         closure =
             List.Extra.indexedFoldl
                 (\index paramName state_ ->
-                    case Return.argOrDefault index args |> removeTracking of
+                    let
+                        trackStack_ =
+                            trackStack (MissingPositionalArgument index paramName)
+                    in
+                    case Return.argOrDefault trackStack_ index args |> removeTracking of
                         Value val ->
                             setVariable paramName val state_
 

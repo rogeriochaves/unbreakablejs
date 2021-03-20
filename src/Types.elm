@@ -50,6 +50,7 @@ type Reserved
 type UndefinedReason
     = VariableNotDefined String
     | OperationWithUndefined String
+    | MissingPositionalArgument Int String
 
 
 

@@ -209,7 +209,15 @@ suite =
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
-                            |> isEqLast (Untracked <| Value (Undefined [ undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition") ]))
+                            |> isEqLast
+                                (Untracked <|
+                                    Value
+                                        (Undefined
+                                            [ undefinedTrack ( 2, 1 ) (MissingPositionalArgument 1 "y")
+                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                            ]
+                                        )
+                                )
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
