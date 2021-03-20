@@ -215,7 +215,7 @@ removeTracking expr =
 renderResult : Model -> Int -> Cell -> Html Msg
 renderResult model index item =
     let
-        getLine filename line input =
+        getLine filename line =
             let
                 cellIndex =
                     filename
@@ -238,7 +238,7 @@ renderResult model index item =
                     "Syntax error. I could not parse the code. The problem happened here:\n\n"
                         ++ String.fromInt firstError.row
                         ++ "| "
-                        ++ getLine ("Cell " ++ String.fromInt index) (firstError.row - 1) item.input
+                        ++ getLine ("Cell " ++ String.fromInt index) (firstError.row - 1)
                         ++ "\n"
                         ++ String.repeat (firstError.col + String.length (String.fromInt firstError.row)) "-"
                         ++ "^\n\n"
@@ -260,7 +260,7 @@ renderResult model index item =
                                 let
                                     msgGotFrom =
                                         if i == 0 then
-                                            if List.length stack > 0 then
+                                            if List.length stack > 1 then
                                                 "First I got undefined from "
 
                                             else
@@ -268,6 +268,17 @@ renderResult model index item =
 
                                         else
                                             "Then from "
+
+                                    repetitionN =
+                                        error.column + String.length (String.fromInt error.line) + 1
+
+                                    reason =
+                                        case error.reason of
+                                            Types.VariableNotDefined identifier ->
+                                                identifier ++ " is not defined"
+
+                                            Types.OperationWithUndefined operationName ->
+                                                operationName ++ " with undefined"
                                 in
                                 msgGotFrom
                                     ++ error.filename
@@ -275,10 +286,13 @@ renderResult model index item =
                                     ++ String.fromInt error.line
                                     ++ "| "
                                     -- TODO: cannot get line from function defined on previous cell
-                                    ++ getLine error.filename (error.line - 1) item.input
+                                    ++ getLine error.filename (error.line - 1)
                                     ++ "\n"
-                                    ++ String.repeat (error.column + String.length (String.fromInt error.line) + 1) "-"
-                                    ++ "^\n\n"
+                                    ++ String.repeat repetitionN "-"
+                                    ++ "^\n"
+                                    -- ++ String.repeat repetitionN " "
+                                    ++ reason
+                                    ++ "\n\n"
                             )
             in
             column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])

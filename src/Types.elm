@@ -15,6 +15,10 @@ type alias TrackInfo =
     { line : Int, column : Int, filename : String }
 
 
+type alias UndefinedTrackInfo =
+    { line : Int, column : Int, filename : String, reason : UndefinedReason }
+
+
 type Expression
     = Tracked TrackInfo UntrackedExp
     | Untracked UntrackedExp
@@ -34,13 +38,18 @@ type Value
     = Number Float
     | Vector (List Expression)
     | Abstraction (List String) Expression
-    | Undefined (List TrackInfo)
+    | Undefined (List UndefinedTrackInfo)
 
 
 type Reserved
     = Addition
     | Subtraction
     | Assignment String
+
+
+type UndefinedReason
+    = VariableNotDefined String
+    | OperationWithUndefined String
 
 
 

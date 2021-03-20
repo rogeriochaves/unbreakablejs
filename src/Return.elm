@@ -67,13 +67,13 @@ andThen2 fn val val2 =
 --         )
 
 
-mapNumArgs2 : List TrackInfo -> (Float -> Float -> Float) -> List Expression -> Expression
+mapNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Float) -> List Expression -> Expression
 mapNumArgs2 trackStack fn =
     -- TODO: keep tracking of original function
     andThenNumArgs2 trackStack (\a -> fn a >> Number >> Value >> Untracked)
 
 
-andThenNumArgs2 : List TrackInfo -> (Float -> Float -> Expression) -> List Expression -> Expression
+andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Expression) -> List Expression -> Expression
 andThenNumArgs2 trackStack fn =
     andThenArgs2
         (\arg0 arg1 ->

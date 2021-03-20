@@ -13,6 +13,11 @@ trackInfo ( line, column ) =
     { line = line, column = column, filename = "test.us" }
 
 
+undefinedTrack : ( Int, Int ) -> UndefinedReason -> UndefinedTrackInfo
+undefinedTrack ( line, column ) reason =
+    { line = line, column = column, filename = "test.us", reason = reason }
+
+
 tracked : ( Int, Int ) -> UntrackedExp -> Expression
 tracked =
     Tracked << trackInfo
@@ -184,9 +189,9 @@ suite =
                                     [ Untracked <|
                                         Value
                                             (Abstraction [ "x" ]
-                                                (tracked (1, 14)
+                                                (tracked ( 1, 14 )
                                                     (ReservedApplication Addition
-                                                        [ tracked (1, 12) (Variable "x")
+                                                        [ tracked ( 1, 12 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
                                                     )
@@ -204,23 +209,47 @@ suite =
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
-                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (1, 17) ]))
+                            |> isEqLast (Untracked <| Value (Undefined [ undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition") ]))
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
-                            |> isEq (Untracked <| Value (Undefined [ trackInfo (1, 1) ]))
+                            |> isEq (Untracked <| Value (Undefined [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f") ]))
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
-                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 3), trackInfo (1, 17) ]))
+                            |> isEqLast
+                                (Untracked <|
+                                    Value
+                                        (Undefined
+                                            [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
+                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                            ]
+                                        )
+                                )
                 , test "accumulates undefined stack of functions" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
-                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 3), trackInfo (1, 17) ]))
+                            |> isEqLast
+                                (Untracked <|
+                                    Value
+                                        (Undefined
+                                            [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
+                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                            ]
+                                        )
+                                )
                 , test "accumulates undefined stack on second param" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
-                            |> isEqLast (Untracked <| Value (Undefined [ trackInfo (2, 6), trackInfo (1, 17) ]))
+                            |> isEqLast
+                                (Untracked <|
+                                    Value
+                                        (Undefined
+                                            [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g")
+                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                            ]
+                                        )
+                                )
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

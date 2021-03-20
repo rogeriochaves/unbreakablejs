@@ -111,7 +111,7 @@ tracked filename ( row, col ) =
 functionCall : String -> Parser Expression
 functionCall filename =
     -- TODO: separate application of variables from reserved
-    succeed (\pos name -> tracked filename pos << Application (Untracked (Variable name)))
+    succeed (\pos name -> tracked filename pos << Application (tracked filename pos (Variable name)))
         |= getPosition
         |= backtrackable scalarIdentifier
         |= backtrackable

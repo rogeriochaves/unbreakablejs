@@ -46,10 +46,11 @@ run state expressions =
 runExpression : State -> Expression -> LineResult
 runExpression state expr =
     let
-        trackStack =
+        trackStack : UndefinedReason -> List UndefinedTrackInfo
+        trackStack reason =
             case expr of
                 Tracked info _ ->
-                    [ info ]
+                    [ { column = info.column, line = info.line, filename = info.filename, reason = reason } ]
 
                 _ ->
                     []
@@ -80,7 +81,7 @@ runExpression state expr =
             ( state
             , Dict.get identifier state.variables
                 |> Maybe.map Value
-                |> Maybe.withDefault (Value (Undefined trackStack))
+                |> Maybe.withDefault (Value (Undefined (trackStack <| VariableNotDefined identifier)))
                 |> Untracked
             )
 
@@ -101,7 +102,8 @@ runExpression state expr =
                     ( state, callFunction state ( paramNames, functionBody ) evaluatedArgs )
 
                 Value (Undefined stacktrace) ->
-                    ( state, Untracked (Value (Undefined (stacktrace ++ trackStack))) )
+                    -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
+                    ( state, Untracked (Value (Undefined stacktrace)) )
 
                 _ ->
                     Debug.todo "not implemented"
@@ -123,14 +125,14 @@ runExpression state expr =
                 |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
 
 
-applyReserved : State -> Reserved -> List Expression -> List TrackInfo -> ( State, Expression )
+applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> ( State, Expression )
 applyReserved state reserved evaluatedArgs trackStack =
     case reserved of
         Addition ->
-            ( state, Return.mapNumArgs2 trackStack (+) evaluatedArgs )
+            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) evaluatedArgs )
 
         Subtraction ->
-            ( state, Return.mapNumArgs2 trackStack (-) evaluatedArgs )
+            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) evaluatedArgs )
 
         Assignment name ->
             case Return.argOrDefault 0 evaluatedArgs |> removeTracking of
