@@ -281,7 +281,22 @@ renderResult model index item =
                                                 operationName ++ " with undefined"
 
                                             MissingPositionalArgument index_ paramName ->
-                                                "missing argument " ++ paramName ++ " (position " ++ String.fromInt (index_ + 1) ++ ")"
+                                                let
+                                                    posName =
+                                                        case index_ + 1 of
+                                                            1 ->
+                                                                "1st"
+
+                                                            2 ->
+                                                                "2nd"
+
+                                                            3 ->
+                                                                "3rd"
+
+                                                            _ ->
+                                                                String.fromInt index_ ++ "th"
+                                                in
+                                                "missing argument " ++ paramName ++ " (" ++ posName ++ " argument)"
                                 in
                                 msgGotFrom
                                     ++ error.filename
