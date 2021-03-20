@@ -213,7 +213,7 @@ suite =
                                 (Untracked <|
                                     Value
                                         (Undefined
-                                            [ undefinedTrack ( 2, 1 ) (MissingPositionalArgument 1 "y")
+                                            [ undefinedTrack ( 2, 2 ) (MissingPositionalArgument 1 "y")
                                             , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
                                             ]
                                         )

@@ -111,9 +111,13 @@ tracked filename ( row, col ) =
 functionCall : String -> Parser Expression
 functionCall filename =
     -- TODO: separate application of variables from reserved
-    succeed (\pos name -> tracked filename pos << Application (tracked filename pos (Variable name)))
+    succeed
+        (\posIdentifier name posApplication ->
+            tracked filename posApplication << Application (tracked filename posIdentifier (Variable name))
+        )
         |= getPosition
         |= backtrackable scalarIdentifier
+        |= getPosition
         |= backtrackable
             (sequence
                 { start = "("

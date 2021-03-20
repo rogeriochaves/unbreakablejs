@@ -286,14 +286,14 @@ suite =
                 \_ ->
                     parse "f(5)"
                         |> isEq
-                            (tracked ( 1, 1 )
+                            (tracked ( 1, 2 )
                                 (Application (tracked ( 1, 1 ) <| Variable "f") [ Untracked <| Value (Number 5) ])
                             )
             , test "parses function call with multiple arguments" <|
                 \_ ->
                     parse "f(3, 2)"
                         |> isEq
-                            (tracked ( 1, 1 )
+                            (tracked ( 1, 2 )
                                 (Application (tracked ( 1, 1 ) <| Variable "f")
                                     [ Untracked <| Value (Number 3)
                                     , Untracked <| Value (Number 2)
