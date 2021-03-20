@@ -331,10 +331,10 @@ block filename =
         expressionLine =
             oneOf
                 [ succeed identity
-                    |= backtrackable (expression filename)
+                    |= backtrackable (expression_ filename True)
                     |. backtrackable statementBreak
                 , succeed identity
-                    |= expression filename
+                    |= expression_ filename True
                 ]
     in
     succeed (\list -> Untracked <| Block list)

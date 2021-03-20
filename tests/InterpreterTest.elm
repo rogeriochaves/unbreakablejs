@@ -418,13 +418,14 @@ suite =
             -- , describe "blocks"
             --     [ test "evaluates blocks" <|
             --         \_ ->
-            --             parseAndRun "Test:\nx = 1\nx + 2"
+            --             parseAndRun "{\nx = 1\nx + 2}"
             --                 |> isEqLast (Expression (Number 3))
             --     , test "evaluates multiple blocks" <|
             --         \_ ->
             --             parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
             --                 |> isEqLast (Expression (Number 5))
             --     ]
+
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
             --     \_ ->
             --         parseAndRun "x = 1\ny(z) = z + x\nx = 2\ny(3)"

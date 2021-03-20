@@ -376,6 +376,26 @@ suite =
                                     ]
                                 )
                             )
+            , test "parses assignments inside the block" <|
+                \_ ->
+                    parse "{x = 1\nx + 1}"
+                        |> isEq
+                            (Untracked
+                                (Block
+                                    [ tracked ( 1, 4 )
+                                        (ReservedApplication (Assignment "x")
+                                            [ Untracked (Value (Number 1))
+                                            ]
+                                        )
+                                    , tracked ( 2, 3 )
+                                        (ReservedApplication Addition
+                                            [ tracked ( 2, 1 ) <| Variable "x"
+                                            , Untracked (Value (Number 1))
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
             ]
 
         -- , describe "vectors"
