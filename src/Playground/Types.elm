@@ -22,6 +22,7 @@ type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
     , result : Result Types.Error (Maybe Interpreter.LineResult)
+    , submittedInput : String
     }
 
 

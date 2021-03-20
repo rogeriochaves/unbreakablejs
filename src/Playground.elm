@@ -57,6 +57,7 @@ newCell index input =
     { input = input
     , autoexpand = AutoExpand.initState (autoExpandConfig (List.length <| String.split "\n" input) index)
     , result = Ok Nothing
+    , submittedInput = ""
     }
 
 
@@ -224,7 +225,7 @@ renderResult model index item =
                         |> Maybe.withDefault 0
             in
             List.Extra.getAt cellIndex model.cells
-                |> Maybe.andThen (List.Extra.getAt line << String.split "\n" << .input)
+                |> Maybe.andThen (List.Extra.getAt line << String.split "\n" << .submittedInput)
                 |> Maybe.withDefault ("<line " ++ String.fromInt line ++ " not found>")
     in
     case Result.map (Maybe.map (\( _, y ) -> removeTracking y)) item.result of
@@ -378,7 +379,7 @@ update msg model =
 
                 -- TODO: map syntax errors
                 updateCell cell_ =
-                    { cell_ | result = result }
+                    { cell_ | result = result, submittedInput = cell_.input }
 
                 updated =
                     let
