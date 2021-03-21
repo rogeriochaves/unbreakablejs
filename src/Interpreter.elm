@@ -119,34 +119,48 @@ runExpression state expr =
         -- TripleArity func e1 e2 e3 ->
         --     ( state, runTripleArity state func e1 e2 e3 )
         Block blockExpressions ->
-            -- TODO: do not return last, have explicit return instead
-            let
-                iterate : Expression -> ( State, Maybe Expression ) -> ( State, Maybe Expression )
-                iterate expr_ acc =
-                    let
-                        lineResult =
-                            runExpression (Tuple.first acc) expr_
-
-                        returnValue_ =
-                            Nothing
-                    in
-                    ( Tuple.first lineResult, returnValue_ )
-
-                ( state_, returnValue ) =
-                    blockExpressions
-                        |> List.foldl iterate ( state, Nothing )
-            in
-            ( state_
-            , returnValue
-                |> Maybe.withDefault (Untracked (Value (Undefined (trackStack VoidReturn))))
-            )
+            runBlock state trackStack blockExpressions
 
         -- run state blockExpressions
         --     |> List.reverse
         --     |> List.head
         --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
         Return returnExpr ->
-            Debug.todo "not implemented"
+            runExpression state returnExpr
+
+
+runBlock : State -> (UndefinedReason -> List UndefinedTrackInfo) -> List Expression -> ( State, Expression )
+runBlock state trackStack blockExpressions =
+    -- TODO: return last if outside function? (right now returns void)
+    let
+        iterate : Expression -> ( State, Maybe Expression ) -> ( State, Maybe Expression )
+        iterate expr_ acc =
+            if Tuple.second acc == Nothing then
+                let
+                    lineResult =
+                        runExpression (Tuple.first acc) expr_
+
+                    returnValue =
+                        case expr_ |> removeTracking of
+                            Return _ ->
+                                Just (Tuple.second lineResult)
+
+                            _ ->
+                                Nothing
+                in
+                ( Tuple.first lineResult, returnValue )
+
+            else
+                acc
+    in
+    blockExpressions
+        |> List.foldl iterate ( state, Nothing )
+        |> Tuple.mapSecond
+            (Maybe.withDefault
+                (Untracked
+                    (Value (Undefined (trackStack VoidReturn)))
+                )
+            )
 
 
 applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> ( State, Expression )

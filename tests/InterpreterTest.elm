@@ -420,6 +420,14 @@ suite =
                     \_ ->
                         parseAndRun "{\nx = 1\nx + 2}"
                             |> isEq (Untracked <| Value (Undefined [ undefinedTrack ( 3, 7 ) VoidReturn ]))
+                , test "returns the value given to return" <|
+                    \_ ->
+                        parseAndRun "f = (x) => { return x + 2 }\nf(1)"
+                            |> isEqLast (Untracked <| Value (Number 3))
+                , test "stops at early return" <|
+                    \_ ->
+                        parseAndRun "f = (x) => { return x + 2\nreturn 5 }\nf(1)"
+                            |> isEqLast (Untracked <| Value (Number 3))
 
                 -- , test "evaluates multiple blocks" <|
                 --     \_ ->
