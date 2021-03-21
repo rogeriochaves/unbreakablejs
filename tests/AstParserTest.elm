@@ -306,7 +306,7 @@ suite =
                 \_ ->
                     parse "{\n1 + 1\n2 + 2\n}"
                         |> isEq
-                            (Untracked
+                            (tracked ( 4, 2 )
                                 (Block
                                     [ tracked ( 2, 3 )
                                         (ReservedApplication Addition
@@ -327,7 +327,7 @@ suite =
                 \_ ->
                     parse "{1 + 1\n2 + 2}"
                         |> isEq
-                            (Untracked
+                            (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
                                         (ReservedApplication Addition
@@ -354,7 +354,7 @@ suite =
                                     [ Untracked
                                         (Value
                                             (Abstraction [ "x" ]
-                                                (Untracked
+                                                (tracked ( 2, 8 )
                                                     (Block
                                                         [ tracked ( 1, 16 )
                                                             (ReservedApplication Addition
@@ -380,7 +380,7 @@ suite =
                 \_ ->
                     parse "{x = 1\nx + 1}"
                         |> isEq
-                            (Untracked
+                            (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
                                         (ReservedApplication (Assignment "x")
@@ -396,6 +396,41 @@ suite =
                                     ]
                                 )
                             )
+            , test "parses return in function body" <|
+                \_ ->
+                    parse "f = (x) => { return 1 + 1 }"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (ReservedApplication
+                                    (Assignment "f")
+                                    [ Untracked
+                                        (Value
+                                            (Abstraction [ "x" ]
+                                                (tracked ( 1, 28 )
+                                                    (Block
+                                                        [ tracked ( 1, 14 )
+                                                            (Return
+                                                                (tracked ( 1, 23 )
+                                                                    (ReservedApplication Addition
+                                                                        [ Untracked (Value (Number 1))
+                                                                        , Untracked (Value (Number 1))
+                                                                        ]
+                                                                    )
+                                                                )
+                                                            )
+                                                        ]
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+            , test "breaks for return outside function body" <|
+                \_ ->
+                    parse "{ return 1 + 1 }"
+                        |> isErr
+                        |> Expect.true "it should break for returns in blocks outside function body"
             ]
 
         -- , describe "vectors"

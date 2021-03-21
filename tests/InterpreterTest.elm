@@ -415,16 +415,17 @@ suite =
             --             parseAndRun "\\mathbf{a} = (x, y, z)\n|\\mathbf{a}|"
             --                 |> isEqLast (Expression (Number 3))
             --     ]
-            -- , describe "blocks"
-            --     [ test "evaluates blocks" <|
-            --         \_ ->
-            --             parseAndRun "{\nx = 1\nx + 2}"
-            --                 |> isEqLast (Expression (Number 3))
-            --     , test "evaluates multiple blocks" <|
-            --         \_ ->
-            --             parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
-            --                 |> isEqLast (Expression (Number 5))
-            --     ]
+            , describe "blocks"
+                [ test "evaluates blocks" <|
+                    \_ ->
+                        parseAndRun "{\nx = 1\nx + 2}"
+                            |> isEq (Untracked <| Value (Undefined [ undefinedTrack ( 3, 7 ) VoidReturn ]))
+
+                -- , test "evaluates multiple blocks" <|
+                --     \_ ->
+                --         parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
+                --             |> isEqLast (Expression (Number 5))
+                ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
             --     \_ ->

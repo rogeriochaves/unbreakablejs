@@ -120,10 +120,33 @@ runExpression state expr =
         --     ( state, runTripleArity state func e1 e2 e3 )
         Block blockExpressions ->
             -- TODO: do not return last, have explicit return instead
-            run state blockExpressions
-                |> List.reverse
-                |> List.head
-                |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
+            let
+                iterate : Expression -> ( State, Maybe Expression ) -> ( State, Maybe Expression )
+                iterate expr_ acc =
+                    let
+                        lineResult =
+                            runExpression (Tuple.first acc) expr_
+
+                        returnValue_ =
+                            Nothing
+                    in
+                    ( Tuple.first lineResult, returnValue_ )
+
+                ( state_, returnValue ) =
+                    blockExpressions
+                        |> List.foldl iterate ( state, Nothing )
+            in
+            ( state_
+            , returnValue
+                |> Maybe.withDefault (Untracked (Value (Undefined (trackStack VoidReturn))))
+            )
+
+        -- run state blockExpressions
+        --     |> List.reverse
+        --     |> List.head
+        --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
+        Return returnExpr ->
+            Debug.todo "not implemented"
 
 
 applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> ( State, Expression )

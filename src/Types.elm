@@ -32,6 +32,7 @@ type UntrackedExp
     | Application Expression (List Expression)
     | ReservedApplication Reserved (List Expression)
     | Block (List Expression)
+    | Return Expression
 
 
 type Value
@@ -51,6 +52,7 @@ type UndefinedReason
     = VariableNotDefined String
     | OperationWithUndefined String
     | MissingPositionalArgument Int String
+    | VoidReturn
 
 
 

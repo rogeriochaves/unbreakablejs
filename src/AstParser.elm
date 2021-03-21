@@ -199,7 +199,7 @@ functionDeclaration filename =
         |. backtrackable spaces
         |. backtrackable (symbol "=>")
         |. spaces
-        |= expression filename
+        |= expression_ filename True True
 
 
 singleArity : Reserved -> Expression -> UntrackedExp
@@ -270,22 +270,22 @@ programLoop filename expressions =
         [ succeed (Done (List.reverse expressions))
             |. symbol "EOF"
         , succeed appendExpr
-            |= expression_ filename True
+            |= expression_ filename True False
             |. statementBreak
         ]
 
 
 expression : String -> Parser Expression
 expression filename =
-    expression_ filename False
+    expression_ filename False False
 
 
-expression_ : String -> Bool -> Parser Expression
-expression_ filename withDeclarations =
+expression_ : String -> Bool -> Bool -> Parser Expression
+expression_ filename withDeclarations withReturn =
     buildExpressionParser (operators filename)
         (lazy <|
             \_ ->
-                expressionParsers filename withDeclarations
+                expressionParsers filename withDeclarations withReturn
                     |> andThen
                         (\expr ->
                             oneOf
@@ -298,47 +298,62 @@ expression_ filename withDeclarations =
         )
 
 
-expressionParsers : String -> Bool -> Parser Expression
-expressionParsers filename withDeclarations =
+expressionParsers : String -> Bool -> Bool -> Parser Expression
+expressionParsers filename withDeclarations withReturn =
     let
         declarations =
-            [ functionDeclaration filename
-            , assignment filename
-            ]
+            if withDeclarations then
+                [ functionDeclaration filename
+                , assignment filename
+                ]
 
-        -- [ mapFunctionDeclaration
-        -- , functionDeclaration
-        -- , assignment
-        -- ]
+            else
+                []
+
+        return_ =
+            if withReturn then
+                [ return filename ]
+
+            else
+                [ return filename
+                    |. problem "return can only be used inside a function body"
+                ]
+
         expressions =
-            [ block filename
+            [ block filename withReturn
             , backtrackable <| parens <| lazy (\_ -> expression filename)
             , functionCall filename
             , atoms filename
             , vectors filename
             ]
     in
-    if withDeclarations then
-        oneOf (declarations ++ expressions)
-
-    else
-        oneOf expressions
+    oneOf (declarations ++ return_ ++ expressions)
 
 
-block : String -> Parser Expression
-block filename =
+block : String -> Bool -> Parser Expression
+block filename withReturn =
     let
         expressionLine =
             oneOf
                 [ succeed identity
-                    |= backtrackable (expression_ filename True)
+                    |= backtrackable (expression_ filename True withReturn)
                     |. backtrackable statementBreak
                 , succeed identity
-                    |= expression_ filename True
+                    |= expression_ filename True withReturn
                 ]
     in
-    succeed (\list -> Untracked <| Block list)
+    succeed (\list pos -> tracked filename pos <| Block list)
         |= backtrackable (braces (many expressionLine))
+        |= getPosition
+
+
+return : String -> Parser Expression
+return filename =
+    succeed (\pos expr -> tracked filename pos (Return expr))
+        |= getPosition
+        |. backtrackable (symbol "return")
+        |. spaces
+        |= expression filename
 
 
 atoms : String -> Parser Expression
