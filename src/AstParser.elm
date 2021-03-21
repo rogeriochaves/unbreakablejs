@@ -21,46 +21,48 @@ digits =
 
 identifier : Parser String
 identifier =
-    scalarIdentifier
+    variable
+        { start = Char.isLower
+        , inner = \c -> Char.isAlphaNum c || c == '_'
+        , reserved = Set.fromList []
+        }
 
 
-vectorIdentifier : Parser String
-vectorIdentifier =
-    succeed identity
-        |. oneOf [ symbol "\\vec", symbol "\\mathbf" ]
-        |= braces scalarIdentifier
 
-
-scalarIdentifier : Parser String
-scalarIdentifier =
-    let
-        decorators =
-            succeed ()
-                |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
-                |. braces names
-
-        names =
-            oneOf
-                (lowercaseGreek
-                    ++ [ succeed ()
-                            |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
-                       , succeed ()
-                            |. symbol "\\operatorname"
-                            |. braces
-                                (variable
-                                    { start = Char.isAlphaNum
-                                    , inner = \c -> Char.isAlphaNum c
-                                    , reserved = Set.empty
-                                    }
-                                )
-                       ]
-                )
-    in
-    oneOf
-        [ decorators
-        , names
-        ]
-        |> getChompedString
+-- vectorIdentifier : Parser String
+-- vectorIdentifier =
+--     succeed identity
+--         |. oneOf [ symbol "\\vec", symbol "\\mathbf" ]
+--         |= braces scalarIdentifier
+-- scalarIdentifier : Parser String
+-- scalarIdentifier =
+--     let
+--         decorators =
+--             succeed ()
+--                 |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
+--                 |. braces names
+--         names =
+--             oneOf
+--                 (lowercaseGreek
+--                     ++ [ succeed ()
+--                             |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
+--                        , succeed ()
+--                             |. symbol "\\operatorname"
+--                             |. braces
+--                                 (variable
+--                                     { start = Char.isAlphaNum
+--                                     , inner = \c -> Char.isAlphaNum c
+--                                     , reserved = Set.empty
+--                                     }
+--                                 )
+--                        ]
+--                 )
+--     in
+--     oneOf
+--         [ decorators
+--         , names
+--         ]
+--         |> getChompedString
 
 
 lowercaseGreek : List (Parser ())
@@ -94,15 +96,6 @@ lowercaseGreek =
         ]
 
 
-symbolIdentifier : Parser String
-symbolIdentifier =
-    variable
-        { start = Char.isLower
-        , inner = \c -> Char.isAlphaNum c || c == '_'
-        , reserved = Set.fromList []
-        }
-
-
 tracked : String -> ( Int, Int ) -> UntrackedExp -> Expression
 tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
@@ -115,7 +108,7 @@ functionCall filename =
             tracked filename posApplication << Application (tracked filename posIdentifier (Variable name))
         )
         |= getPosition
-        |= backtrackable scalarIdentifier
+        |= backtrackable identifier
         |= getPosition
         |= backtrackable
             (sequence

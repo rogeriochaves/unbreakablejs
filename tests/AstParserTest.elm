@@ -52,10 +52,22 @@ suite =
         --     \_ ->
         --         parse "\\sqrt{5}"
         --             |> isEq (SingleArity Sqrt (Number 5))
-        -- , test "read simple summation function" <|
-        --     \_ ->
-        --         parse "\\sum{\\mathbf{x}}"
-        --             |> isEq (SingleArity Summation (Variable (VectorIdentifier "x")))
+        , test "read variables" <|
+            \_ ->
+                parse "x"
+                    |> isEq (tracked ( 1, 1 ) (Variable "x"))
+        , test "read variables with multiple letters" <|
+            \_ ->
+                parse "age + 1"
+                    |> isEq
+                        (tracked ( 1, 5 )
+                            (ReservedApplication Addition
+                                [ tracked ( 1, 1 ) (Variable "age")
+                                , Untracked (Value (Number 1))
+                                ]
+                            )
+                        )
+
         -- , test "read double-arity symbolic function" <|
         --     \_ ->
         --         parse "\\frac{2}{3}"
