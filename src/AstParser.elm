@@ -352,10 +352,21 @@ return filename =
 atoms : String -> Parser Expression
 atoms filename =
     oneOf
-        [ succeed (\pos name -> tracked filename pos (Variable name))
+        [ booleans
+        , succeed (\pos name -> tracked filename pos (Variable name))
             |= getPosition
             |= identifier
         , digits
+        ]
+
+
+booleans : Parser Expression
+booleans =
+    oneOf
+        [ succeed (Untracked (Value (Boolean True)))
+            |. backtrackable (symbol "true")
+        , succeed (Untracked (Value (Boolean False)))
+            |. backtrackable (symbol "false")
         ]
 
 

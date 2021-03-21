@@ -40,6 +40,7 @@ type Value
     | Vector (List Expression)
     | Abstraction (List String) Expression
     | Undefined (List UndefinedTrackInfo)
+    | Boolean Bool
 
 
 type Reserved

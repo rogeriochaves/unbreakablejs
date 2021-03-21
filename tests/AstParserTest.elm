@@ -52,11 +52,11 @@ suite =
         --     \_ ->
         --         parse "\\sqrt{5}"
         --             |> isEq (SingleArity Sqrt (Number 5))
-        , test "read variables" <|
+        , test "parses variables" <|
             \_ ->
                 parse "x"
                     |> isEq (tracked ( 1, 1 ) (Variable "x"))
-        , test "read variables with multiple letters" <|
+        , test "parses variables with multiple letters" <|
             \_ ->
                 parse "age + 1"
                     |> isEq
@@ -67,6 +67,14 @@ suite =
                                 ]
                             )
                         )
+        , test "parses boolean true" <|
+            \_ ->
+                parse "true"
+                    |> isEq (Untracked (Value (Boolean True)))
+        , test "parses boolean false" <|
+            \_ ->
+                parse "false"
+                    |> isEq (Untracked (Value (Boolean False)))
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->
@@ -445,6 +453,28 @@ suite =
                         |> Expect.true "it should break for returns in blocks outside function body"
             ]
 
+        -- , describe "if conditions" <|
+        --     [ test "parses comparis" <|
+        --         \_ ->
+        --             parse "if (1 {x = 1\nx + 1}"
+        --                 |> isEq
+        --                     (tracked ( 2, 7 )
+        --                         (Block
+        --                             [ tracked ( 1, 4 )
+        --                                 (ReservedApplication (Assignment "x")
+        --                                     [ Untracked (Value (Number 1))
+        --                                     ]
+        --                                 )
+        --                             , tracked ( 2, 3 )
+        --                                 (ReservedApplication Addition
+        --                                     [ tracked ( 2, 1 ) <| Variable "x"
+        --                                     , Untracked (Value (Number 1))
+        --                                     ]
+        --                                 )
+        --                             ]
+        --                         )
+        --                     )
+        --     ]
         -- , describe "vectors"
         --     [ test "parses simple vector" <|
         --         \_ ->
