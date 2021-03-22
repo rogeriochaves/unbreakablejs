@@ -35,5 +35,12 @@ encode expr =
                 Undefined _ ->
                     "undefined"
 
+                Boolean bool ->
+                    if bool then
+                        "true"
+
+                    else
+                        "false"
+
         _ ->
             "not implemented yet"

@@ -88,6 +88,7 @@ andThenNumArgs2 trackStack fn =
                     Untracked (Value (Undefined (stack ++ trackStack)))
 
                 _ ->
+                    -- TODO: what about sum with boolean? Or with object? They should show a better error message
                     Untracked (Value (Undefined trackStack))
         )
 

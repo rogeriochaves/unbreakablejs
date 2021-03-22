@@ -297,6 +297,9 @@ renderResult model index item =
                                                                 String.fromInt index_ ++ "th"
                                                 in
                                                 "missing argument " ++ paramName ++ " (" ++ posName ++ " argument)"
+
+                                            VoidReturn ->
+                                                "function returned void"
                                 in
                                 msgGotFrom
                                     ++ error.filename
