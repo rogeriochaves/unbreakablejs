@@ -150,6 +150,7 @@ operators filename =
     [ [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
+    , [ infixOperator filename SoftEquality (symb "==") AssocLeft ]
     ]
 
 
@@ -159,9 +160,9 @@ assignment filename =
         |= backtrackable identifier
         |. backtrackable spaces
         |= getPosition
-        |. symbol "="
+        |. backtrackable (symbol "=")
         |. spaces
-        |= expression filename
+        |= lazy (\_ -> expression filename)
 
 
 functionDeclaration : String -> Parser Expression
@@ -192,7 +193,7 @@ functionDeclaration filename =
         |. backtrackable spaces
         |. backtrackable (symbol "=>")
         |. spaces
-        |= expression_ filename True True
+        |= lazy (\_ -> expression_ filename True True)
 
 
 singleArity : Reserved -> Expression -> UntrackedExp
@@ -275,24 +276,6 @@ expression filename =
 
 expression_ : String -> Bool -> Bool -> Parser Expression
 expression_ filename withDeclarations withReturn =
-    buildExpressionParser (operators filename)
-        (lazy <|
-            \_ ->
-                expressionParsers filename withDeclarations withReturn
-                    |> andThen
-                        (\expr ->
-                            oneOf
-                                [ -- index expr
-                                  -- , exponentiation expr
-                                  -- , factorial expr
-                                  succeed expr
-                                ]
-                        )
-        )
-
-
-expressionParsers : String -> Bool -> Bool -> Parser Expression
-expressionParsers filename withDeclarations withReturn =
     let
         declarations =
             if withDeclarations then
@@ -303,6 +286,28 @@ expressionParsers filename withDeclarations withReturn =
             else
                 []
 
+        expressionParser =
+            buildExpressionParser (operators filename)
+                (lazy <|
+                    \_ ->
+                        expressionParsers filename withReturn
+                            |> andThen
+                                (\expr ->
+                                    oneOf
+                                        [ -- index expr
+                                          -- , exponentiation expr
+                                          -- , factorial expr
+                                          succeed expr
+                                        ]
+                                )
+                )
+    in
+    oneOf (declarations ++ [ expressionParser ])
+
+
+expressionParsers : String -> Bool -> Parser Expression
+expressionParsers filename withReturn =
+    let
         return_ =
             if withReturn then
                 [ return filename ]
@@ -320,7 +325,7 @@ expressionParsers filename withDeclarations withReturn =
             , vectors filename
             ]
     in
-    oneOf (declarations ++ return_ ++ expressions)
+    oneOf (return_ ++ expressions)
 
 
 block : String -> Bool -> Parser Expression

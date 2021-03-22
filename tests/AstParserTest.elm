@@ -452,29 +452,57 @@ suite =
                         |> isErr
                         |> Expect.true "it should break for returns in blocks outside function body"
             ]
+        , describe "if conditions" <|
+            [ test "parses comparison" <|
+                \_ ->
+                    parse "1 + 1 == 2"
+                        |> isEq
+                            (tracked ( 1, 7 )
+                                (ReservedApplication SoftEquality
+                                    [ tracked ( 1, 3 )
+                                        (ReservedApplication Addition
+                                            [ Untracked (Value (Number 1))
+                                            , Untracked (Value (Number 1))
+                                            ]
+                                        )
+                                    , Untracked (Value (Number 2))
+                                    ]
+                                )
+                            )
+            , test "parses boolean comparison" <|
+                \_ ->
+                    parse "true == false"
+                        |> isEq
+                            (tracked ( 1, 6 )
+                                (ReservedApplication SoftEquality
+                                    [ Untracked (Value (Boolean True))
+                                    , Untracked (Value (Boolean False))
+                                    ]
+                                )
+                            )
 
-        -- , describe "if conditions" <|
-        --     [ test "parses comparis" <|
-        --         \_ ->
-        --             parse "if (1 {x = 1\nx + 1}"
-        --                 |> isEq
-        --                     (tracked ( 2, 7 )
-        --                         (Block
-        --                             [ tracked ( 1, 4 )
-        --                                 (ReservedApplication (Assignment "x")
-        --                                     [ Untracked (Value (Number 1))
-        --                                     ]
-        --                                 )
-        --                             , tracked ( 2, 3 )
-        --                                 (ReservedApplication Addition
-        --                                     [ tracked ( 2, 1 ) <| Variable "x"
-        --                                     , Untracked (Value (Number 1))
-        --                                     ]
-        --                                 )
-        --                             ]
-        --                         )
-        --                     )
-        --     ]
+            -- , test "parses comparis" <|
+            --     \_ ->
+            --         parse "if (1 {x = 1\nx + 1}"
+            --             |> isEq
+            --                 (tracked ( 2, 7 )
+            --                     (Block
+            --                         [ tracked ( 1, 4 )
+            --                             (ReservedApplication (Assignment "x")
+            --                                 [ Untracked (Value (Number 1))
+            --                                 ]
+            --                             )
+            --                         , tracked ( 2, 3 )
+            --                             (ReservedApplication Addition
+            --                                 [ tracked ( 2, 1 ) <| Variable "x"
+            --                                 , Untracked (Value (Number 1))
+            --                                 ]
+            --                             )
+            --                         ]
+            --                     )
+            --                 )
+            ]
+
         -- , describe "vectors"
         --     [ test "parses simple vector" <|
         --         \_ ->

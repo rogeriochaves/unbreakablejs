@@ -47,6 +47,7 @@ type Reserved
     = Addition
     | Subtraction
     | Assignment String
+    | SoftEquality
 
 
 type UndefinedReason

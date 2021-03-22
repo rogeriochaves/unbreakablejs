@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import List.Extra
 import Parser exposing (Problem(..))
 import Return
+import Test.Runner.Failure exposing (Reason(..))
 import Types exposing (..)
 
 
@@ -167,10 +168,10 @@ applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List
 applyReserved state reserved evaluatedArgs trackStack =
     case reserved of
         Addition ->
-            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) evaluatedArgs )
+            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number evaluatedArgs )
 
         Subtraction ->
-            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) evaluatedArgs )
+            ( state, Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number evaluatedArgs )
 
         Assignment name ->
             case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
@@ -179,6 +180,37 @@ applyReserved state reserved evaluatedArgs trackStack =
 
                 _ ->
                     Debug.todo "not implemented"
+
+        SoftEquality ->
+            let
+                wrap =
+                    Untracked << Value << Boolean
+
+                trackStack_ =
+                    trackStack (OperationWithUndefined "equality")
+            in
+            ( state
+            , evaluatedArgs
+                |> Return.andThenArgs2 trackStack_
+                    (\arg0 arg1 ->
+                        case ( removeTracking arg0, removeTracking arg1 ) of
+                            ( Value (Number a), Value (Number b) ) ->
+                                wrap (a == b)
+
+                            ( Value (Boolean a), Value (Boolean b) ) ->
+                                wrap (a == b)
+
+                            ( Value (Undefined stack), _ ) ->
+                                Untracked (Value (Undefined (stack ++ trackStack_)))
+
+                            ( _, Value (Undefined stack) ) ->
+                                Untracked (Value (Undefined (stack ++ trackStack_)))
+
+                            _ ->
+                                -- TODO: what about true == 1? 0 == false? "1" == 1
+                                Untracked (Value (Undefined trackStack_))
+                    )
+            )
 
 
 

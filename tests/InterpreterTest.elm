@@ -434,6 +434,21 @@ suite =
                 --         parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
                 --             |> isEqLast (Expression (Number 5))
                 ]
+            , describe "equality"
+                [ test "evaluates number equality" <|
+                    \_ ->
+                        parseAndRun "1 + 1 == 2"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "evaluates false number equality" <|
+                    \_ ->
+                        parseAndRun "1 + 1 == 3"
+                            |> isEqLast (Untracked <| Value (Boolean False))
+
+                , test "evaluates boolean equality" <|
+                    \_ ->
+                        parseAndRun "true == true"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
             --     \_ ->
