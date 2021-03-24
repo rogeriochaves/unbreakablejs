@@ -129,6 +129,18 @@ runExpression state expr =
         Return returnExpr ->
             runExpression state returnExpr
 
+        IfCondition condition exprIfTrue ->
+            case eval state condition |> removeTracking of
+                Value val ->
+                    if valueToBool val then
+                        runExpression state exprIfTrue
+
+                    else
+                        ( state, Untracked (Value (Undefined (trackStack IfWithoutElse))) )
+
+                _ ->
+                    Debug.todo "not implemented yet"
+
 
 runBlock : State -> (UndefinedReason -> List UndefinedTrackInfo) -> List Expression -> ( State, Expression )
 runBlock state trackStack blockExpressions =
@@ -223,20 +235,46 @@ comparisonWithBool value bool =
             a == bool
 
         Number a ->
-            if a == 1 then
+            if a == 0 then
+                False == bool
+
+            else if a == 1 then
                 True == bool
 
             else
-                False == bool
+                False
 
         Abstraction _ _ ->
-            False == bool
+            False
 
         Vector _ ->
             Debug.todo "not implemented"
 
         Undefined _ ->
+            False
+
+
+valueToBool : Value -> Bool
+valueToBool value =
+    case value of
+        Boolean a ->
+            a
+
+        Number a ->
+            if a == 0 then
+                False
+
+            else
+                True
+
+        Abstraction _ _ ->
+            True
+
+        Vector _ ->
             Debug.todo "not implemented"
+
+        Undefined _ ->
+            False
 
 
 

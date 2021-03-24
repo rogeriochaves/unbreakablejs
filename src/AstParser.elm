@@ -101,6 +101,20 @@ tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
 
 
+ifCondition : String -> Parser Expression
+ifCondition filename =
+    succeed
+        (\pos condition expr ->
+            tracked filename pos (IfCondition condition expr)
+        )
+        |= getPosition
+        |. backtrackable (symbol "if")
+        |. spaces
+        |= parens (lazy (\_ -> expression filename))
+        |. spaces
+        |= lazy (\_ -> expression filename)
+
+
 functionCall : String -> Parser Expression
 functionCall filename =
     succeed
@@ -281,6 +295,7 @@ expression_ filename withDeclarations withReturn =
             if withDeclarations then
                 [ functionDeclaration filename
                 , assignment filename
+                , ifCondition filename
                 ]
 
             else

@@ -300,6 +300,9 @@ renderResult model index item =
 
                                             VoidReturn ->
                                                 "function returned void"
+
+                                            IfWithoutElse ->
+                                                "if condition evaluated to false and there is no else case"
                                 in
                                 msgGotFrom
                                     ++ error.filename

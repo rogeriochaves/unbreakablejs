@@ -33,6 +33,7 @@ type UntrackedExp
     | ReservedApplication Reserved (List Expression)
     | Block (List Expression)
     | Return Expression
+    | IfCondition Expression Expression
 
 
 type Value
@@ -55,6 +56,7 @@ type UndefinedReason
     | OperationWithUndefined String
     | MissingPositionalArgument Int String
     | VoidReturn
+    | IfWithoutElse
 
 
 

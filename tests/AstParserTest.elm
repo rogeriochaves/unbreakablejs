@@ -480,27 +480,24 @@ suite =
                                     ]
                                 )
                             )
-
-            -- , test "parses comparis" <|
-            --     \_ ->
-            --         parse "if (1 {x = 1\nx + 1}"
-            --             |> isEq
-            --                 (tracked ( 2, 7 )
-            --                     (Block
-            --                         [ tracked ( 1, 4 )
-            --                             (ReservedApplication (Assignment "x")
-            --                                 [ Untracked (Value (Number 1))
-            --                                 ]
-            --                             )
-            --                         , tracked ( 2, 3 )
-            --                             (ReservedApplication Addition
-            --                                 [ tracked ( 2, 1 ) <| Variable "x"
-            --                                 , Untracked (Value (Number 1))
-            --                                 ]
-            --                             )
-            --                         ]
-            --                     )
-            --                 )
+            , test "parses if condition" <|
+                \_ ->
+                    parse "if (true) {x = 1}"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (IfCondition (Untracked (Value (Boolean True)))
+                                    (tracked ( 1, 18 )
+                                        (Block
+                                            [ tracked ( 1, 14 )
+                                                (ReservedApplication (Assignment "x")
+                                                    [ Untracked (Value (Number 1))
+                                                    ]
+                                                )
+                                            ]
+                                        )
+                                    )
+                                )
+                            )
             ]
 
         -- , describe "vectors"
