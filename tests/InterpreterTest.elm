@@ -443,10 +443,21 @@ suite =
                     \_ ->
                         parseAndRun "1 + 1 == 3"
                             |> isEqLast (Untracked <| Value (Boolean False))
-
                 , test "evaluates boolean equality" <|
                     \_ ->
                         parseAndRun "true == true"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "numbers are false" <|
+                    \_ ->
+                        parseAndRun "0 == false"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "but 1 is true" <|
+                    \_ ->
+                        parseAndRun "1 == true"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "functions are false" <|
+                    \_ ->
+                        parseAndRun "fn = () => {}\nfn == false"
                             |> isEqLast (Untracked <| Value (Boolean True))
                 ]
 

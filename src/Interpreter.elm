@@ -197,8 +197,11 @@ applyReserved state reserved evaluatedArgs trackStack =
                             ( Value (Number a), Value (Number b) ) ->
                                 wrap (a == b)
 
-                            ( Value (Boolean a), Value (Boolean b) ) ->
-                                wrap (a == b)
+                            ( Value (Boolean a), Value v ) ->
+                                wrap (comparisonWithBool v a)
+
+                            ( Value v, Value (Boolean a) ) ->
+                                wrap (comparisonWithBool v a)
 
                             ( Value (Undefined stack), _ ) ->
                                 Untracked (Value (Undefined (stack ++ trackStack_)))
@@ -211,6 +214,29 @@ applyReserved state reserved evaluatedArgs trackStack =
                                 Untracked (Value (Undefined trackStack_))
                     )
             )
+
+
+comparisonWithBool : Value -> Bool -> Bool
+comparisonWithBool value bool =
+    case value of
+        Boolean a ->
+            a == bool
+
+        Number a ->
+            if a == 1 then
+                True == bool
+
+            else
+                False == bool
+
+        Abstraction _ _ ->
+            False == bool
+
+        Vector _ ->
+            Debug.todo "not implemented"
+
+        Undefined _ ->
+            Debug.todo "not implemented"
 
 
 
