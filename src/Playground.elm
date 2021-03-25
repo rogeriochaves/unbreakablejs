@@ -212,6 +212,11 @@ removeTracking expr =
             e
 
 
+cellName : Int -> String
+cellName index =
+    "Cell " ++ String.fromInt index
+
+
 renderResult : Model -> Int -> Cell -> Html Msg
 renderResult model index item =
     let
@@ -238,7 +243,7 @@ renderResult model index item =
                     "Syntax error. I could not parse the code. The problem happened here:\n\n"
                         ++ String.fromInt firstError.row
                         ++ "| "
-                        ++ getLine ("Cell " ++ String.fromInt index) (firstError.row - 1)
+                        ++ getLine (cellName index) (firstError.row - 1)
                         ++ "\n"
                         ++ String.repeat (firstError.col + String.length (String.fromInt firstError.row)) "-"
                         ++ "^\n\n"
@@ -268,6 +273,13 @@ renderResult model index item =
 
                                         else
                                             "Then from "
+
+                                    filename =
+                                        if error.filename == cellName index then
+                                            "here"
+
+                                        else
+                                            error.filename
 
                                     repetitionN =
                                         error.column + String.length (String.fromInt error.line) + 1
@@ -308,7 +320,7 @@ renderResult model index item =
                                                 "explicitly given undefined value"
                                 in
                                 msgGotFrom
-                                    ++ error.filename
+                                    ++ filename
                                     ++ ":\n\n"
                                     ++ String.fromInt error.line
                                     ++ "| "
