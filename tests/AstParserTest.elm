@@ -9,6 +9,9 @@ import Types exposing (..)
 tracked ( line, column ) =
     Tracked { line = line, column = column, filename = "test.us" }
 
+undefinedTrack : ( Int, Int ) -> UndefinedReason -> UndefinedTrackInfo
+undefinedTrack ( line, column ) reason =
+    { line = line, column = column, filename = "test.us", reason = reason }
 
 parse =
     AstParser.parse "test.us"
@@ -75,6 +78,10 @@ suite =
             \_ ->
                 parse "false"
                     |> isEq (Untracked (Value (Boolean False)))
+        , test "parses undefined" <|
+            \_ ->
+                parse "undefined"
+                    |> isEq (Untracked (Value (Undefined [ undefinedTrack ( 1, 1 ) ExplicitUndefined ])))
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

@@ -373,6 +373,7 @@ atoms : String -> Parser Expression
 atoms filename =
     oneOf
         [ booleans
+        , undefined filename
         , succeed (\pos name -> tracked filename pos (Variable name))
             |= getPosition
             |= identifier
@@ -388,6 +389,26 @@ booleans =
         , succeed (Untracked (Value (Boolean False)))
             |. backtrackable (symbol "false")
         ]
+
+
+undefined : String -> Parser Expression
+undefined filename =
+    succeed
+        (\( row, col ) ->
+            Untracked
+                (Value
+                    (Undefined
+                        [ { line = row
+                          , column = col
+                          , filename = filename
+                          , reason = ExplicitUndefined
+                          }
+                        ]
+                    )
+                )
+        )
+        |= getPosition
+        |. backtrackable (symbol "undefined")
 
 
 vectors : String -> Parser Expression

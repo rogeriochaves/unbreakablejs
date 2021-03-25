@@ -57,6 +57,7 @@ type UndefinedReason
     | MissingPositionalArgument Int String
     | VoidReturn
     | IfWithoutElse
+    | ExplicitUndefined
 
 
 

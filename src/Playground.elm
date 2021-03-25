@@ -303,6 +303,9 @@ renderResult model index item =
 
                                             IfWithoutElse ->
                                                 "if condition evaluated to false and there is no else case"
+
+                                            ExplicitUndefined ->
+                                                "explicitly given undefined value"
                                 in
                                 msgGotFrom
                                     ++ error.filename
