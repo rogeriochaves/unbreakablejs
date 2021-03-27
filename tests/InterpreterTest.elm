@@ -150,45 +150,57 @@ suite =
             --         parseAndRun "1 + 1\n2 + 2"
             --             |> Result.map (List.map Tuple.second)
             --             |> Expect.equal (Ok [ Number 2, Number 4 ])
-            , describe "assignments" <|
-                [ test "parses a simple assignment and return the result" <|
-                    \_ ->
-                        parseAndRun "x = 2 + 2"
-                            |> isEq (Untracked <| Value (Number 4))
-                , test "saves the value to the variable" <|
-                    \_ ->
-                        parseAndRun "x = 2 + 2\nx + 1"
-                            |> isEqLast (Untracked <| Value (Number 5))
-                , test "interprets a let assignment" <|
-                    \_ ->
-                        parseAndRun "let x = 1\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
-                , test "keeps let assignment inside scope" <|
-                    \_ ->
-                        parseAndRun "fn = () => { let x = 1 }\nfn()\nx"
-                            |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
-                                )
-                , test "but non-let assignments modify outside scope" <|
-                    \_ ->
-                        parseAndRun "fn = () => { x = 1 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
-                , test "but allows mutations if defined on higher scope" <|
-                    \_ ->
-                        parseAndRun "let x = 1\nfn = () => { x = 2 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 2))
-                , test "although keeping to local scope if there is shadowing" <|
-                    \_ ->
-                        parseAndRun "let x = 1\nfn = () => { let x = 2 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
-
-                -- , test "and reassignment without let" <|
-                --     \_ ->
-                --         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3 }\nfn()\nx"
-                --             |> isEqLast (Untracked <| Value (Number 1))
-                ]
+            , only <|
+                describe "assignments" <|
+                    [ test "parses a simple assignment and return the result" <|
+                        \_ ->
+                            parseAndRun "x = 2 + 2"
+                                |> isEq (Untracked <| Value (Number 4))
+                    , test "saves the value to the variable" <|
+                        \_ ->
+                            parseAndRun "x = 2 + 2\nx + 1"
+                                |> isEqLast (Untracked <| Value (Number 5))
+                    , test "interprets a let assignment" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nx"
+                                |> isEqLast (Untracked <| Value (Number 1))
+                    , test "keeps let assignment inside scope" <|
+                        \_ ->
+                            parseAndRun "fn = () => { let x = 1 }\nfn()\nx"
+                                |> isEqLast
+                                    (Untracked <|
+                                        Value
+                                            (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
+                                    )
+                    , test "but non-let assignments modify outside scope" <|
+                        \_ ->
+                            parseAndRun "fn = () => { x = 1 }\nfn()\nx"
+                                |> isEqLast (Untracked <| Value (Number 1))
+                    , test "but allows mutations if defined on higher scope" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { x = 2 }\nfn()\nx"
+                                |> isEqLast (Untracked <| Value (Number 2))
+                    , test "although keeping to local scope if there is shadowing" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { let x = 2 }\nfn()\nx"
+                                |> isEqLast (Untracked <| Value (Number 1))
+                    , test "and reassignment without let" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3 }\nfn()\nx"
+                                |> isEqLast (Untracked <| Value (Number 1))
+                    , test "values can outlive the scope" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3\nreturn x }\nfn()"
+                                |> isEqLast (Untracked <| Value (Number 3))
+                    , test "and changed on different levels" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()\nx"
+                                |> isEqLast (Untracked <| Value (Number 1))
+                    , test "and changed on different levels and outlive the innermost scopes" <|
+                        \_ ->
+                            parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()"
+                                |> isEqLast (Untracked <| Value (Number 3))
+                    ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
             --         \_ ->
