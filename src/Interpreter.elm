@@ -29,29 +29,47 @@ type alias LineResult =
 run : State -> Types.Program -> List LineResult
 run state expressions =
     let
-        iterate : Expression -> ( State, List LineResult ) -> ( State, List LineResult )
-        iterate expr ( prevState, acc ) =
+        iterate_ : Expression -> ( State, State, List LineResult ) -> ( State, State, List LineResult )
+        iterate_ expr ( outScope, inScope, lineResults ) =
             let
-                lastLineResult =
-                    List.head acc
-                        -- TODO: track here
-                        |> Maybe.withDefault { outScope = state, inScope = state, result = Untracked (Value (Undefined [])) }
-
-                updatedState =
-                    { variables =
-                        Dict.union
-                            (Dict.union lastLineResult.inScope.variables lastLineResult.outScope.variables)
-                            prevState.variables
-                    }
-
-                lineResult =
-                    runExpression updatedState expr
+                ( resultOutScope, resultInScope, expressionResult ) =
+                    iterate expr ( outScope, inScope )
             in
-            ( updatedState, lineResult :: acc )
+            ( resultOutScope, resultInScope, expressionResult :: lineResults )
     in
     expressions
-        |> List.foldl iterate ( state, [] )
-        |> (Tuple.second >> List.reverse)
+        |> List.foldl iterate_ ( state, emptyState, [] )
+        |> (\( _, _, results ) -> results)
+        |> List.reverse
+
+
+runBlock : State -> List Expression -> ( State, Maybe Expression )
+runBlock state blockExpressions =
+    let
+        iterate_ : Expression -> ( State, State, Maybe Expression ) -> ( State, State, Maybe Expression )
+        iterate_ expr ( outScope, inScope, returnValue ) =
+            if returnValue == Nothing then
+                let
+                    ( resultOutScope, resultInScope, expressionResult ) =
+                        iterate expr ( outScope, inScope )
+
+                    returnValue_ =
+                        case expr |> removeTracking of
+                            Return _ ->
+                                Just expressionResult.result
+
+                            _ ->
+                                Nothing
+                in
+                ( resultOutScope, resultInScope, returnValue_ )
+
+            else
+                ( outScope, inScope, returnValue )
+    in
+    -- TODO: return last if outside function? (right now returns void)
+    blockExpressions
+        |> List.foldl iterate_ ( state, emptyState, Nothing )
+        |> (\( outScope, _, returnValue ) -> ( outScope, returnValue ))
 
 
 runExpression : State -> Expression -> LineResult
@@ -68,204 +86,141 @@ runExpression state expr =
 
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
-
-        _ =
-            Debug.log "\n--> state" state
-
-        resu =
-            case expr |> removeTracking |> Debug.log "running" of
-                Value (Vector items) ->
-                    let
-                        appendOrLiftError curr acc =
-                            case ( acc, curr ) of
-                                ( Vector items_, e ) ->
-                                    Vector (items_ ++ [ e ])
-
-                                _ ->
-                                    acc
-                    in
-                    return
-                        (evalList items state
-                            |> List.foldl appendOrLiftError (Vector [])
-                            |> Value
-                            |> Untracked
-                        )
-
-                Value val ->
-                    return (Untracked (Value val))
-
-                Variable identifier ->
-                    return
-                        (Dict.get identifier state.variables
-                            |> Maybe.map Value
-                            |> Maybe.withDefault (Value (Undefined (trackStack <| VariableNotDefined identifier)))
-                            |> Untracked
-                        )
-
-                ReservedApplication symbol args ->
-                    let
-                        evaluatedArgs =
-                            evalList args state
-                    in
-                    applyReserved state symbol evaluatedArgs trackStack
-
-                Application fn args ->
-                    let
-                        evaluatedArgs =
-                            evalList args state
-                    in
-                    case eval state fn |> removeTracking of
-                        Value (Abstraction paramNames functionBody) ->
-                            callFunction state trackStack ( paramNames, functionBody ) evaluatedArgs
-
-                        Value (Undefined stacktrace) ->
-                            return
-                                -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
-                                (Untracked (Value (Undefined stacktrace)))
-
-                        _ ->
-                            Debug.todo "not implemented"
-
-                -- MapAbstraction param index body ->
-                --     ( state
-                --     , Expression (MapAbstraction param index body)
-                --     )
-                -- SingleArity func e ->
-                --     runSingleArity state func e
-                -- DoubleArity func e1 e2 ->
-                --     ( state, runDoubleArity state func e1 e2 )
-                -- TripleArity func e1 e2 e3 ->
-                --     ( state, runTripleArity state func e1 e2 e3 )
-                Block blockExpressions ->
-                    let
-                        ( outScope, _, result ) =
-                            runBlock state blockExpressions
-                    in
-                    LineResult outScope
-                        emptyState
-                        (result
-                            |> Maybe.withDefault
-                                (Untracked
-                                    (Value (Undefined (trackStack VoidReturn)))
-                                )
-                        )
-
-                -- run state blockExpressions
-                --     |> List.reverse
-                --     |> List.head
-                --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
-                Return returnExpr ->
-                    runExpression state returnExpr
-
-                IfCondition condition exprIfTrue ->
-                    case eval state condition |> removeTracking of
-                        Value val ->
-                            if valueToBool val then
-                                runExpression state exprIfTrue
-
-                            else
-                                return (Untracked (Value (Undefined (trackStack IfWithoutElse))))
-
-                        _ ->
-                            Debug.todo "not implemented yet"
-
-        _ =
-            Debug.log "<--" ""
     in
-    resu
-
-
-runBlock : State -> List Expression -> ( State, State, Maybe Expression )
-runBlock state blockExpressions =
-    -- TODO: return last if outside function? (right now returns void)
-    let
-        iterate : Expression -> ( State, State, Maybe Expression ) -> ( State, State, Maybe Expression )
-        iterate expr_ acc =
+    case expr |> removeTracking of
+        Value (Vector items) ->
             let
-                ( prevOutScope, prevInScope, prevReturnValue ) =
-                    acc
+                appendOrLiftError curr acc =
+                    case ( acc, curr ) of
+                        ( Vector items_, e ) ->
+                            Vector (items_ ++ [ e ])
 
-                state_ =
-                    { variables = Dict.union prevInScope.variables prevOutScope.variables }
+                        _ ->
+                            acc
             in
-            if prevReturnValue == Nothing then
-                let
-                    _ =
-                        Debug.log "block expr_" expr_
+            return
+                (evalList items state
+                    |> List.foldl appendOrLiftError (Vector [])
+                    |> Value
+                    |> Untracked
+                )
 
-                    _ =
-                        Debug.log "x global" (Dict.get "x" prevOutScope.variables)
+        Value val ->
+            return (Untracked (Value val))
 
-                    _ =
-                        Debug.log "x local" (Dict.get "x" prevInScope.variables)
+        Variable identifier ->
+            return
+                (Dict.get identifier state.variables
+                    |> Maybe.map Value
+                    |> Maybe.withDefault (Value (Undefined (trackStack <| VariableNotDefined identifier)))
+                    |> Untracked
+                )
 
-                    expressionResult =
-                        runExpression state_ expr_
+        ReservedApplication symbol args ->
+            let
+                evaluatedArgs =
+                    evalList args state
+            in
+            applyReserved state symbol evaluatedArgs trackStack
 
-                    _ =
-                        Debug.log "x global back" (Dict.get "x" expressionResult.outScope.variables)
+        Application fn args ->
+            let
+                evaluatedArgs =
+                    evalList args state
+            in
+            case eval state fn |> removeTracking of
+                Value (Abstraction paramNames functionBody) ->
+                    callFunction state trackStack ( paramNames, functionBody ) evaluatedArgs
 
-                    _ =
-                        Debug.log "x local back" (Dict.get "x" expressionResult.inScope.variables)
+                Value (Undefined stacktrace) ->
+                    return
+                        -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
+                        (Untracked (Value (Undefined stacktrace)))
 
-                    returnValue =
-                        case expr_ |> removeTracking of
-                            Return _ ->
-                                Just expressionResult.result
+                _ ->
+                    Debug.todo "not implemented"
 
-                            _ ->
-                                Nothing
+        -- MapAbstraction param index body ->
+        --     ( state
+        --     , Expression (MapAbstraction param index body)
+        --     )
+        -- SingleArity func e ->
+        --     runSingleArity state func e
+        -- DoubleArity func e1 e2 ->
+        --     ( state, runDoubleArity state func e1 e2 )
+        -- TripleArity func e1 e2 e3 ->
+        --     ( state, runTripleArity state func e1 e2 e3 )
+        Block blockExpressions ->
+            let
+                ( outScope, result ) =
+                    runBlock state blockExpressions
+            in
+            LineResult outScope
+                emptyState
+                (result
+                    |> Maybe.withDefault
+                        (Untracked
+                            (Value (Undefined (trackStack VoidReturn)))
+                        )
+                )
 
-                    filteredOutScope =
-                        { variables =
-                            Dict.union
-                                (Dict.filter
-                                    (\identifier _ ->
-                                        not (Dict.member identifier prevInScope.variables)
-                                    )
-                                    expressionResult.outScope.variables
-                                )
-                                prevOutScope.variables
-                        }
+        -- run state blockExpressions
+        --     |> List.reverse
+        --     |> List.head
+        --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
+        Return returnExpr ->
+            runExpression state returnExpr
 
-                    inScopeUpdated =
-                        { variables =
-                            Dict.union
-                                (Debug.log "insideOut"
-                                    (Dict.filter
-                                        (\identifier _ ->
-                                            Dict.member identifier prevInScope.variables
-                                        )
-                                        expressionResult.outScope.variables
-                                    )
-                                )
-                                (Dict.union
-                                    expressionResult.inScope.variables
-                                    prevInScope.variables
-                                )
-                        }
-                in
-                ( filteredOutScope, inScopeUpdated, returnValue )
+        IfCondition condition exprIfTrue ->
+            case eval state condition |> removeTracking of
+                Value val ->
+                    if valueToBool val then
+                        runExpression state exprIfTrue
 
-            else
-                acc
+                    else
+                        return (Untracked (Value (Undefined (trackStack IfWithoutElse))))
 
-        -- ( outScopeResult, _, result ) =
-        --     blockExpressions
-        --         |> List.foldl iterate ( state, emptyState, Nothing )
+                _ ->
+                    Debug.todo "not implemented yet"
+
+
+iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
+iterate expr ( prevOutScope, prevInScope ) =
+    let
+        state =
+            { variables = Dict.union prevInScope.variables prevOutScope.variables }
+
+        expressionResult =
+            runExpression state expr
+
+        outScopeFiltered =
+            { variables =
+                Dict.union
+                    (Dict.filter
+                        (\identifier _ ->
+                            not (Dict.member identifier prevInScope.variables)
+                        )
+                        expressionResult.outScope.variables
+                    )
+                    prevOutScope.variables
+            }
+
+        inScopeUpdated =
+            { variables =
+                Dict.union
+                    (Dict.filter
+                        (\identifier _ ->
+                            Dict.member identifier prevInScope.variables
+                        )
+                        expressionResult.outScope.variables
+                    )
+                    (Dict.union
+                        expressionResult.inScope.variables
+                        prevInScope.variables
+                    )
+            }
     in
-    blockExpressions
-        |> List.foldl iterate ( state, emptyState, Nothing )
-
-
-
--- ( outScopeResult, result)
--- (result
---     |> Maybe.withDefault
---         (Untracked
---             (Value (Undefined (trackStack VoidReturn)))
---         )
--- )
+    ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
 evalList : List Expression -> State -> List Expression
@@ -307,10 +262,6 @@ applyReserved state reserved evaluatedArgs trackStack =
         LetAssignment name ->
             case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
                 Value val ->
-                    let
-                        _ =
-                            Debug.log "setting local" name
-                    in
                     LineResult
                         emptyState
                         { variables = Dict.fromList [ ( name, val ) ] }
