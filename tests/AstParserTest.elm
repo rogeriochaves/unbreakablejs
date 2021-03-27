@@ -9,9 +9,11 @@ import Types exposing (..)
 tracked ( line, column ) =
     Tracked { line = line, column = column, filename = "test.us" }
 
+
 undefinedTrack : ( Int, Int ) -> UndefinedReason -> UndefinedTrackInfo
 undefinedTrack ( line, column ) reason =
     { line = line, column = column, filename = "test.us", reason = reason }
+
 
 parse =
     AstParser.parse "test.us"
@@ -255,6 +257,17 @@ suite =
                                             [ tracked ( 1, 5 ) <| Variable "y"
                                             , Untracked <| Value (Number 1)
                                             ]
+                                    ]
+                                )
+                            )
+            , test "parses assignment with let" <|
+                \_ ->
+                    parse "let x = 1"
+                        |> isEq
+                            (tracked ( 1, 7 )
+                                (ReservedApplication (LetAssignment "x")
+                                    [ Untracked <|
+                                        Value (Number 1)
                                     ]
                                 )
                             )

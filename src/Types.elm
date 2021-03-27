@@ -48,6 +48,7 @@ type Reserved
     = Addition
     | Subtraction
     | Assignment String
+    | LetAssignment String
     | SoftEquality
 
 

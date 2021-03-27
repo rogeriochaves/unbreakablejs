@@ -159,6 +159,35 @@ suite =
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
                             |> isEqLast (Untracked <| Value (Number 5))
+                , test "interprets a let assignment" <|
+                    \_ ->
+                        parseAndRun "let x = 1\nx"
+                            |> isEqLast (Untracked <| Value (Number 1))
+                , test "keeps let assignment inside scope" <|
+                    \_ ->
+                        parseAndRun "fn = () => { let x = 1 }\nfn()\nx"
+                            |> isEqLast
+                                (Untracked <|
+                                    Value
+                                        (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
+                                )
+                , test "but non-let assignments modify outside scope" <|
+                    \_ ->
+                        parseAndRun "fn = () => { x = 1 }\nfn()\nx"
+                            |> isEqLast (Untracked <| Value (Number 1))
+                , test "but allows mutations if defined on higher scope" <|
+                    \_ ->
+                        parseAndRun "let x = 1\nfn = () => { x = 2 }\nfn()\nx"
+                            |> isEqLast (Untracked <| Value (Number 2))
+                , test "although keeping to local scope if there is shadowing" <|
+                    \_ ->
+                        parseAndRun "let x = 1\nfn = () => { let x = 2 }\nfn()\nx"
+                            |> isEqLast (Untracked <| Value (Number 1))
+
+                -- , test "and reassignment without let" <|
+                --     \_ ->
+                --         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3 }\nfn()\nx"
+                --             |> isEqLast (Untracked <| Value (Number 1))
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
@@ -183,7 +212,7 @@ suite =
                 [ test "declares a simple function" <|
                     \_ ->
                         parseAndRun "f = (x) => x + 1\nf(5)"
-                            |> Result.map (List.map Tuple.second)
+                            |> Result.map (List.map .result)
                             |> Expect.equal
                                 (Ok
                                     [ Untracked <|
@@ -535,13 +564,13 @@ parseAndRun code =
 
 isEq expected actual =
     actual
-        |> Result.map (List.map Tuple.second)
+        |> Result.map (List.map .result)
         |> Expect.equal (Ok [ expected ])
 
 
 isEqLast expected actual =
     actual
-        |> Result.map (List.map Tuple.second)
+        |> Result.map (List.map .result)
         |> Result.toMaybe
         |> Maybe.withDefault []
         |> List.reverse

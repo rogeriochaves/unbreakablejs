@@ -170,7 +170,11 @@ operators filename =
 
 assignment : String -> Parser Expression
 assignment filename =
-    succeed (\name pos -> tracked filename pos << singleArity (Assignment name))
+    oneOf
+        [ succeed (\name pos -> tracked filename pos << singleArity (LetAssignment name))
+            |. backtrackable (symbol "let ")
+        , succeed (\name pos -> tracked filename pos << singleArity (Assignment name))
+        ]
         |= backtrackable identifier
         |. backtrackable spaces
         |= getPosition
