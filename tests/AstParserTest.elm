@@ -28,9 +28,8 @@ suite =
                     |> isEq
                         (tracked ( 1, 3 )
                             (Operation2 Addition
-                                [ Untracked (Value (Number 1))
-                                , Untracked (Value (Number 1))
-                                ]
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
                             )
                         )
         , test "read float numbers" <|
@@ -38,7 +37,7 @@ suite =
                 parse "1.5 + 1.3"
                     |> isEq
                         (tracked ( 1, 5 )
-                            (Operation2 Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
+                            (Operation2 Addition (Untracked (Value (Number 1.5))) (Untracked (Value (Number 1.3))))
                         )
         , test "read nested operations" <|
             \_ ->
@@ -46,10 +45,10 @@ suite =
                     |> isEq
                         (tracked ( 1, 3 )
                             (Operation2 Subtraction
-                                [ Untracked (Value (Number 1))
-                                , tracked ( 1, 8 )
-                                    (Operation2 Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
-                                ]
+                                (Untracked (Value (Number 1)))
+                                (tracked ( 1, 8 )
+                                    (Operation2 Subtraction (Untracked (Value (Number 3))) (Untracked (Value (Number 2))))
+                                )
                             )
                         )
 
@@ -67,9 +66,8 @@ suite =
                     |> isEq
                         (tracked ( 1, 5 )
                             (Operation2 Addition
-                                [ tracked ( 1, 1 ) (Variable "age")
-                                , Untracked (Value (Number 1))
-                                ]
+                                (tracked ( 1, 1 ) (Variable "age"))
+                                (Untracked (Value (Number 1)))
                             )
                         )
         , test "parses boolean true" <|
@@ -157,15 +155,13 @@ suite =
                             (Ok
                                 [ tracked ( 1, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 2, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -186,15 +182,13 @@ suite =
                             (Ok
                                 [ tracked ( 1, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 1, 10 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -205,15 +199,13 @@ suite =
                             (Ok
                                 [ tracked ( 1, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 3, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -224,15 +216,13 @@ suite =
                             (Ok
                                 [ tracked ( 1, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 3, 3 )
                                     (Operation2 Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -245,7 +235,7 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation (Assignment "x")
                                     (tracked ( 1, 7 )
-                                        (Operation2 Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
+                                        (Operation2 Addition (Untracked <| Value (Number 1)) (Untracked <| Value (Number 1)))
                                     )
                                 )
                             )
@@ -260,9 +250,8 @@ suite =
                         |> isEq
                             (tracked ( 1, 3 )
                                 (Operation2 Addition
-                                    [ tracked ( 1, 1 ) <| Variable "x"
-                                    , Untracked <| Value (Number 1)
-                                    ]
+                                    (tracked ( 1, 1 ) <| Variable "x")
+                                    (Untracked <| Value (Number 1))
                                 )
                             )
             , test "parses assignment with variables" <|
@@ -273,9 +262,8 @@ suite =
                                 (Operation (Assignment "x")
                                     (tracked ( 1, 7 ) <|
                                         Operation2 Addition
-                                            [ tracked ( 1, 5 ) <| Variable "y"
-                                            , Untracked <| Value (Number 1)
-                                            ]
+                                            (tracked ( 1, 5 ) <| Variable "y")
+                                            (Untracked <| Value (Number 1))
                                     )
                                 )
                             )
@@ -302,9 +290,8 @@ suite =
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 14 )
                                                     (Operation2 Addition
-                                                        [ tracked ( 1, 12 ) (Variable "x")
-                                                        , Untracked (Value (Number 1))
-                                                        ]
+                                                        (tracked ( 1, 12 ) (Variable "x"))
+                                                        (Untracked (Value (Number 1)))
                                                     )
                                                 )
                                             )
@@ -324,9 +311,8 @@ suite =
                                             (Abstraction [ "x", "y" ]
                                                 (tracked ( 1, 17 )
                                                     (Operation2 Addition
-                                                        [ tracked ( 1, 15 ) (Variable "x")
-                                                        , Untracked (Value (Number 1))
-                                                        ]
+                                                        (tracked ( 1, 15 ) (Variable "x"))
+                                                        (Untracked (Value (Number 1)))
                                                     )
                                                 )
                                             )
@@ -367,15 +353,13 @@ suite =
                                 (Block
                                     [ tracked ( 2, 3 )
                                         (Operation2 Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
                                     , tracked ( 3, 3 )
                                         (Operation2 Addition
-                                            [ Untracked (Value (Number 2))
-                                            , Untracked (Value (Number 2))
-                                            ]
+                                            (Untracked (Value (Number 2)))
+                                            (Untracked (Value (Number 2)))
                                         )
                                     ]
                                 )
@@ -388,15 +372,13 @@ suite =
                                 (Block
                                     [ tracked ( 1, 4 )
                                         (Operation2 Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
                                     , tracked ( 2, 3 )
                                         (Operation2 Addition
-                                            [ Untracked (Value (Number 2))
-                                            , Untracked (Value (Number 2))
-                                            ]
+                                            (Untracked (Value (Number 2)))
+                                            (Untracked (Value (Number 2)))
                                         )
                                     ]
                                 )
@@ -415,15 +397,13 @@ suite =
                                                     (Block
                                                         [ tracked ( 1, 16 )
                                                             (Operation2 Addition
-                                                                [ Untracked (Value (Number 1))
-                                                                , Untracked (Value (Number 1))
-                                                                ]
+                                                                (Untracked (Value (Number 1)))
+                                                                (Untracked (Value (Number 1)))
                                                             )
                                                         , tracked ( 2, 3 )
                                                             (Operation2 Addition
-                                                                [ Untracked (Value (Number 2))
-                                                                , Untracked (Value (Number 2))
-                                                                ]
+                                                                (Untracked (Value (Number 2)))
+                                                                (Untracked (Value (Number 2)))
                                                             )
                                                         ]
                                                     )
@@ -445,9 +425,8 @@ suite =
                                         )
                                     , tracked ( 2, 3 )
                                         (Operation2 Addition
-                                            [ tracked ( 2, 1 ) <| Variable "x"
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                            (tracked ( 2, 1 ) <| Variable "x")
+                                            (Untracked (Value (Number 1)))
                                         )
                                     ]
                                 )
@@ -468,9 +447,8 @@ suite =
                                                             (Return
                                                                 (tracked ( 1, 23 )
                                                                     (Operation2 Addition
-                                                                        [ Untracked (Value (Number 1))
-                                                                        , Untracked (Value (Number 1))
-                                                                        ]
+                                                                        (Untracked (Value (Number 1)))
+                                                                        (Untracked (Value (Number 1)))
                                                                     )
                                                                 )
                                                             )
@@ -495,14 +473,13 @@ suite =
                         |> isEq
                             (tracked ( 1, 7 )
                                 (Operation2 SoftEquality
-                                    [ tracked ( 1, 3 )
+                                    (tracked ( 1, 3 )
                                         (Operation2 Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
-                                    , Untracked (Value (Number 2))
-                                    ]
+                                    )
+                                    (Untracked (Value (Number 2)))
                                 )
                             )
             , test "parses boolean comparison" <|
@@ -511,9 +488,8 @@ suite =
                         |> isEq
                             (tracked ( 1, 6 )
                                 (Operation2 SoftEquality
-                                    [ Untracked (Value (Boolean True))
-                                    , Untracked (Value (Boolean False))
-                                    ]
+                                    (Untracked (Value (Boolean True)))
+                                    (Untracked (Value (Boolean False)))
                                 )
                             )
             , test "parses greater than comparison" <|
@@ -523,9 +499,8 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation2
                                     GreaterThan
-                                    [ Untracked (Value (Number 1))
-                                    , Untracked (Value (Number 2))
-                                    ]
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
                                 )
                             )
             , test "parses smaller than comparison" <|
@@ -535,9 +510,8 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation2
                                     SmallerThan
-                                    [ Untracked (Value (Number 1))
-                                    , Untracked (Value (Number 2))
-                                    ]
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
                                 )
                             )
             , test "parses if condition" <|
@@ -570,9 +544,8 @@ suite =
                                         (Block
                                             [ tracked ( 1, 18 )
                                                 (Operation2 Addition
-                                                    [ Untracked (Value (Number 1))
-                                                    , Untracked (Value (Number 1))
-                                                    ]
+                                                    (Untracked (Value (Number 1)))
+                                                    (Untracked (Value (Number 1)))
                                                 )
                                             ]
                                         )

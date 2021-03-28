@@ -154,7 +154,7 @@ infixOperator : String -> Operation2 -> Parser ( Int, Int ) -> Assoc -> Operator
 infixOperator filename operation opParser assoc =
     let
         binaryOp =
-            succeed (\pos expr1 expr2 -> tracked filename pos (doubleArity operation expr1 expr2))
+            succeed (\pos expr1 expr2 -> tracked filename pos (Operation2 operation expr1 expr2))
                 |= opParser
                 |. spaces
     in
@@ -227,16 +227,6 @@ functionDeclaration filename =
         |. backtrackable (symbol "=>")
         |. spaces
         |= lazy (\_ -> expression_ filename True True)
-
-
-singleArity : Operation2 -> Expression -> UntrackedExp
-singleArity fn expr =
-    Operation2 fn [ expr ]
-
-
-doubleArity : Operation2 -> Expression -> Expression -> UntrackedExp
-doubleArity fn expr1 expr2 =
-    Operation2 fn [ expr1, expr2 ]
 
 
 

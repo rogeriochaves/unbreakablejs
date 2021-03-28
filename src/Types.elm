@@ -31,7 +31,7 @@ type UntrackedExp
     | Variable String
     | Application Expression (List Expression)
     | Operation Operation Expression
-    | Operation2 Operation2 (List Expression)
+    | Operation2 Operation2 Expression Expression
     | Block (List Expression)
     | Return Expression
     | IfCondition Expression Expression

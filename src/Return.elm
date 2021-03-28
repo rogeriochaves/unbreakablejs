@@ -67,30 +67,27 @@ andThen2 fn val val2 =
 --         )
 
 
-mapNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> a) -> (a -> Value) -> List Expression -> Expression
+mapNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> a) -> (a -> Value) -> Expression -> Expression -> Expression
 mapNumArgs2 trackStack fn wrapper =
     -- TODO: keep tracking of original function
     andThenNumArgs2 trackStack (\a -> fn a >> wrapper >> Value >> Untracked)
 
 
-andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Expression) -> List Expression -> Expression
-andThenNumArgs2 trackStack fn =
-    andThenArgs2 trackStack
-        (\arg0 arg1 ->
-            case ( removeTracking arg0, removeTracking arg1 ) of
-                ( Value (Number float1), Value (Number float2) ) ->
-                    fn float1 float2
+andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Expression) -> Expression -> Expression -> Expression
+andThenNumArgs2 trackStack fn arg0 arg1 =
+    case ( removeTracking arg0, removeTracking arg1 ) of
+        ( Value (Number float1), Value (Number float2) ) ->
+            fn float1 float2
 
-                ( Value (Undefined stack), _ ) ->
-                    Untracked (Value (Undefined (stack ++ trackStack)))
+        ( Value (Undefined stack), _ ) ->
+            Untracked (Value (Undefined (stack ++ trackStack)))
 
-                ( _, Value (Undefined stack) ) ->
-                    Untracked (Value (Undefined (stack ++ trackStack)))
+        ( _, Value (Undefined stack) ) ->
+            Untracked (Value (Undefined (stack ++ trackStack)))
 
-                _ ->
-                    -- TODO: what about sum with boolean? Or with object? They should show a better error message
-                    Untracked (Value (Undefined trackStack))
-        )
+        _ ->
+            -- TODO: what about sum with boolean? Or with object? They should show a better error message
+            Untracked (Value (Undefined trackStack))
 
 
 removeTracking : Expression -> UntrackedExp

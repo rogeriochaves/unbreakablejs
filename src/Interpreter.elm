@@ -129,13 +129,21 @@ runExpression state expr =
             applyOperation symbol arg0.result
                 |> preprendStateChanges arg0.outScope arg0.inScope
 
-        Operation2 symbol args ->
+        Operation2 symbol expr0 expr1 ->
             let
-                ( outScope, inScope, evaluatedArgs ) =
-                    evalList args state
+                arg0 =
+                    runExpression state expr0
+
+                state0 =
+                    mergeStates (mergeStates arg0.inScope arg0.outScope) state
+
+                -- TODO: do we need to merge arg0 inScope and outScope?
+                arg1 =
+                    runExpression state0 expr1
             in
-            applyOperation2 symbol evaluatedArgs trackStack
-                |> preprendStateChanges outScope inScope
+            applyOperation2 symbol arg0.result arg1.result trackStack
+                -- TODO: test this
+                |> preprendStateChanges arg1.outScope arg1.inScope
 
         Application fn args ->
             let
@@ -318,18 +326,18 @@ applyOperation operation arg0 =
                     Debug.todo "not implemented"
 
 
-applyOperation2 : Operation2 -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
-applyOperation2 reserved evaluatedArgs trackStack =
+applyOperation2 : Operation2 -> Expression -> Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyOperation2 reserved arg0 arg1 trackStack =
     let
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
     in
     case reserved of
         Addition ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number evaluatedArgs)
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number arg0 arg1)
 
         Subtraction ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number evaluatedArgs)
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number arg0 arg1)
 
         SoftEquality ->
             let
@@ -340,29 +348,25 @@ applyOperation2 reserved evaluatedArgs trackStack =
                     trackStack (OperationWithUndefined "equality")
             in
             return
-                (evaluatedArgs
-                    |> Return.andThenArgs2 trackStack_
-                        (\arg0 arg1 ->
-                            case ( removeTracking arg0, removeTracking arg1 ) of
-                                ( Value (Number a), Value (Number b) ) ->
-                                    wrap (a == b)
+                (case ( removeTracking arg0, removeTracking arg1 ) of
+                    ( Value (Number a), Value (Number b) ) ->
+                        wrap (a == b)
 
-                                ( Value (Boolean a), Value v ) ->
-                                    wrap (comparisonWithBool v a)
+                    ( Value (Boolean a), Value v ) ->
+                        wrap (comparisonWithBool v a)
 
-                                ( Value v, Value (Boolean a) ) ->
-                                    wrap (comparisonWithBool v a)
+                    ( Value v, Value (Boolean a) ) ->
+                        wrap (comparisonWithBool v a)
 
-                                ( Value (Undefined stack), _ ) ->
-                                    Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( Value (Undefined stack), _ ) ->
+                        Untracked (Value (Undefined (stack ++ trackStack_)))
 
-                                ( _, Value (Undefined stack) ) ->
-                                    Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( _, Value (Undefined stack) ) ->
+                        Untracked (Value (Undefined (stack ++ trackStack_)))
 
-                                _ ->
-                                    -- TODO: what about true == 1? 0 == false? "1" == 1
-                                    Untracked (Value (Undefined trackStack_))
-                        )
+                    _ ->
+                        -- TODO: what about true == 1? 0 == false? "1" == 1
+                        Untracked (Value (Undefined trackStack_))
                 )
 
         GreaterThan ->
@@ -371,22 +375,18 @@ applyOperation2 reserved evaluatedArgs trackStack =
                     Untracked << Value << Boolean
             in
             return
-                (evaluatedArgs
-                    |> Return.andThenArgs2 (trackStack (OperationWithUndefined "greaterThan"))
-                        (\arg0 arg1 ->
-                            case ( removeTracking arg0, removeTracking arg1 ) of
-                                ( Value (Number a), Value (Number b) ) ->
-                                    wrap (a > b)
+                (case ( removeTracking arg0, removeTracking arg1 ) of
+                    ( Value (Number a), Value (Number b) ) ->
+                        wrap (a > b)
 
-                                ( Value (Number a), Value (Boolean b) ) ->
-                                    wrap (a > boolToNumber b)
+                    ( Value (Number a), Value (Boolean b) ) ->
+                        wrap (a > boolToNumber b)
 
-                                ( Value (Boolean a), Value (Number b) ) ->
-                                    wrap (boolToNumber a > b)
+                    ( Value (Boolean a), Value (Number b) ) ->
+                        wrap (boolToNumber a > b)
 
-                                _ ->
-                                    wrap False
-                        )
+                    _ ->
+                        wrap False
                 )
 
         SmallerThan ->
@@ -395,22 +395,18 @@ applyOperation2 reserved evaluatedArgs trackStack =
                     Untracked << Value << Boolean
             in
             return
-                (evaluatedArgs
-                    |> Return.andThenArgs2 (trackStack (OperationWithUndefined "smallerThan"))
-                        (\arg0 arg1 ->
-                            case ( removeTracking arg0, removeTracking arg1 ) of
-                                ( Value (Number a), Value (Number b) ) ->
-                                    wrap (a < b)
+                (case ( removeTracking arg0, removeTracking arg1 ) of
+                    ( Value (Number a), Value (Number b) ) ->
+                        wrap (a < b)
 
-                                ( Value (Number a), Value (Boolean b) ) ->
-                                    wrap (a < boolToNumber b)
+                    ( Value (Number a), Value (Boolean b) ) ->
+                        wrap (a < boolToNumber b)
 
-                                ( Value (Boolean a), Value (Number b) ) ->
-                                    wrap (boolToNumber a < b)
+                    ( Value (Boolean a), Value (Number b) ) ->
+                        wrap (boolToNumber a < b)
 
-                                _ ->
-                                    wrap False
-                        )
+                    _ ->
+                        wrap False
                 )
 
 
