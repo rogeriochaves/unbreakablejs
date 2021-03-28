@@ -570,7 +570,7 @@ suite =
 parseAndRun : String -> Result Error (List LineResult)
 parseAndRun code =
     AstParser.parse "test.us" code
-        |> Result.map (Interpreter.run newState)
+        |> Result.map (Interpreter.run emptyState >> Tuple.second)
 
 
 isEq expected actual =

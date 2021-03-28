@@ -1,4 +1,4 @@
-module Interpreter exposing (LineResult, State, newState, run)
+module Interpreter exposing (LineResult, State, emptyState, run)
 
 import Dict exposing (Dict)
 import Fuzz exposing (result)
@@ -16,8 +16,8 @@ type alias State =
     }
 
 
-newState : State
-newState =
+emptyState : State
+emptyState =
     { variables = Dict.empty
     }
 
@@ -26,7 +26,7 @@ type alias LineResult =
     { outScope : State, inScope : State, result : Expression }
 
 
-run : State -> Types.Program -> List LineResult
+run : State -> Types.Program -> ( State, List LineResult )
 run state expressions =
     let
         iterate_ : Expression -> ( State, State, List LineResult ) -> ( State, State, List LineResult )
@@ -39,8 +39,11 @@ run state expressions =
     in
     expressions
         |> List.foldl iterate_ ( state, emptyState, [] )
-        |> (\( _, _, results ) -> results)
-        |> List.reverse
+        |> (\( outScope, inScope, results ) ->
+                ( { variables = Dict.union inScope.variables outScope.variables }
+                , List.reverse results
+                )
+           )
 
 
 runBlock : State -> List Expression -> ( State, Maybe Expression )
@@ -121,7 +124,7 @@ runExpression state expr =
                 evaluatedArgs =
                     evalList args state
             in
-            applyReserved state symbol evaluatedArgs trackStack
+            applyReserved symbol evaluatedArgs trackStack
 
         Application fn args ->
             let
@@ -230,13 +233,8 @@ evalList expressions state =
         |> List.map (eval state)
 
 
-emptyState : State
-emptyState =
-    { variables = Dict.empty }
-
-
-applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
-applyReserved state reserved evaluatedArgs trackStack =
+applyReserved : Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyReserved reserved evaluatedArgs trackStack =
     let
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
