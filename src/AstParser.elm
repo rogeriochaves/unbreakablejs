@@ -178,7 +178,10 @@ operators filename =
     [ [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
-    , [ infixOperator filename SoftEquality (symb "==") AssocLeft ]
+    , [ infixOperator filename SoftEquality (symb "==") AssocLeft
+      , infixOperator filename GreaterThan (symb ">") AssocLeft
+      , infixOperator filename SmallerThan (symb "<") AssocLeft
+      ]
     ]
 
 

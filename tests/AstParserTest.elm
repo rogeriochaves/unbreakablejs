@@ -519,6 +519,30 @@ suite =
                                     ]
                                 )
                             )
+            , test "parses greater than comparison" <|
+                \_ ->
+                    parse "1 > 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (ReservedApplication
+                                    GreaterThan
+                                    [ Untracked (Value (Number 1))
+                                    , Untracked (Value (Number 2))
+                                    ]
+                                )
+                            )
+            , test "parses smaller than comparison" <|
+                \_ ->
+                    parse "1 < 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (ReservedApplication
+                                    SmallerThan
+                                    [ Untracked (Value (Number 1))
+                                    , Untracked (Value (Number 2))
+                                    ]
+                                )
+                            )
             , test "parses if condition" <|
                 \_ ->
                     parse "if (true) {x = 1}"

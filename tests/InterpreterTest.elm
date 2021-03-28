@@ -535,6 +535,46 @@ suite =
                     \_ ->
                         parseAndRun "x == false"
                             |> isEqLast (Untracked <| Value (Boolean False))
+                , test "evaluates number smaller than" <|
+                    \_ ->
+                        parseAndRun "1 < 2"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "evaluates number greater than" <|
+                    \_ ->
+                        parseAndRun "2 > 1"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "true is greater than 0, because apparently it gets converted to 1" <|
+                    \_ ->
+                        parseAndRun "true > 0"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "true is smaller than 2, because apparently it gets converted to 1" <|
+                    \_ ->
+                        parseAndRun "true < 2"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "false is greater than -1, because apparently it gets converted to 0" <|
+                    \_ ->
+                        parseAndRun "false > 0 - 1"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "false is smaller than 1, because apparently it gets converted to 0" <|
+                    \_ ->
+                        parseAndRun "false < 1"
+                            |> isEqLast (Untracked <| Value (Boolean True))
+                , test "undefined is not smaller than a number" <|
+                    \_ ->
+                        parseAndRun "undefined < 1"
+                            |> isEqLast (Untracked <| Value (Boolean False))
+                , test "undefined is not greater than a number" <|
+                    \_ ->
+                        parseAndRun "undefined > 0 - 1"
+                            |> isEqLast (Untracked <| Value (Boolean False))
+                , test "function is not smaller than a number" <|
+                    \_ ->
+                        parseAndRun "fn = () => {}; fn < 1"
+                            |> isEqLast (Untracked <| Value (Boolean False))
+                , test "function is not greater than a number" <|
+                    \_ ->
+                        parseAndRun "fn = () => {}; fn > 0 - 1"
+                            |> isEqLast (Untracked <| Value (Boolean False))
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
@@ -577,9 +617,8 @@ suite =
             , describe "loops"
                 [ test "loops with while" <|
                     \_ ->
-                        -- TODO: replace with < 3
-                        parseAndRun "let x = 0; while (x == 0) { x = x + 1 }; x"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                        parseAndRun "let x = 0; while (x < 3) { x = x + 1 }; x"
+                            |> isEqLast (Untracked <| Value (Number 3))
                 ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|

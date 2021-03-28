@@ -353,6 +353,54 @@ applyReserved state reserved evaluatedArgs trackStack =
             in
             whileLoop state (return <| Untracked (Value (Undefined (trackStack LoopNeverTrue))))
 
+        GreaterThan ->
+            let
+                wrap =
+                    Untracked << Value << Boolean
+            in
+            return
+                (evaluatedArgs
+                    |> Return.andThenArgs2 (trackStack (OperationWithUndefined "greaterThan"))
+                        (\arg0 arg1 ->
+                            case ( removeTracking arg0, removeTracking arg1 ) of
+                                ( Value (Number a), Value (Number b) ) ->
+                                    wrap (a > b)
+
+                                ( Value (Number a), Value (Boolean b) ) ->
+                                    wrap (a > boolToNumber b)
+
+                                ( Value (Boolean a), Value (Number b) ) ->
+                                    wrap (boolToNumber a > b)
+
+                                _ ->
+                                    wrap False
+                        )
+                )
+
+        SmallerThan ->
+            let
+                wrap =
+                    Untracked << Value << Boolean
+            in
+            return
+                (evaluatedArgs
+                    |> Return.andThenArgs2 (trackStack (OperationWithUndefined "smallerThan"))
+                        (\arg0 arg1 ->
+                            case ( removeTracking arg0, removeTracking arg1 ) of
+                                ( Value (Number a), Value (Number b) ) ->
+                                    wrap (a < b)
+
+                                ( Value (Number a), Value (Boolean b) ) ->
+                                    wrap (a < boolToNumber b)
+
+                                ( Value (Boolean a), Value (Number b) ) ->
+                                    wrap (boolToNumber a < b)
+
+                                _ ->
+                                    wrap False
+                        )
+                )
+
 
 comparisonWithBool : Value -> Bool -> Bool
 comparisonWithBool value bool =
@@ -401,6 +449,15 @@ valueToBool value =
 
         Undefined _ ->
             False
+
+
+boolToNumber : Bool -> Float
+boolToNumber bool =
+    if bool then
+        1
+
+    else
+        0
 
 
 

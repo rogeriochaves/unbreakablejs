@@ -51,6 +51,8 @@ type Reserved
     | LetAssignment String
     | SoftEquality
     | While Expression Expression
+    | GreaterThan
+    | SmallerThan
 
 
 type UndefinedReason
