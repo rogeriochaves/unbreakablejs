@@ -40,7 +40,7 @@ run state expressions =
     expressions
         |> List.foldl iterate_ ( state, emptyState, [] )
         |> (\( outScope, inScope, results ) ->
-                ( { variables = Dict.union inScope.variables outScope.variables }
+                ( mergeStates inScope outScope
                 , List.reverse results
                 )
            )
@@ -103,6 +103,8 @@ runExpression state expr =
             in
             return
                 (evalList items state
+                    -- TODO: do not ignore state updates
+                    |> (\( _, _, results ) -> results)
                     |> List.foldl appendOrLiftError (Vector [])
                     |> Value
                     |> Untracked
@@ -121,27 +123,33 @@ runExpression state expr =
 
         ReservedApplication symbol args ->
             let
-                evaluatedArgs =
+                ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
             in
             applyReserved symbol evaluatedArgs trackStack
+                |> preprendStateChanges outScope inScope
 
         Application fn args ->
             let
-                evaluatedArgs =
+                ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
+
+                state_ =
+                    mergeStates inScope (mergeStates outScope state)
+
+                applicationResult =
+                    case eval state fn |> removeTracking of
+                        Value (Abstraction paramNames functionBody) ->
+                            callFunction state_ trackStack ( paramNames, functionBody ) evaluatedArgs
+
+                        Value (Undefined stacktrace) ->
+                            return (Untracked (Value (Undefined stacktrace)))
+
+                        _ ->
+                            Debug.todo "not implemented"
             in
-            case eval state fn |> removeTracking of
-                Value (Abstraction paramNames functionBody) ->
-                    callFunction state trackStack ( paramNames, functionBody ) evaluatedArgs
-
-                Value (Undefined stacktrace) ->
-                    return
-                        -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
-                        (Untracked (Value (Undefined stacktrace)))
-
-                _ ->
-                    Debug.todo "not implemented"
+            applicationResult
+                |> preprendStateChanges outScope inScope
 
         -- MapAbstraction param index body ->
         --     ( state
@@ -187,50 +195,71 @@ runExpression state expr =
                     Debug.todo "not implemented yet"
 
 
+preprendStateChanges : State -> State -> LineResult -> LineResult
+preprendStateChanges outScope inScope result =
+    LineResult
+        (mergeStates result.outScope outScope)
+        (mergeStates result.inScope inScope)
+        result.result
+
+
+mergeStates : State -> State -> State
+mergeStates a b =
+    { variables = Dict.union a.variables b.variables }
+
+
 iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
 iterate expr ( prevOutScope, prevInScope ) =
     let
         state =
-            { variables = Dict.union prevInScope.variables prevOutScope.variables }
+            mergeStates prevInScope prevOutScope
 
         expressionResult =
             runExpression state expr
 
         outScopeFiltered =
-            { variables =
-                Dict.union
-                    (Dict.filter
+            mergeStates
+                { variables =
+                    Dict.filter
                         (\identifier _ ->
                             not (Dict.member identifier prevInScope.variables)
                         )
                         expressionResult.outScope.variables
-                    )
-                    prevOutScope.variables
-            }
+                }
+                prevOutScope
 
         inScopeUpdated =
-            { variables =
-                Dict.union
-                    (Dict.filter
+            mergeStates
+                { variables =
+                    Dict.filter
                         (\identifier _ ->
                             Dict.member identifier prevInScope.variables
                         )
                         expressionResult.outScope.variables
-                    )
-                    (Dict.union
-                        expressionResult.inScope.variables
-                        prevInScope.variables
-                    )
-            }
+                }
+                (mergeStates expressionResult.inScope prevInScope)
     in
     ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
-evalList : List Expression -> State -> List Expression
+evalList : List Expression -> State -> ( State, State, List Expression )
 evalList expressions state =
+    let
+        iterate_ : Expression -> ( State, State, List Expression ) -> ( State, State, List Expression )
+        iterate_ expr ( outScope, inScope, results ) =
+            let
+                ( resultOutScope, resultInScope, expressionResult ) =
+                    iterate expr ( outScope, inScope )
+            in
+            ( resultOutScope, resultInScope, expressionResult.result :: results )
+    in
     expressions
-        -- TODO: foldl here, items can change state
-        |> List.map (eval state)
+        |> List.foldl iterate_
+            ( state
+            , emptyState
+            , []
+            )
+        |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
 applyReserved : Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult

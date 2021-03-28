@@ -199,6 +199,22 @@ suite =
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()"
                             |> isEqLast (Untracked <| Value (Number 3))
+                , test "assignments change state also when inside function arguments" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10 }\ng(f())\nx"
+                            |> isEqLast (Untracked <| Value (Number 10))
+                , test "assignments change state also when inside function arguments #2" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => {}\ng(f())\nx"
+                            |> isEqLast (Untracked <| Value (Number 10))
+                , test "assignments change state also when inside function arguments #3" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10\nreturn 5 }\nz = f()\nx"
+                            |> isEqLast (Untracked <| Value (Number 10))
+                , test "assignments change state also when inside function arguments #4" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => x\ng(f())\nx"
+                            |> isEqLast (Untracked <| Value (Number 10))
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
