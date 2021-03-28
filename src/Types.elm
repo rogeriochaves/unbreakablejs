@@ -50,6 +50,7 @@ type Reserved
     | Assignment String
     | LetAssignment String
     | SoftEquality
+    | While Expression Expression
 
 
 type UndefinedReason
@@ -59,6 +60,7 @@ type UndefinedReason
     | VoidReturn
     | IfWithoutElse
     | ExplicitUndefined
+    | LoopNeverTrue
 
 
 

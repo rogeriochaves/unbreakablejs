@@ -126,7 +126,7 @@ runExpression state expr =
                 ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
             in
-            applyReserved symbol evaluatedArgs trackStack
+            applyReserved state symbol evaluatedArgs trackStack
                 |> preprendStateChanges outScope inScope
 
         Application fn args ->
@@ -262,8 +262,8 @@ evalList expressions state =
         |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
-applyReserved : Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
-applyReserved reserved evaluatedArgs trackStack =
+applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyReserved state reserved evaluatedArgs trackStack =
     let
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
@@ -330,6 +330,28 @@ applyReserved reserved evaluatedArgs trackStack =
                                     Untracked (Value (Undefined trackStack_))
                         )
                 )
+
+        While condition exprWhile ->
+            let
+                whileLoop : State -> LineResult -> LineResult
+                whileLoop state_ lastResult =
+                    case eval state_ condition |> removeTracking of
+                        Value val ->
+                            if valueToBool val then
+                                let
+                                    -- TODO: we should merge the outScopes
+                                    result =
+                                        runExpression state_ exprWhile
+                                in
+                                whileLoop (mergeStates result.outScope state_) result
+
+                            else
+                                lastResult
+
+                        _ ->
+                            Debug.todo "not implemented yet"
+            in
+            whileLoop state (return <| Untracked (Value (Undefined (trackStack LoopNeverTrue))))
 
 
 comparisonWithBool : Value -> Bool -> Bool

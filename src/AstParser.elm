@@ -115,6 +115,20 @@ ifCondition filename =
         |= lazy (\_ -> expression filename)
 
 
+while : String -> Parser Expression
+while filename =
+    succeed
+        (\pos condition expr ->
+            tracked filename pos (ReservedApplication (While condition expr) [])
+        )
+        |= getPosition
+        |. backtrackable (symbol "while")
+        |. spaces
+        |= parens (lazy (\_ -> expression filename))
+        |. spaces
+        |= lazy (\_ -> expression filename)
+
+
 functionCall : String -> Parser Expression
 functionCall filename =
     succeed
@@ -300,6 +314,7 @@ expression_ filename withDeclarations withReturn =
                 [ functionDeclaration filename
                 , assignment filename
                 , ifCondition filename
+                , while filename
                 ]
 
             else

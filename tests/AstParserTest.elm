@@ -1,7 +1,7 @@
 module AstParserTest exposing (suite)
 
 import AstParser exposing (..)
-import Expect exposing (Expectation)
+import Expect
 import Test exposing (..)
 import Types exposing (..)
 
@@ -535,6 +535,31 @@ suite =
                                             ]
                                         )
                                     )
+                                )
+                            )
+            ]
+        , describe "loops" <|
+            [ test "parses while loop" <|
+                \_ ->
+                    parse "while (true) { 1 + 1 }"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (ReservedApplication
+                                    (While
+                                        (Untracked (Value (Boolean True)))
+                                        (tracked ( 1, 23 )
+                                            (Block
+                                                [ tracked ( 1, 18 )
+                                                    (ReservedApplication Addition
+                                                        [ Untracked (Value (Number 1))
+                                                        , Untracked (Value (Number 1))
+                                                        ]
+                                                    )
+                                                ]
+                                            )
+                                        )
+                                    )
+                                    []
                                 )
                             )
             ]

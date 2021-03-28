@@ -574,6 +574,13 @@ suite =
                         parseAndRun "x = 0\nif (y) { x = 1 }\nx"
                             |> isEqLast (Untracked <| Value (Number 0))
                 ]
+            , describe "loops"
+                [ test "loops with while" <|
+                    \_ ->
+                        -- TODO: replace with < 3
+                        parseAndRun "let x = 0; while (x == 0) { x = x + 1 }; x"
+                            |> isEqLast (Untracked <| Value (Number 1))
+                ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
             --     \_ ->

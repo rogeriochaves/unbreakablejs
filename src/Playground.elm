@@ -323,6 +323,9 @@ renderResult model index item =
 
                                             ExplicitUndefined ->
                                                 "explicitly given undefined value"
+
+                                            LoopNeverTrue ->
+                                                "loop condition never evaluated to true so the loop was never executed"
                                 in
                                 msgGotFrom
                                     ++ filename
