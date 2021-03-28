@@ -27,7 +27,7 @@ suite =
                 parse "1 + 1"
                     |> isEq
                         (tracked ( 1, 3 )
-                            (ReservedApplication Addition
+                            (Operation Addition
                                 [ Untracked (Value (Number 1))
                                 , Untracked (Value (Number 1))
                                 ]
@@ -38,17 +38,17 @@ suite =
                 parse "1.5 + 1.3"
                     |> isEq
                         (tracked ( 1, 5 )
-                            (ReservedApplication Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
+                            (Operation Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
                         )
         , test "read nested operations" <|
             \_ ->
                 parse "1 - (3 - 2)"
                     |> isEq
                         (tracked ( 1, 3 )
-                            (ReservedApplication Subtraction
+                            (Operation Subtraction
                                 [ Untracked (Value (Number 1))
                                 , tracked ( 1, 8 )
-                                    (ReservedApplication Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
+                                    (Operation Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
                                 ]
                             )
                         )
@@ -66,7 +66,7 @@ suite =
                 parse "age + 1"
                     |> isEq
                         (tracked ( 1, 5 )
-                            (ReservedApplication Addition
+                            (Operation Addition
                                 [ tracked ( 1, 1 ) (Variable "age")
                                 , Untracked (Value (Number 1))
                                 ]
@@ -156,13 +156,13 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
                                 , tracked ( 2, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
                                         ]
@@ -185,13 +185,13 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
                                 , tracked ( 1, 10 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
                                         ]
@@ -204,13 +204,13 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
                                 , tracked ( 3, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
                                         ]
@@ -223,13 +223,13 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 1))
                                         , Untracked (Value (Number 1))
                                         ]
                                     )
                                 , tracked ( 3, 3 )
-                                    (ReservedApplication Addition
+                                    (Operation Addition
                                         [ Untracked (Value (Number 2))
                                         , Untracked (Value (Number 2))
                                         ]
@@ -243,9 +243,9 @@ suite =
                     parse "x = 1 + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication (Assignment "x")
+                                (Operation (Assignment "x")
                                     [ tracked ( 1, 7 )
-                                        (ReservedApplication Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
+                                        (Operation Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
                                     ]
                                 )
                             )
@@ -259,7 +259,7 @@ suite =
                     parse "x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication Addition
+                                (Operation Addition
                                     [ tracked ( 1, 1 ) <| Variable "x"
                                     , Untracked <| Value (Number 1)
                                     ]
@@ -270,9 +270,9 @@ suite =
                     parse "x = y + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication (Assignment "x")
+                                (Operation (Assignment "x")
                                     [ tracked ( 1, 7 ) <|
-                                        ReservedApplication Addition
+                                        Operation Addition
                                             [ tracked ( 1, 5 ) <| Variable "y"
                                             , Untracked <| Value (Number 1)
                                             ]
@@ -284,7 +284,7 @@ suite =
                     parse "let x = 1"
                         |> isEq
                             (tracked ( 1, 7 )
-                                (ReservedApplication (LetAssignment "x")
+                                (Operation (LetAssignment "x")
                                     [ Untracked <|
                                         Value (Number 1)
                                     ]
@@ -297,13 +297,13 @@ suite =
                     parse "f = (x) => x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 14 )
-                                                    (ReservedApplication Addition
+                                                    (Operation Addition
                                                         [ tracked ( 1, 12 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
@@ -319,13 +319,13 @@ suite =
                     parse "f = (x, y) => x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
                                             (Abstraction [ "x", "y" ]
                                                 (tracked ( 1, 17 )
-                                                    (ReservedApplication Addition
+                                                    (Operation Addition
                                                         [ tracked ( 1, 15 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]
@@ -368,13 +368,13 @@ suite =
                             (tracked ( 4, 2 )
                                 (Block
                                     [ tracked ( 2, 3 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ Untracked (Value (Number 1))
                                             , Untracked (Value (Number 1))
                                             ]
                                         )
                                     , tracked ( 3, 3 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ Untracked (Value (Number 2))
                                             , Untracked (Value (Number 2))
                                             ]
@@ -389,13 +389,13 @@ suite =
                             (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ Untracked (Value (Number 1))
                                             , Untracked (Value (Number 1))
                                             ]
                                         )
                                     , tracked ( 2, 3 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ Untracked (Value (Number 2))
                                             , Untracked (Value (Number 2))
                                             ]
@@ -408,7 +408,7 @@ suite =
                     parse "f = (x) => { 1 + 1\n2 + 2 }"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
@@ -416,13 +416,13 @@ suite =
                                                 (tracked ( 2, 8 )
                                                     (Block
                                                         [ tracked ( 1, 16 )
-                                                            (ReservedApplication Addition
+                                                            (Operation Addition
                                                                 [ Untracked (Value (Number 1))
                                                                 , Untracked (Value (Number 1))
                                                                 ]
                                                             )
                                                         , tracked ( 2, 3 )
-                                                            (ReservedApplication Addition
+                                                            (Operation Addition
                                                                 [ Untracked (Value (Number 2))
                                                                 , Untracked (Value (Number 2))
                                                                 ]
@@ -442,12 +442,12 @@ suite =
                             (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
-                                        (ReservedApplication (Assignment "x")
+                                        (Operation (Assignment "x")
                                             [ Untracked (Value (Number 1))
                                             ]
                                         )
                                     , tracked ( 2, 3 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ tracked ( 2, 1 ) <| Variable "x"
                                             , Untracked (Value (Number 1))
                                             ]
@@ -460,7 +460,7 @@ suite =
                     parse "f = (x) => { return 1 + 1 }"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
                                     [ Untracked
                                         (Value
@@ -470,7 +470,7 @@ suite =
                                                         [ tracked ( 1, 14 )
                                                             (Return
                                                                 (tracked ( 1, 23 )
-                                                                    (ReservedApplication Addition
+                                                                    (Operation Addition
                                                                         [ Untracked (Value (Number 1))
                                                                         , Untracked (Value (Number 1))
                                                                         ]
@@ -497,9 +497,9 @@ suite =
                     parse "1 + 1 == 2"
                         |> isEq
                             (tracked ( 1, 7 )
-                                (ReservedApplication SoftEquality
+                                (Operation SoftEquality
                                     [ tracked ( 1, 3 )
-                                        (ReservedApplication Addition
+                                        (Operation Addition
                                             [ Untracked (Value (Number 1))
                                             , Untracked (Value (Number 1))
                                             ]
@@ -513,7 +513,7 @@ suite =
                     parse "true == false"
                         |> isEq
                             (tracked ( 1, 6 )
-                                (ReservedApplication SoftEquality
+                                (Operation SoftEquality
                                     [ Untracked (Value (Boolean True))
                                     , Untracked (Value (Boolean False))
                                     ]
@@ -524,7 +524,7 @@ suite =
                     parse "1 > 2"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     GreaterThan
                                     [ Untracked (Value (Number 1))
                                     , Untracked (Value (Number 2))
@@ -536,7 +536,7 @@ suite =
                     parse "1 < 2"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     SmallerThan
                                     [ Untracked (Value (Number 1))
                                     , Untracked (Value (Number 2))
@@ -552,7 +552,7 @@ suite =
                                     (tracked ( 1, 18 )
                                         (Block
                                             [ tracked ( 1, 14 )
-                                                (ReservedApplication (Assignment "x")
+                                                (Operation (Assignment "x")
                                                     [ Untracked (Value (Number 1))
                                                     ]
                                                 )
@@ -573,7 +573,7 @@ suite =
                                     (tracked ( 1, 23 )
                                         (Block
                                             [ tracked ( 1, 18 )
-                                                (ReservedApplication Addition
+                                                (Operation Addition
                                                     [ Untracked (Value (Number 1))
                                                     , Untracked (Value (Number 1))
                                                     ]

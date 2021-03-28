@@ -30,7 +30,7 @@ type UntrackedExp
     = Value Value
     | Variable String
     | Application Expression (List Expression)
-    | ReservedApplication Reserved (List Expression)
+    | Operation Operation (List Expression)
     | Block (List Expression)
     | Return Expression
     | IfCondition Expression Expression
@@ -45,7 +45,7 @@ type Value
     | Boolean Bool
 
 
-type Reserved
+type Operation
     = Addition
     | Subtraction
     | Assignment String

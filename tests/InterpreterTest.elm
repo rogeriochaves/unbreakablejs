@@ -246,7 +246,7 @@ suite =
                                         Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 14 )
-                                                    (ReservedApplication Addition
+                                                    (Operation Addition
                                                         [ tracked ( 1, 12 ) (Variable "x")
                                                         , Untracked (Value (Number 1))
                                                         ]

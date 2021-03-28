@@ -150,7 +150,7 @@ functionCall filename =
             )
 
 
-infixOperator : String -> Reserved -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator : String -> Operation -> Parser ( Int, Int ) -> Assoc -> Operator Expression
 infixOperator filename operation opParser assoc =
     let
         binaryOp =
@@ -206,7 +206,7 @@ functionDeclaration filename =
         (\name pos param body ->
             tracked filename
                 pos
-                (ReservedApplication (Assignment name)
+                (Operation (Assignment name)
                     [ Untracked (Value (Abstraction param body)) ]
                 )
         )
@@ -231,14 +231,14 @@ functionDeclaration filename =
         |= lazy (\_ -> expression_ filename True True)
 
 
-singleArity : Reserved -> Expression -> UntrackedExp
+singleArity : Operation -> Expression -> UntrackedExp
 singleArity fn expr =
-    ReservedApplication fn [ expr ]
+    Operation fn [ expr ]
 
 
-doubleArity : Reserved -> Expression -> Expression -> UntrackedExp
+doubleArity : Operation -> Expression -> Expression -> UntrackedExp
 doubleArity fn expr1 expr2 =
-    ReservedApplication fn [ expr1, expr2 ]
+    Operation fn [ expr1, expr2 ]
 
 
 

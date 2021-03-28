@@ -121,7 +121,7 @@ runExpression state expr =
                     |> Untracked
                 )
 
-        ReservedApplication symbol args ->
+        Operation symbol args ->
             let
                 ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
@@ -284,7 +284,7 @@ evalList expressions state =
         |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
-applyReserved : Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyReserved : Operation -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
 applyReserved reserved evaluatedArgs trackStack =
     let
         return result =
