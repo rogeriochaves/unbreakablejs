@@ -119,7 +119,7 @@ while : String -> Parser Expression
 while filename =
     succeed
         (\pos condition expr ->
-            tracked filename pos (ReservedApplication (While condition expr) [])
+            tracked filename pos (While condition expr)
         )
         |= getPosition
         |. backtrackable (symbol "while")

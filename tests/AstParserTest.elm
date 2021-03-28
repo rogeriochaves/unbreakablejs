@@ -568,22 +568,19 @@ suite =
                     parse "while (true) { 1 + 1 }"
                         |> isEq
                             (tracked ( 1, 1 )
-                                (ReservedApplication
-                                    (While
-                                        (Untracked (Value (Boolean True)))
-                                        (tracked ( 1, 23 )
-                                            (Block
-                                                [ tracked ( 1, 18 )
-                                                    (ReservedApplication Addition
-                                                        [ Untracked (Value (Number 1))
-                                                        , Untracked (Value (Number 1))
-                                                        ]
-                                                    )
-                                                ]
-                                            )
+                                (While
+                                    (Untracked (Value (Boolean True)))
+                                    (tracked ( 1, 23 )
+                                        (Block
+                                            [ tracked ( 1, 18 )
+                                                (ReservedApplication Addition
+                                                    [ Untracked (Value (Number 1))
+                                                    , Untracked (Value (Number 1))
+                                                    ]
+                                                )
+                                            ]
                                         )
                                     )
-                                    []
                                 )
                             )
             ]

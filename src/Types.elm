@@ -34,6 +34,7 @@ type UntrackedExp
     | Block (List Expression)
     | Return Expression
     | IfCondition Expression Expression
+    | While Expression Expression
 
 
 type Value
@@ -50,7 +51,6 @@ type Reserved
     | Assignment String
     | LetAssignment String
     | SoftEquality
-    | While Expression Expression
     | GreaterThan
     | SmallerThan
 
