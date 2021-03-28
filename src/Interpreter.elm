@@ -121,12 +121,20 @@ runExpression state expr =
                     |> Untracked
                 )
 
-        Operation symbol args ->
+        Operation symbol expr0 ->
+            let
+                arg0 =
+                    runExpression state expr0
+            in
+            applyOperation symbol arg0.result
+                |> preprendStateChanges arg0.outScope arg0.inScope
+
+        Operation2 symbol args ->
             let
                 ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
             in
-            applyReserved symbol evaluatedArgs trackStack
+            applyOperation2 symbol evaluatedArgs trackStack
                 |> preprendStateChanges outScope inScope
 
         Application fn args ->
@@ -284,21 +292,11 @@ evalList expressions state =
         |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
-applyReserved : Operation -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
-applyReserved reserved evaluatedArgs trackStack =
-    let
-        return result =
-            { outScope = emptyState, inScope = emptyState, result = result }
-    in
-    case reserved of
-        Addition ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number evaluatedArgs)
-
-        Subtraction ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number evaluatedArgs)
-
+applyOperation : Operation -> Expression -> LineResult
+applyOperation operation arg0 =
+    case operation of
         Assignment name ->
-            case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
+            case arg0 |> removeTracking of
                 Value val ->
                     LineResult
                         { variables = Dict.fromList [ ( name, val ) ] }
@@ -309,7 +307,7 @@ applyReserved reserved evaluatedArgs trackStack =
                     Debug.todo "not implemented"
 
         LetAssignment name ->
-            case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
+            case arg0 |> removeTracking of
                 Value val ->
                     LineResult
                         emptyState
@@ -318,6 +316,20 @@ applyReserved reserved evaluatedArgs trackStack =
 
                 _ ->
                     Debug.todo "not implemented"
+
+
+applyOperation2 : Operation2 -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyOperation2 reserved evaluatedArgs trackStack =
+    let
+        return result =
+            { outScope = emptyState, inScope = emptyState, result = result }
+    in
+    case reserved of
+        Addition ->
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number evaluatedArgs)
+
+        Subtraction ->
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number evaluatedArgs)
 
         SoftEquality ->
             let

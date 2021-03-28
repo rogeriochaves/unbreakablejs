@@ -150,7 +150,7 @@ functionCall filename =
             )
 
 
-infixOperator : String -> Operation -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator : String -> Operation2 -> Parser ( Int, Int ) -> Assoc -> Operator Expression
 infixOperator filename operation opParser assoc =
     let
         binaryOp =
@@ -188,9 +188,9 @@ operators filename =
 assignment : String -> Parser Expression
 assignment filename =
     oneOf
-        [ succeed (\name pos -> tracked filename pos << singleArity (LetAssignment name))
+        [ succeed (\name pos -> tracked filename pos << Operation (LetAssignment name))
             |. backtrackable (symbol "let ")
-        , succeed (\name pos -> tracked filename pos << singleArity (Assignment name))
+        , succeed (\name pos -> tracked filename pos << Operation (Assignment name))
         ]
         |= backtrackable identifier
         |. backtrackable spaces
@@ -206,9 +206,7 @@ functionDeclaration filename =
         (\name pos param body ->
             tracked filename
                 pos
-                (Operation (Assignment name)
-                    [ Untracked (Value (Abstraction param body)) ]
-                )
+                (Operation (Assignment name) (Untracked (Value (Abstraction param body))))
         )
         |= backtrackable identifier
         |. backtrackable spaces
@@ -231,14 +229,14 @@ functionDeclaration filename =
         |= lazy (\_ -> expression_ filename True True)
 
 
-singleArity : Operation -> Expression -> UntrackedExp
+singleArity : Operation2 -> Expression -> UntrackedExp
 singleArity fn expr =
-    Operation fn [ expr ]
+    Operation2 fn [ expr ]
 
 
-doubleArity : Operation -> Expression -> Expression -> UntrackedExp
+doubleArity : Operation2 -> Expression -> Expression -> UntrackedExp
 doubleArity fn expr1 expr2 =
-    Operation fn [ expr1, expr2 ]
+    Operation2 fn [ expr1, expr2 ]
 
 
 

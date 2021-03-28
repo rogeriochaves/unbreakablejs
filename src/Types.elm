@@ -30,7 +30,8 @@ type UntrackedExp
     = Value Value
     | Variable String
     | Application Expression (List Expression)
-    | Operation Operation (List Expression)
+    | Operation Operation Expression
+    | Operation2 Operation2 (List Expression)
     | Block (List Expression)
     | Return Expression
     | IfCondition Expression Expression
@@ -46,10 +47,13 @@ type Value
 
 
 type Operation
+    = Assignment String
+    | LetAssignment String
+
+
+type Operation2
     = Addition
     | Subtraction
-    | Assignment String
-    | LetAssignment String
     | SoftEquality
     | GreaterThan
     | SmallerThan
