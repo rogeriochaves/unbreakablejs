@@ -263,7 +263,7 @@ statementBreak : Parser ()
 statementBreak =
     succeed ()
         |. chompWhile (\c -> c == ' ')
-        |. chompIf (\c -> c == '\n')
+        |. chompIf (\c -> c == '\n' || c == ';')
         |. spaces
 
 

@@ -179,6 +179,25 @@ suite =
                     parse "1 + 1 2 + 2"
                         |> isErr
                         |> Expect.true "it should break there is no line break between expressions"
+            , test "unless there is a semicolon to split them" <|
+                \_ ->
+                    parse "1 + 1; 2 + 2"
+                        |> Expect.equal
+                            (Ok
+                                [ tracked ( 1, 3 )
+                                    (ReservedApplication Addition
+                                        [ Untracked (Value (Number 1))
+                                        , Untracked (Value (Number 1))
+                                        ]
+                                    )
+                                , tracked ( 1, 10 )
+                                    (ReservedApplication Addition
+                                        [ Untracked (Value (Number 2))
+                                        , Untracked (Value (Number 2))
+                                        ]
+                                    )
+                                ]
+                            )
             , test "allow multiple line breaks" <|
                 \_ ->
                     parse "1 + 1\n\n2 + 2\n"
