@@ -123,27 +123,22 @@ runExpression state expr =
 
         Operation symbol expr0 ->
             let
-                arg0 =
-                    runExpression state expr0
+                ( outScope0, _, arg0 ) =
+                    iterate expr0 ( state, emptyState )
             in
             applyOperation symbol arg0.result
-                |> preprendStateChanges arg0.outScope arg0.inScope
+                |> preprendStateChanges outScope0 emptyState
 
         Operation2 symbol expr0 expr1 ->
             let
-                arg0 =
-                    runExpression state expr0
+                ( outScope0, inScope0, arg0 ) =
+                    iterate expr0 ( state, emptyState )
 
-                state0 =
-                    mergeStates (mergeStates arg0.inScope arg0.outScope) state
-
-                -- TODO: do we need to merge arg0 inScope and outScope?
-                arg1 =
-                    runExpression state0 expr1
+                ( outScope1, _, arg1 ) =
+                    iterate expr1 ( outScope0, inScope0 )
             in
             applyOperation2 symbol arg0.result arg1.result trackStack
-                -- TODO: test this
-                |> preprendStateChanges arg1.outScope arg1.inScope
+                |> preprendStateChanges outScope1 emptyState
 
         Application fn args ->
             let
@@ -191,10 +186,6 @@ runExpression state expr =
                         )
                 )
 
-        -- run state blockExpressions
-        --     |> List.reverse
-        --     |> List.head
-        --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
         Return returnExpr ->
             runExpression state returnExpr
 
