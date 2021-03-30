@@ -124,21 +124,21 @@ runExpression state expr =
 
         Operation symbol expr0 ->
             statefulSession state identity
-                |> thenCapture expr0
-                |> thenRun
-                    (\arg0 ->
-                        applyOperation symbol arg0
-                    )
+                |> statefulExecute expr0
+                |> (\session ->
+                        statefulRun (applyOperation symbol (statefulGetResult session)) session
+                   )
                 |> unwrap
 
         Operation2 symbol expr0 expr1 ->
-            statefulSession state Tuple.pair
-                |> thenCapture expr0
-                |> thenCapture expr1
-                |> thenRun
-                    (\( arg0, arg1 ) ->
-                        applyOperation2 symbol arg0 arg1 trackStack
-                    )
+            statefulSession state identity
+                |> statefulExecute expr0
+                |> (\session ->
+                        ( session, statefulExecute expr1 session )
+                   )
+                |> (\( arg0, session ) ->
+                        statefulRun (applyOperation2 symbol (statefulGetResult arg0) (statefulGetResult session) trackStack) session
+                   )
                 |> unwrap
 
         Application fn args ->
@@ -178,38 +178,34 @@ runExpression state expr =
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            statefulSession state valueToBool
-                |> thenCapture condition
-                |> thenExecute
-                    (\result ->
-                        if result then
-                            exprIfTrue
+            statefulSession state identity
+                |> statefulExecute condition
+                |> (\session ->
+                        if valueToBool (statefulGetResult session) then
+                            statefulExecute exprIfTrue session
 
                         else
-                            Untracked (Value (Undefined (trackStack IfWithoutElse)))
-                    )
+                            statefulExecute (Untracked (Value (Undefined (trackStack IfWithoutElse)))) session
+                   )
                 |> unwrap
 
         While condition exprWhile ->
-            statefulSession state valueToBool
-                |> thenCapture condition
-                |> thenExecute
-                    (\result ->
-                        if result then
-                            exprWhile
+            statefulSession state identity
+                |> statefulExecute condition
+                |> (\session ->
+                        if valueToBool (statefulGetResult session) then
+                            ( session, statefulExecute exprWhile session )
 
                         else
-                            Untracked (Value (Undefined (trackStack LoopNeverTrue)))
-                    )
-                |> thenExecute
-                    (\result ->
-                        if result then
-                            Untracked (While condition exprWhile)
+                            ( session, statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue)))) session )
+                   )
+                |> (\( result, session ) ->
+                        if valueToBool (statefulGetResult result) then
+                            statefulExecute (Untracked (While condition exprWhile)) session
 
                         else
-                            -- TODO: while should return last value instead of undefined
-                            Untracked (Value (Undefined (trackStack LoopNeverTrue)))
-                    )
+                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue)))) session
+                   )
                 |> unwrap
 
 
@@ -226,6 +222,10 @@ mergeStates a b =
     { variables = Dict.union a.variables b.variables }
 
 
+
+-- STATEFUL
+
+
 statefulSession : State -> a -> StatefulResult a
 statefulSession state a =
     StatefulResult a
@@ -238,23 +238,25 @@ statefulSession state a =
         )
 
 
-thenCapture : Expression -> StatefulResult (Value -> b) -> StatefulResult b
-thenCapture expr (StatefulResult fn ( prevOutScope, prevInScope, _ )) =
+statefulExecute : Expression -> StatefulResult a -> StatefulResult a
+statefulExecute expr (StatefulResult a ( prevOutScope, prevInScope, _ )) =
     let
         tripleResult =
             iterate expr ( prevOutScope, prevInScope )
-
-        ( _, _, result ) =
-            tripleResult
     in
-    StatefulResult (fn result.result) tripleResult
+    StatefulResult a tripleResult
 
 
-thenRun : (a -> ExpressionResult) -> StatefulResult a -> StatefulResult ()
-thenRun fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
+statefulGetResult : StatefulResult a -> Value
+statefulGetResult (StatefulResult _ ( _, _, result )) =
+    result.result
+
+
+statefulRun : ExpressionResult -> StatefulResult a -> StatefulResult a
+statefulRun exprResult (StatefulResult a ( prevOutScope, prevInScope, _ )) =
     let
         expressionResult =
-            fn a
+            exprResult
                 |> preprendStateChanges prevOutScope emptyState
 
         -- TODO: remove this duplication with iterate_
@@ -280,12 +282,7 @@ thenRun fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
                 }
                 (mergeStates expressionResult.inScope prevInScope)
     in
-    StatefulResult () ( outScopeFiltered, inScopeUpdated, expressionResult )
-
-
-thenExecute : (a -> Expression) -> StatefulResult a -> StatefulResult a
-thenExecute fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
-    StatefulResult a (iterate (fn a) ( prevOutScope, prevInScope ))
+    StatefulResult a ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
 unwrap : StatefulResult a -> ExpressionResult
@@ -315,6 +312,10 @@ unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
                 (mergeStates expressionResult.inScope prevInScope)
     in
     ExpressionResult outScopeFiltered inScopeUpdated expressionResult.result
+
+
+
+-- /STATEFUL
 
 
 iterate : Expression -> ( State, State ) -> ( State, State, ExpressionResult )
