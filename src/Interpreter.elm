@@ -254,7 +254,7 @@ statefulAndThen fn session =
 
 statefulRun : ExpressionResult -> ExpressionResult -> ExpressionResult
 statefulRun expressionResult statefulResult =
-    collectState expressionResult ( statefulResult.outScope, statefulResult.inScope )
+    moveStateOutsideScope expressionResult ( statefulResult.outScope, statefulResult.inScope )
 
 
 iterate : Expression -> ( State, State ) -> ExpressionResult
@@ -263,11 +263,11 @@ iterate expr ( prevOutScope, prevInScope ) =
         state =
             mergeStates prevInScope prevOutScope
     in
-    collectState (runExpression state expr) ( prevOutScope, prevInScope )
+    moveStateOutsideScope (runExpression state expr) ( prevOutScope, prevInScope )
 
 
-collectState : ExpressionResult -> ( State, State ) -> ExpressionResult
-collectState expressionResult ( prevOutScope, prevInScope ) =
+moveStateOutsideScope : ExpressionResult -> ( State, State ) -> ExpressionResult
+moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
     let
         outScopeFiltered =
             mergeStates
