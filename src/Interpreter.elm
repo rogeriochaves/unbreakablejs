@@ -22,29 +22,32 @@ emptyState =
 
 
 type alias ExpressionResult =
-    ExpressionResult_ Value
+    Stateful Value
 
 
-type alias ExpressionResult_ a =
+type alias Stateful a =
     { outScope : State, inScope : State, result : a }
 
 
 run : State -> Types.Program -> ( State, List ExpressionResult )
 run state expressions =
     let
-        iterate_ : Expression -> ( State, State, List ExpressionResult ) -> ( State, State, List ExpressionResult )
-        iterate_ expr ( outScope, inScope, lineResults ) =
+        iterate_ : Expression -> Stateful (List ExpressionResult) -> Stateful (List ExpressionResult)
+        iterate_ expr acc =
             let
                 statefulResult =
-                    iterate expr ( outScope, inScope )
+                    iterate expr acc
             in
-            ( statefulResult.outScope, statefulResult.inScope, statefulResult :: lineResults )
+            { outScope = statefulResult.outScope
+            , inScope = statefulResult.inScope
+            , result = statefulResult :: acc.result
+            }
     in
     expressions
-        |> List.foldl iterate_ ( state, emptyState, [] )
-        |> (\( outScope, inScope, results ) ->
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> (\{ outScope, inScope, result } ->
                 ( mergeStates inScope outScope
-                , List.reverse results
+                , List.reverse result
                 )
            )
 
@@ -52,12 +55,12 @@ run state expressions =
 runBlock : State -> List Expression -> ( State, Maybe Value )
 runBlock state blockExpressions =
     let
-        iterate_ : Expression -> ( State, State, Maybe Value ) -> ( State, State, Maybe Value )
-        iterate_ expr ( outScope, inScope, returnValue ) =
-            if returnValue == Nothing then
+        iterate_ : Expression -> Stateful (Maybe Value) -> Stateful (Maybe Value)
+        iterate_ expr acc =
+            if acc.result == Nothing then
                 let
                     statefulResult =
-                        iterate expr ( outScope, inScope )
+                        iterate expr acc
 
                     returnValue_ =
                         case expr |> removeTracking of
@@ -67,15 +70,15 @@ runBlock state blockExpressions =
                             _ ->
                                 Nothing
                 in
-                ( statefulResult.outScope, statefulResult.inScope, returnValue_ )
+                Stateful statefulResult.outScope statefulResult.inScope returnValue_
 
             else
-                ( outScope, inScope, returnValue )
+                acc
     in
     -- TODO: return last if outside function? (right now returns void)
     blockExpressions
-        |> List.foldl iterate_ ( state, emptyState, Nothing )
-        |> (\( outScope, _, returnValue ) -> ( outScope, returnValue ))
+        |> List.foldl iterate_ (Stateful state emptyState Nothing)
+        |> (\{ outScope, result } -> ( outScope, result ))
 
 
 runExpression : State -> Expression -> ExpressionResult
@@ -168,7 +171,7 @@ runExpression state expr =
                 ( outScope, result ) =
                     runBlock state blockExpressions
             in
-            ExpressionResult_ outScope
+            Stateful outScope
                 emptyState
                 (result
                     |> Maybe.withDefault (Undefined (trackStack VoidReturn))
@@ -215,7 +218,7 @@ runExpression state expr =
 
 preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
 preprendStateChanges outScope inScope result =
-    ExpressionResult_
+    Stateful
         (mergeStates result.outScope outScope)
         (mergeStates result.inScope inScope)
         result.result
@@ -236,7 +239,7 @@ statefulSession state =
 
 statefulExecute : Expression -> ExpressionResult -> ExpressionResult
 statefulExecute expr statefulResult =
-    iterate expr ( statefulResult.outScope, statefulResult.inScope )
+    iterate expr statefulResult
 
 
 statefulMap : (Value -> Value) -> ExpressionResult -> ExpressionResult
@@ -257,13 +260,13 @@ statefulRun expressionResult statefulResult =
     moveStateOutsideScope expressionResult ( statefulResult.outScope, statefulResult.inScope )
 
 
-iterate : Expression -> ( State, State ) -> ExpressionResult
-iterate expr ( prevOutScope, prevInScope ) =
+iterate : Expression -> Stateful a -> ExpressionResult
+iterate expr { outScope, inScope } =
     let
         state =
-            mergeStates prevInScope prevOutScope
+            mergeStates inScope outScope
     in
-    moveStateOutsideScope (runExpression state expr) ( prevOutScope, prevInScope )
+    moveStateOutsideScope (runExpression state expr) ( outScope, inScope )
 
 
 moveStateOutsideScope : ExpressionResult -> ( State, State ) -> ExpressionResult
@@ -301,34 +304,30 @@ moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
 evalList : List Expression -> State -> ( State, State, List Value )
 evalList expressions state =
     let
-        iterate_ : Expression -> ( State, State, List Value ) -> ( State, State, List Value )
-        iterate_ expr ( outScope, inScope, results ) =
+        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
+        iterate_ expr acc =
             let
                 statefulResult =
-                    iterate expr ( outScope, inScope )
+                    iterate expr acc
             in
-            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result :: results )
+            Stateful statefulResult.outScope statefulResult.inScope (statefulResult.result :: acc.result)
     in
     expressions
-        |> List.foldl iterate_
-            ( state
-            , emptyState
-            , []
-            )
-        |> (\( a, b, results ) -> ( a, b, List.reverse results ))
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> (\{ outScope, inScope, result } -> ( outScope, inScope, List.reverse result ))
 
 
 applyOperation : Operation -> Value -> ExpressionResult
 applyOperation operation arg0 =
     case operation of
         Assignment name ->
-            ExpressionResult_
+            Stateful
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 emptyState
                 arg0
 
         LetAssignment name ->
-            ExpressionResult_
+            Stateful
                 emptyState
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 arg0
