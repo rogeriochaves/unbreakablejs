@@ -21,10 +21,6 @@ emptyState =
     }
 
 
-type alias StatefulResult =
-    ExpressionResult_ (ExpressionResult_ Value)
-
-
 type alias ExpressionResult =
     ExpressionResult_ Value
 
@@ -42,7 +38,7 @@ run state expressions =
                 statefulResult =
                     iterate expr ( outScope, inScope )
             in
-            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result :: lineResults )
+            ( statefulResult.outScope, statefulResult.inScope, statefulResult :: lineResults )
     in
     expressions
         |> List.foldl iterate_ ( state, emptyState, [] )
@@ -66,7 +62,7 @@ runBlock state blockExpressions =
                     returnValue_ =
                         case expr |> removeTracking of
                             Return _ ->
-                                Just statefulResult.result.result
+                                Just statefulResult.result
 
                             _ ->
                                 Nothing
@@ -132,7 +128,6 @@ runExpression state expr =
                     (\arg0 ->
                         statefulRun (applyOperation symbol arg0)
                     )
-                |> unwrap
 
         Operation2 symbol expr0 expr1 ->
             statefulSession state
@@ -145,7 +140,6 @@ runExpression state expr =
                                     statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
                                 )
                     )
-                |> unwrap
 
         Application fn args ->
             let
@@ -194,11 +188,10 @@ runExpression state expr =
                         else
                             statefulExecute (Untracked (Value (Undefined (trackStack IfWithoutElse))))
                     )
-                |> unwrap
 
         While condition exprWhile ->
             let
-                whileLoop : Value -> StatefulResult -> StatefulResult
+                whileLoop : Value -> ExpressionResult -> ExpressionResult
                 whileLoop prevResult session =
                     session
                         |> statefulExecute condition
@@ -214,7 +207,6 @@ runExpression state expr =
             in
             statefulSession state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
-                |> unwrap
 
 
 preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
@@ -234,51 +226,43 @@ mergeStates a b =
 -- STATEFUL
 
 
-statefulSession : State -> StatefulResult
+statefulSession : State -> ExpressionResult
 statefulSession state =
     { outScope = state
     , inScope = emptyState
-    , result =
-        { outScope = emptyState
-        , inScope = emptyState
-        , result = Undefined []
-        }
+    , result = Undefined []
     }
 
 
-statefulExecute : Expression -> StatefulResult -> StatefulResult
+statefulExecute : Expression -> ExpressionResult -> ExpressionResult
 statefulExecute expr statefulResult =
     iterate expr ( statefulResult.outScope, statefulResult.inScope )
 
 
-statefulMap : (Value -> Value) -> StatefulResult -> StatefulResult
+statefulMap : (Value -> Value) -> ExpressionResult -> ExpressionResult
 statefulMap fn session =
-    let
-        prevResult =
-            session.result
-    in
     { outScope = session.outScope
     , inScope = session.inScope
-    , result = { prevResult | result = fn prevResult.result }
+    , result = fn session.result
     }
 
 
-statefulAndThen : (Value -> StatefulResult -> StatefulResult) -> StatefulResult -> StatefulResult
+statefulAndThen : (Value -> ExpressionResult -> ExpressionResult) -> ExpressionResult -> ExpressionResult
 statefulAndThen fn session =
-    fn session.result.result session
+    fn session.result session
 
 
 
 -- let
---     (StatefulResult fnMap _) =
+--     (ExpressionResult fnMap _) =
 --         session
---     (StatefulResult _ ( outScope, inScope, result )) =
+--     (ExpressionResult _ ( outScope, inScope, result )) =
 --         fn session
 -- in
--- StatefulResult (fnMap result.result) ( outScope, inScope, result )
+-- ExpressionResult (fnMap result.result) ( outScope, inScope, result )
 
 
-statefulRun : ExpressionResult -> StatefulResult -> StatefulResult
+statefulRun : ExpressionResult -> ExpressionResult -> ExpressionResult
 statefulRun exprResult statefulResult =
     let
         expressionResult =
@@ -308,19 +292,14 @@ statefulRun exprResult statefulResult =
                 }
                 (mergeStates expressionResult.inScope statefulResult.inScope)
     in
-    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult }
-
-
-unwrap : StatefulResult -> ExpressionResult
-unwrap statefulResult =
-    statefulResult.result
+    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
 
 
 
 -- /STATEFUL
 
 
-iterate : Expression -> ( State, State ) -> StatefulResult
+iterate : Expression -> ( State, State ) -> ExpressionResult
 iterate expr ( prevOutScope, prevInScope ) =
     let
         state =
@@ -351,7 +330,7 @@ iterate expr ( prevOutScope, prevInScope ) =
                 }
                 (mergeStates expressionResult.inScope prevInScope)
     in
-    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult }
+    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
 
 
 evalList : List Expression -> State -> ( State, State, List Value )
@@ -363,7 +342,7 @@ evalList expressions state =
                 statefulResult =
                     iterate expr ( outScope, inScope )
             in
-            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result.result :: results )
+            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result :: results )
     in
     expressions
         |> List.foldl iterate_
