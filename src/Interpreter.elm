@@ -130,15 +130,13 @@ runExpression state expr =
                 |> preprendStateChanges outScope0 emptyState
 
         Operation2 symbol expr0 expr1 ->
-            let
-                ( outScope0, inScope0, arg0 ) =
-                    iterate expr0 ( state, emptyState )
-
-                ( outScope1, _, arg1 ) =
-                    iterate expr1 ( outScope0, inScope0 )
-            in
-            applyOperation2 symbol arg0.result arg1.result trackStack
-                |> preprendStateChanges outScope1 emptyState
+            statefulRun state
+                (\arg0 arg1 ->
+                    applyOperation2 symbol arg0 arg1 trackStack
+                )
+                |> thenCapture expr0
+                |> thenCapture expr1
+                |> execute
 
         Application fn args ->
             let
@@ -235,6 +233,51 @@ preprendStateChanges outScope inScope result =
 mergeStates : State -> State -> State
 mergeStates a b =
     { variables = Dict.union a.variables b.variables }
+
+
+type RunResult a
+    = RunResult a ( State, State, LineResult )
+
+
+
+--               RunResult
+--                 (\arg0 arg1 ->
+--                     applyOperation2 symbol arg0 arg1 trackStack
+--                 )
+--                 ( emptyState, emptyState, { outScope = emptyState, inScope = emptyState, result = Untracked <| Value <| Undefined [] } )
+--                 |> thenCapture expr0
+--                 |> thenCapture expr1
+--                 |> execute
+
+
+statefulRun : State -> a -> RunResult a
+statefulRun state a =
+    RunResult a
+        ( state
+        , emptyState
+        , { outScope = emptyState
+          , inScope = emptyState
+          , result = Untracked <| Value <| Undefined []
+          }
+        )
+
+
+thenCapture : Expression -> RunResult (Expression -> b) -> RunResult b
+thenCapture expr (RunResult fn ( prevOutScope, prevInScope, _ )) =
+    let
+        tripleResult =
+            iterate expr ( prevOutScope, prevInScope )
+
+        ( _, _, result ) =
+            tripleResult
+    in
+    RunResult (fn result.result) tripleResult
+
+
+execute : RunResult LineResult -> LineResult
+execute (RunResult result ( prevOutScope, _, _ )) =
+    result
+        |> preprendStateChanges prevOutScope emptyState
 
 
 iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
