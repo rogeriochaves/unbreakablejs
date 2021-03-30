@@ -219,6 +219,10 @@ suite =
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nf() + x\nx"
                             |> isEqLast (Untracked <| Value (Number 10))
+                , test "assignments change state also when inside if condition" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nif(f()){}\nx"
+                            |> isEqLast (Untracked <| Value (Number 10))
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|

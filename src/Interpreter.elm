@@ -122,21 +122,21 @@ runExpression state expr =
                 )
 
         Operation symbol expr0 ->
-            let
-                ( outScope0, _, arg0 ) =
-                    iterate expr0 ( state, emptyState )
-            in
-            applyOperation symbol arg0.result
-                |> preprendStateChanges outScope0 emptyState
+            statefulSession state identity
+                |> thenCapture expr0
+                |> thenRun
+                    (\arg0 ->
+                        applyOperation symbol arg0
+                    )
 
         Operation2 symbol expr0 expr1 ->
-            statefulRun state
-                (\arg0 arg1 ->
-                    applyOperation2 symbol arg0 arg1 trackStack
-                )
+            statefulSession state Tuple.pair
                 |> thenCapture expr0
                 |> thenCapture expr1
-                |> execute
+                |> thenRun
+                    (\( arg0, arg1 ) ->
+                        applyOperation2 symbol arg0 arg1 trackStack
+                    )
 
         Application fn args ->
             let
@@ -160,16 +160,6 @@ runExpression state expr =
             applicationResult
                 |> preprendStateChanges outScope inScope
 
-        -- MapAbstraction param index body ->
-        --     ( state
-        --     , Expression (MapAbstraction param index body)
-        --     )
-        -- SingleArity func e ->
-        --     runSingleArity state func e
-        -- DoubleArity func e1 e2 ->
-        --     ( state, runDoubleArity state func e1 e2 )
-        -- TripleArity func e1 e2 e3 ->
-        --     ( state, runTripleArity state func e1 e2 e3 )
         Block blockExpressions ->
             let
                 ( outScope, result ) =
@@ -188,16 +178,25 @@ runExpression state expr =
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            case eval state condition |> removeTracking of
-                Value val ->
-                    if valueToBool val then
-                        runExpression state exprIfTrue
+            statefulSession state
+                (\result ->
+                    case result |> removeTracking of
+                        Value val ->
+                            valueToBool val
 
-                    else
-                        return (Untracked (Value (Undefined (trackStack IfWithoutElse))))
+                        _ ->
+                            Debug.todo "not implemented yet"
+                )
+                |> thenCapture condition
+                |> thenExecute
+                    (\result ->
+                        if result then
+                            exprIfTrue
 
-                _ ->
-                    Debug.todo "not implemented yet"
+                        else
+                            Untracked (Value (Undefined (trackStack IfWithoutElse)))
+                    )
+                |> unwrap
 
         While condition exprWhile ->
             let
@@ -235,24 +234,13 @@ mergeStates a b =
     { variables = Dict.union a.variables b.variables }
 
 
-type RunResult a
-    = RunResult a ( State, State, LineResult )
+type StatefulResult a
+    = StatefulResult a ( State, State, LineResult )
 
 
-
---               RunResult
---                 (\arg0 arg1 ->
---                     applyOperation2 symbol arg0 arg1 trackStack
---                 )
---                 ( emptyState, emptyState, { outScope = emptyState, inScope = emptyState, result = Untracked <| Value <| Undefined [] } )
---                 |> thenCapture expr0
---                 |> thenCapture expr1
---                 |> execute
-
-
-statefulRun : State -> a -> RunResult a
-statefulRun state a =
-    RunResult a
+statefulSession : State -> a -> StatefulResult a
+statefulSession state a =
+    StatefulResult a
         ( state
         , emptyState
         , { outScope = emptyState
@@ -262,8 +250,8 @@ statefulRun state a =
         )
 
 
-thenCapture : Expression -> RunResult (Expression -> b) -> RunResult b
-thenCapture expr (RunResult fn ( prevOutScope, prevInScope, _ )) =
+thenCapture : Expression -> StatefulResult (Expression -> b) -> StatefulResult b
+thenCapture expr (StatefulResult fn ( prevOutScope, prevInScope, _ )) =
     let
         tripleResult =
             iterate expr ( prevOutScope, prevInScope )
@@ -271,13 +259,23 @@ thenCapture expr (RunResult fn ( prevOutScope, prevInScope, _ )) =
         ( _, _, result ) =
             tripleResult
     in
-    RunResult (fn result.result) tripleResult
+    StatefulResult (fn result.result) tripleResult
 
 
-execute : RunResult LineResult -> LineResult
-execute (RunResult result ( prevOutScope, _, _ )) =
-    result
+thenRun : (a -> LineResult) -> StatefulResult a -> LineResult
+thenRun fn (StatefulResult a ( prevOutScope, _, _ )) =
+    fn a
         |> preprendStateChanges prevOutScope emptyState
+
+
+thenExecute : (a -> Expression) -> StatefulResult a -> StatefulResult ()
+thenExecute fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
+    StatefulResult () (iterate (fn a) ( prevOutScope, prevInScope ))
+
+
+unwrap : StatefulResult a -> LineResult
+unwrap (StatefulResult _ ( _, _, result )) =
+    result
 
 
 iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
