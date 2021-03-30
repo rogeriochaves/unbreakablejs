@@ -36,7 +36,7 @@ run state expressions =
         iterate_ expr acc =
             let
                 statefulResult =
-                    iterate expr acc
+                    statefulExecute expr acc
             in
             { outScope = statefulResult.outScope
             , inScope = statefulResult.inScope
@@ -60,7 +60,7 @@ runBlock state blockExpressions =
             if acc.result == Nothing then
                 let
                     statefulResult =
-                        iterate expr acc
+                        statefulExecute expr acc
 
                     returnValue_ =
                         case expr |> removeTracking of
@@ -237,11 +237,6 @@ statefulSession state =
     }
 
 
-statefulExecute : Expression -> ExpressionResult -> ExpressionResult
-statefulExecute expr statefulResult =
-    iterate expr statefulResult
-
-
 statefulMap : (Value -> Value) -> ExpressionResult -> ExpressionResult
 statefulMap fn session =
     { outScope = session.outScope
@@ -260,8 +255,8 @@ statefulRun expressionResult statefulResult =
     moveStateOutsideScope expressionResult ( statefulResult.outScope, statefulResult.inScope )
 
 
-iterate : Expression -> Stateful a -> ExpressionResult
-iterate expr { outScope, inScope } =
+statefulExecute : Expression -> Stateful a -> ExpressionResult
+statefulExecute expr { outScope, inScope } =
     let
         state =
             mergeStates inScope outScope
@@ -308,7 +303,7 @@ evalList expressions state =
         iterate_ expr acc =
             let
                 statefulResult =
-                    iterate expr acc
+                    statefulExecute expr acc
             in
             Stateful statefulResult.outScope statefulResult.inScope (statefulResult.result :: acc.result)
     in
