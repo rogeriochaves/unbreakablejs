@@ -209,6 +209,10 @@ runExpression state expr =
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
 
+
+-- STATEFUL
+
+
 preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
 preprendStateChanges outScope inScope result =
     ExpressionResult_
@@ -220,10 +224,6 @@ preprendStateChanges outScope inScope result =
 mergeStates : State -> State -> State
 mergeStates a b =
     { variables = Dict.union a.variables b.variables }
-
-
-
--- STATEFUL
 
 
 statefulSession : State -> ExpressionResult
@@ -252,51 +252,9 @@ statefulAndThen fn session =
     fn session.result session
 
 
-
--- let
---     (ExpressionResult fnMap _) =
---         session
---     (ExpressionResult _ ( outScope, inScope, result )) =
---         fn session
--- in
--- ExpressionResult (fnMap result.result) ( outScope, inScope, result )
-
-
 statefulRun : ExpressionResult -> ExpressionResult -> ExpressionResult
-statefulRun exprResult statefulResult =
-    let
-        expressionResult =
-            exprResult
-                |> preprendStateChanges statefulResult.outScope emptyState
-
-        -- TODO: remove this duplication with iterate_
-        outScopeFiltered =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            not (Dict.member identifier statefulResult.inScope.variables)
-                        )
-                        expressionResult.outScope.variables
-                }
-                statefulResult.outScope
-
-        inScopeUpdated =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            Dict.member identifier statefulResult.inScope.variables
-                        )
-                        expressionResult.outScope.variables
-                }
-                (mergeStates expressionResult.inScope statefulResult.inScope)
-    in
-    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
-
-
-
--- /STATEFUL
+statefulRun expressionResult statefulResult =
+    collectState expressionResult ( statefulResult.outScope, statefulResult.inScope )
 
 
 iterate : Expression -> ( State, State ) -> ExpressionResult
@@ -304,10 +262,13 @@ iterate expr ( prevOutScope, prevInScope ) =
     let
         state =
             mergeStates prevInScope prevOutScope
+    in
+    collectState (runExpression state expr) ( prevOutScope, prevInScope )
 
-        expressionResult =
-            runExpression state expr
 
+collectState : ExpressionResult -> ( State, State ) -> ExpressionResult
+collectState expressionResult ( prevOutScope, prevInScope ) =
+    let
         outScopeFiltered =
             mergeStates
                 { variables =
@@ -331,6 +292,10 @@ iterate expr ( prevOutScope, prevInScope ) =
                 (mergeStates expressionResult.inScope prevInScope)
     in
     { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
+
+
+
+-- /STATEFUL
 
 
 evalList : List Expression -> State -> ( State, State, List Value )

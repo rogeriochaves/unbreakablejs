@@ -220,6 +220,10 @@ suite =
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nif(f()){}\nx"
                             |> isEqLast (Number 10)
+                , test "assignments change state also when inside another assignment" <|
+                    \_ ->
+                        parseAndRun "x = 1\nf = () => { x = 10; return 5 }\ny = f()\nx"
+                            |> isEqLast (Number 10)
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
