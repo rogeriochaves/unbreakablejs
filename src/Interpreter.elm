@@ -128,6 +128,7 @@ runExpression state expr =
                     (\arg0 ->
                         applyOperation symbol arg0
                     )
+                |> unwrap
 
         Operation2 symbol expr0 expr1 ->
             statefulSession state Tuple.pair
@@ -137,6 +138,7 @@ runExpression state expr =
                     (\( arg0, arg1 ) ->
                         applyOperation2 symbol arg0 arg1 trackStack
                     )
+                |> unwrap
 
         Application fn args ->
             let
@@ -199,26 +201,34 @@ runExpression state expr =
                 |> unwrap
 
         While condition exprWhile ->
-            let
-                whileLoop : State -> LineResult -> LineResult
-                whileLoop state_ lastResult =
-                    case eval state_ condition |> removeTracking of
+            statefulSession state
+                (\result ->
+                    case result |> removeTracking of
                         Value val ->
-                            if valueToBool val then
-                                let
-                                    -- TODO: we should merge the outScopes. Should we? Cannot create a sample where it would be needed
-                                    result =
-                                        runExpression state_ exprWhile
-                                in
-                                whileLoop (mergeStates result.outScope state_) result
-
-                            else
-                                lastResult
+                            valueToBool val
 
                         _ ->
                             Debug.todo "not implemented yet"
-            in
-            whileLoop state (return <| Untracked (Value (Undefined (trackStack LoopNeverTrue))))
+                )
+                |> thenCapture condition
+                |> thenExecute
+                    (\result ->
+                        if result then
+                            exprWhile
+
+                        else
+                            Untracked (Value (Undefined (trackStack LoopNeverTrue)))
+                    )
+                |> thenExecute
+                    (\result ->
+                        if result then
+                            Untracked (While condition exprWhile)
+
+                        else
+                            -- TODO: while should return last value instead of undefined
+                            Untracked (Value (Undefined (trackStack LoopNeverTrue)))
+                    )
+                |> unwrap
 
 
 preprendStateChanges : State -> State -> LineResult -> LineResult
@@ -262,20 +272,71 @@ thenCapture expr (StatefulResult fn ( prevOutScope, prevInScope, _ )) =
     StatefulResult (fn result.result) tripleResult
 
 
-thenRun : (a -> LineResult) -> StatefulResult a -> LineResult
-thenRun fn (StatefulResult a ( prevOutScope, _, _ )) =
-    fn a
-        |> preprendStateChanges prevOutScope emptyState
+thenRun : (a -> LineResult) -> StatefulResult a -> StatefulResult ()
+thenRun fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
+    let
+        expressionResult =
+            fn a
+                |> preprendStateChanges prevOutScope emptyState
+
+        -- TODO: remove this duplication with iterate_
+        outScopeFiltered =
+            mergeStates
+                { variables =
+                    Dict.filter
+                        (\identifier _ ->
+                            not (Dict.member identifier prevInScope.variables)
+                        )
+                        expressionResult.outScope.variables
+                }
+                prevOutScope
+
+        inScopeUpdated =
+            mergeStates
+                { variables =
+                    Dict.filter
+                        (\identifier _ ->
+                            Dict.member identifier prevInScope.variables
+                        )
+                        expressionResult.outScope.variables
+                }
+                (mergeStates expressionResult.inScope prevInScope)
+    in
+    StatefulResult () ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
-thenExecute : (a -> Expression) -> StatefulResult a -> StatefulResult ()
+thenExecute : (a -> Expression) -> StatefulResult a -> StatefulResult a
 thenExecute fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
-    StatefulResult () (iterate (fn a) ( prevOutScope, prevInScope ))
+    StatefulResult a (iterate (fn a) ( prevOutScope, prevInScope ))
 
 
 unwrap : StatefulResult a -> LineResult
-unwrap (StatefulResult _ ( _, _, result )) =
-    result
+unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
+    let
+        -- TODO: remove this duplication with iterate_
+        outScopeFiltered =
+            mergeStates
+                { variables =
+                    Dict.filter
+                        (\identifier _ ->
+                            not (Dict.member identifier prevInScope.variables)
+                        )
+                        expressionResult.outScope.variables
+                }
+                prevOutScope
+
+        inScopeUpdated =
+            mergeStates
+                { variables =
+                    Dict.filter
+                        (\identifier _ ->
+                            Dict.member identifier prevInScope.variables
+                        )
+                        expressionResult.outScope.variables
+                }
+                (mergeStates expressionResult.inScope prevInScope)
+    in
+    LineResult outScopeFiltered inScopeUpdated expressionResult.result
 
 
 iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
