@@ -408,7 +408,7 @@ update msg model =
                 -- List.Extra.last errs
                 --     -- TODO: map syntax errors
                 --     |> Maybe.map (\e -> ( model.state, Untracked <| Value <| Undefined [] ))
-                runCell : Cell -> Result Error ( Interpreter.State, Maybe Interpreter.LineResult )
+                runCell : Cell -> Result Error ( Interpreter.State, Maybe Interpreter.ExpressionResult )
                 runCell cell_ =
                     if String.isEmpty (String.trim cell_.input) then
                         Ok ( model.state, Nothing )

@@ -1,4 +1,4 @@
-module Interpreter exposing (LineResult, State, emptyState, run)
+module Interpreter exposing (ExpressionResult, State, emptyState, run)
 
 import Dict exposing (Dict)
 import Fuzz exposing (result)
@@ -22,14 +22,18 @@ emptyState =
     }
 
 
-type alias LineResult =
+type alias ExpressionResult =
     { outScope : State, inScope : State, result : Value }
 
 
-run : State -> Types.Program -> ( State, List LineResult )
+type StatefulResult a
+    = StatefulResult a ( State, State, ExpressionResult )
+
+
+run : State -> Types.Program -> ( State, List ExpressionResult )
 run state expressions =
     let
-        iterate_ : Expression -> ( State, State, List LineResult ) -> ( State, State, List LineResult )
+        iterate_ : Expression -> ( State, State, List ExpressionResult ) -> ( State, State, List ExpressionResult )
         iterate_ expr ( outScope, inScope, lineResults ) =
             let
                 ( resultOutScope, resultInScope, expressionResult ) =
@@ -75,7 +79,7 @@ runBlock state blockExpressions =
         |> (\( outScope, _, returnValue ) -> ( outScope, returnValue ))
 
 
-runExpression : State -> Expression -> LineResult
+runExpression : State -> Expression -> ExpressionResult
 runExpression state expr =
     let
         trackStack : UndefinedReason -> List UndefinedTrackInfo
@@ -146,11 +150,11 @@ runExpression state expr =
                     mergeStates inScope (mergeStates outScope state)
 
                 applicationResult =
-                    case eval state fn  of
-                        (Abstraction paramNames functionBody) ->
+                    case eval state fn of
+                        Abstraction paramNames functionBody ->
                             callFunction state_ trackStack ( paramNames, functionBody ) evaluatedArgs
 
-                        (Undefined stacktrace) ->
+                        Undefined stacktrace ->
                             return (Undefined stacktrace)
 
                         _ ->
@@ -164,7 +168,7 @@ runExpression state expr =
                 ( outScope, result ) =
                     runBlock state blockExpressions
             in
-            LineResult outScope
+            ExpressionResult outScope
                 emptyState
                 (result
                     |> Maybe.withDefault (Undefined (trackStack VoidReturn))
@@ -209,9 +213,9 @@ runExpression state expr =
                 |> unwrap
 
 
-preprendStateChanges : State -> State -> LineResult -> LineResult
+preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
 preprendStateChanges outScope inScope result =
-    LineResult
+    ExpressionResult
         (mergeStates result.outScope outScope)
         (mergeStates result.inScope inScope)
         result.result
@@ -220,10 +224,6 @@ preprendStateChanges outScope inScope result =
 mergeStates : State -> State -> State
 mergeStates a b =
     { variables = Dict.union a.variables b.variables }
-
-
-type StatefulResult a
-    = StatefulResult a ( State, State, LineResult )
 
 
 statefulSession : State -> a -> StatefulResult a
@@ -250,7 +250,7 @@ thenCapture expr (StatefulResult fn ( prevOutScope, prevInScope, _ )) =
     StatefulResult (fn result.result) tripleResult
 
 
-thenRun : (a -> LineResult) -> StatefulResult a -> StatefulResult ()
+thenRun : (a -> ExpressionResult) -> StatefulResult a -> StatefulResult ()
 thenRun fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
     let
         expressionResult =
@@ -288,7 +288,7 @@ thenExecute fn (StatefulResult a ( prevOutScope, prevInScope, _ )) =
     StatefulResult a (iterate (fn a) ( prevOutScope, prevInScope ))
 
 
-unwrap : StatefulResult a -> LineResult
+unwrap : StatefulResult a -> ExpressionResult
 unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
     let
         -- TODO: remove this duplication with iterate_
@@ -314,10 +314,10 @@ unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
                 }
                 (mergeStates expressionResult.inScope prevInScope)
     in
-    LineResult outScopeFiltered inScopeUpdated expressionResult.result
+    ExpressionResult outScopeFiltered inScopeUpdated expressionResult.result
 
 
-iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
+iterate : Expression -> ( State, State ) -> ( State, State, ExpressionResult )
 iterate expr ( prevOutScope, prevInScope ) =
     let
         state =
@@ -371,23 +371,23 @@ evalList expressions state =
         |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
-applyOperation : Operation -> Value -> LineResult
+applyOperation : Operation -> Value -> ExpressionResult
 applyOperation operation arg0 =
     case operation of
         Assignment name ->
-            LineResult
+            ExpressionResult
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 emptyState
                 arg0
 
         LetAssignment name ->
-            LineResult
+            ExpressionResult
                 emptyState
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 arg0
 
 
-applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
 applyOperation2 reserved arg0 arg1 trackStack =
     let
         return result =
@@ -519,7 +519,7 @@ boolToNumber bool =
 
 
 
--- runSingleArity : State -> SingleArity -> Expression -> LineResult
+-- runSingleArity : State -> SingleArity -> Expression -> ExpressionResult
 -- runSingleArity state func expr =
 --     case func of
 --         Assignment identifier ->
@@ -621,7 +621,7 @@ boolToNumber bool =
 --             )
 
 
-callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> LineResult
+callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> ExpressionResult
 callFunction state trackStack ( paramNames, functionBody ) args =
     let
         closure =

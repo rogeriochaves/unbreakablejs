@@ -618,7 +618,7 @@ suite =
         ]
 
 
-parseAndRun : String -> Result Error (List LineResult)
+parseAndRun : String -> Result Error (List ExpressionResult)
 parseAndRun code =
     AstParser.parse "test.us" code
         |> Result.map (Interpreter.run emptyState >> Tuple.second)
