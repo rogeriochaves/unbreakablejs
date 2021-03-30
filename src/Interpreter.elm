@@ -124,21 +124,21 @@ runExpression state expr =
 
         Operation symbol expr0 ->
             statefulSession state identity
-                |> statefulExecute expr0
-                |> (\session ->
-                        statefulRun (applyOperation symbol (statefulGetResult session)) session
-                   )
+                |> statefulCapture (statefulExecute expr0)
+                |> statefulMap
+                    (\arg0 ->
+                        statefulRun (applyOperation symbol arg0)
+                    )
                 |> unwrap
 
         Operation2 symbol expr0 expr1 ->
-            statefulSession state identity
-                |> statefulExecute expr0
-                |> (\session ->
-                        ( session, statefulExecute expr1 session )
-                   )
-                |> (\( arg0, session ) ->
-                        statefulRun (applyOperation2 symbol (statefulGetResult arg0) (statefulGetResult session) trackStack) session
-                   )
+            statefulSession state Tuple.pair
+                |> statefulCapture (statefulExecute expr0)
+                |> statefulCapture (statefulExecute expr1)
+                |> statefulMap
+                    (\( arg0, arg1 ) ->
+                        statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
+                    )
                 |> unwrap
 
         Application fn args ->
@@ -179,33 +179,36 @@ runExpression state expr =
 
         IfCondition condition exprIfTrue ->
             statefulSession state identity
-                |> statefulExecute condition
-                |> (\session ->
-                        if valueToBool (statefulGetResult session) then
-                            statefulExecute exprIfTrue session
+                |> statefulCapture (statefulExecute condition)
+                |> statefulMap
+                    (\conditionResult ->
+                        if valueToBool conditionResult then
+                            statefulExecute exprIfTrue
 
                         else
-                            statefulExecute (Untracked (Value (Undefined (trackStack IfWithoutElse)))) session
-                   )
+                            statefulExecute (Untracked (Value (Undefined (trackStack IfWithoutElse))))
+                    )
                 |> unwrap
 
         While condition exprWhile ->
             statefulSession state identity
-                |> statefulExecute condition
-                |> (\session ->
-                        if valueToBool (statefulGetResult session) then
-                            ( session, statefulExecute exprWhile session )
+                |> statefulCapture (statefulExecute condition)
+                |> statefulMap
+                    (\conditionResult ->
+                        if valueToBool conditionResult then
+                            statefulExecute exprWhile
 
                         else
-                            ( session, statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue)))) session )
-                   )
-                |> (\( result, session ) ->
-                        if valueToBool (statefulGetResult result) then
-                            statefulExecute (Untracked (While condition exprWhile)) session
+                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue))))
+                    )
+                |> statefulMap
+                    (\conditionResult ->
+                        if valueToBool conditionResult then
+                            statefulExecute (Untracked (While condition exprWhile))
 
                         else
-                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue)))) session
-                   )
+                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue))))
+                    )
                 |> unwrap
 
 
@@ -247,9 +250,28 @@ statefulExecute expr (StatefulResult a ( prevOutScope, prevInScope, _ )) =
     StatefulResult a tripleResult
 
 
-statefulGetResult : StatefulResult a -> Value
-statefulGetResult (StatefulResult _ ( _, _, result )) =
-    result.result
+statefulMap : (a -> StatefulResult a -> StatefulResult b) -> StatefulResult a -> StatefulResult a
+statefulMap fn session =
+    let
+        (StatefulResult a _) =
+            session
+
+        (StatefulResult _ result) =
+            fn a session
+    in
+    StatefulResult a result
+
+
+statefulCapture : (StatefulResult (Value -> b) -> StatefulResult x) -> StatefulResult (Value -> b) -> StatefulResult b
+statefulCapture fn session =
+    let
+        (StatefulResult fnMap _) =
+            session
+
+        (StatefulResult _ ( outScope, inScope, result )) =
+            fn session
+    in
+    StatefulResult (fnMap result.result) ( outScope, inScope, result )
 
 
 statefulRun : ExpressionResult -> StatefulResult a -> StatefulResult a
