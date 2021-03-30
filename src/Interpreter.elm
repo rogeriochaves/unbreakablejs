@@ -26,8 +26,8 @@ type alias ExpressionResult =
     { outScope : State, inScope : State, result : Value }
 
 
-type StatefulResult a
-    = StatefulResult a ( State, State, ExpressionResult )
+type alias StatefulResult =
+    ( State, State, ExpressionResult )
 
 
 run : State -> Types.Program -> ( State, List ExpressionResult )
@@ -123,21 +123,24 @@ runExpression state expr =
                 )
 
         Operation symbol expr0 ->
-            statefulSession state identity
-                |> statefulCapture (statefulExecute expr0)
-                |> statefulMap
+            statefulSession state
+                |> statefulExecute expr0
+                |> statefulAndThen
                     (\arg0 ->
                         statefulRun (applyOperation symbol arg0)
                     )
                 |> unwrap
 
         Operation2 symbol expr0 expr1 ->
-            statefulSession state Tuple.pair
-                |> statefulCapture (statefulExecute expr0)
-                |> statefulCapture (statefulExecute expr1)
-                |> statefulMap
-                    (\( arg0, arg1 ) ->
-                        statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
+            statefulSession state
+                |> statefulExecute expr0
+                |> statefulAndThen
+                    (\arg0 ->
+                        statefulExecute expr1
+                            >> statefulAndThen
+                                (\arg1 ->
+                                    statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
+                                )
                     )
                 |> unwrap
 
@@ -178,9 +181,9 @@ runExpression state expr =
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            statefulSession state identity
-                |> statefulCapture (statefulExecute condition)
-                |> statefulMap
+            statefulSession state
+                |> statefulExecute condition
+                |> statefulAndThen
                     (\conditionResult ->
                         if valueToBool conditionResult then
                             statefulExecute exprIfTrue
@@ -191,24 +194,23 @@ runExpression state expr =
                 |> unwrap
 
         While condition exprWhile ->
-            statefulSession state identity
-                |> statefulCapture (statefulExecute condition)
-                |> statefulMap
-                    (\conditionResult ->
-                        if valueToBool conditionResult then
-                            statefulExecute exprWhile
+            let
+                whileLoop : Value -> StatefulResult -> StatefulResult
+                whileLoop prevResult session =
+                    session
+                        |> statefulExecute condition
+                        |> statefulAndThen
+                            (\conditionResult ->
+                                if valueToBool conditionResult then
+                                    statefulExecute exprWhile
+                                        >> statefulAndThen whileLoop
 
-                        else
-                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue))))
-                    )
-                |> statefulMap
-                    (\conditionResult ->
-                        if valueToBool conditionResult then
-                            statefulExecute (Untracked (While condition exprWhile))
-
-                        else
-                            statefulExecute (Untracked (Value (Undefined (trackStack LoopNeverTrue))))
-                    )
+                                else
+                                    statefulMap (\_ -> prevResult)
+                            )
+            in
+            statefulSession state
+                |> whileLoop (Undefined (trackStack LoopNeverTrue))
                 |> unwrap
 
 
@@ -229,53 +231,55 @@ mergeStates a b =
 -- STATEFUL
 
 
-statefulSession : State -> a -> StatefulResult a
-statefulSession state a =
-    StatefulResult a
-        ( state
-        , emptyState
-        , { outScope = emptyState
-          , inScope = emptyState
-          , result = Undefined []
-          }
-        )
+statefulSession : State -> StatefulResult
+statefulSession state =
+    ( state
+    , emptyState
+    , { outScope = emptyState
+      , inScope = emptyState
+      , result = Undefined []
+      }
+    )
 
 
-statefulExecute : Expression -> StatefulResult a -> StatefulResult a
-statefulExecute expr (StatefulResult a ( prevOutScope, prevInScope, _ )) =
-    let
-        tripleResult =
-            iterate expr ( prevOutScope, prevInScope )
-    in
-    StatefulResult a tripleResult
+statefulExecute : Expression -> StatefulResult -> StatefulResult
+statefulExecute expr ( prevOutScope, prevInScope, _ ) =
+    iterate expr ( prevOutScope, prevInScope )
 
 
-statefulMap : (a -> StatefulResult a -> StatefulResult b) -> StatefulResult a -> StatefulResult a
+statefulMap : (Value -> Value) -> StatefulResult -> StatefulResult
 statefulMap fn session =
     let
-        (StatefulResult a _) =
+        ( outScope, inScope, prevResult ) =
             session
-
-        (StatefulResult _ result) =
-            fn a session
     in
-    StatefulResult a result
+    ( outScope, inScope, { prevResult | result = fn prevResult.result } )
 
 
-statefulCapture : (StatefulResult (Value -> b) -> StatefulResult x) -> StatefulResult (Value -> b) -> StatefulResult b
-statefulCapture fn session =
+statefulAndThen : (Value -> StatefulResult -> StatefulResult) -> StatefulResult -> StatefulResult
+statefulAndThen fn session =
     let
-        (StatefulResult fnMap _) =
+        ( _, _, prevResult ) =
             session
 
-        (StatefulResult _ ( outScope, inScope, result )) =
-            fn session
+        result =
+            fn prevResult.result session
     in
-    StatefulResult (fnMap result.result) ( outScope, inScope, result )
+    result
 
 
-statefulRun : ExpressionResult -> StatefulResult a -> StatefulResult a
-statefulRun exprResult (StatefulResult a ( prevOutScope, prevInScope, _ )) =
+
+-- let
+--     (StatefulResult fnMap _) =
+--         session
+--     (StatefulResult _ ( outScope, inScope, result )) =
+--         fn session
+-- in
+-- StatefulResult (fnMap result.result) ( outScope, inScope, result )
+
+
+statefulRun : ExpressionResult -> StatefulResult -> StatefulResult
+statefulRun exprResult ( prevOutScope, prevInScope, _ ) =
     let
         expressionResult =
             exprResult
@@ -304,11 +308,11 @@ statefulRun exprResult (StatefulResult a ( prevOutScope, prevInScope, _ )) =
                 }
                 (mergeStates expressionResult.inScope prevInScope)
     in
-    StatefulResult a ( outScopeFiltered, inScopeUpdated, expressionResult )
+    ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
-unwrap : StatefulResult a -> ExpressionResult
-unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
+unwrap : StatefulResult -> ExpressionResult
+unwrap ( prevOutScope, prevInScope, expressionResult ) =
     let
         -- TODO: remove this duplication with iterate_
         outScopeFiltered =
@@ -340,7 +344,7 @@ unwrap (StatefulResult _ ( prevOutScope, prevInScope, expressionResult )) =
 -- /STATEFUL
 
 
-iterate : Expression -> ( State, State ) -> ( State, State, ExpressionResult )
+iterate : Expression -> ( State, State ) -> StatefulResult
 iterate expr ( prevOutScope, prevInScope ) =
     let
         state =
