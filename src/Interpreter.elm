@@ -7,7 +7,6 @@ import List.Extra
 import Parser exposing (Problem(..))
 import Return
 import Test.Runner.Failure exposing (Reason(..))
-import Tuple
 import Types exposing (..)
 
 
@@ -22,12 +21,16 @@ emptyState =
     }
 
 
-type alias ExpressionResult =
-    { outScope : State, inScope : State, result : Value }
-
-
 type alias StatefulResult =
-    ( State, State, ExpressionResult )
+    ExpressionResult_ (ExpressionResult_ Value)
+
+
+type alias ExpressionResult =
+    ExpressionResult_ Value
+
+
+type alias ExpressionResult_ a =
+    { outScope : State, inScope : State, result : a }
 
 
 run : State -> Types.Program -> ( State, List ExpressionResult )
@@ -36,10 +39,10 @@ run state expressions =
         iterate_ : Expression -> ( State, State, List ExpressionResult ) -> ( State, State, List ExpressionResult )
         iterate_ expr ( outScope, inScope, lineResults ) =
             let
-                ( resultOutScope, resultInScope, expressionResult ) =
+                statefulResult =
                     iterate expr ( outScope, inScope )
             in
-            ( resultOutScope, resultInScope, expressionResult :: lineResults )
+            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result :: lineResults )
     in
     expressions
         |> List.foldl iterate_ ( state, emptyState, [] )
@@ -57,18 +60,18 @@ runBlock state blockExpressions =
         iterate_ expr ( outScope, inScope, returnValue ) =
             if returnValue == Nothing then
                 let
-                    ( resultOutScope, resultInScope, expressionResult ) =
+                    statefulResult =
                         iterate expr ( outScope, inScope )
 
                     returnValue_ =
                         case expr |> removeTracking of
                             Return _ ->
-                                Just expressionResult.result
+                                Just statefulResult.result.result
 
                             _ ->
                                 Nothing
                 in
-                ( resultOutScope, resultInScope, returnValue_ )
+                ( statefulResult.outScope, statefulResult.inScope, returnValue_ )
 
             else
                 ( outScope, inScope, returnValue )
@@ -171,7 +174,7 @@ runExpression state expr =
                 ( outScope, result ) =
                     runBlock state blockExpressions
             in
-            ExpressionResult outScope
+            ExpressionResult_ outScope
                 emptyState
                 (result
                     |> Maybe.withDefault (Undefined (trackStack VoidReturn))
@@ -216,7 +219,7 @@ runExpression state expr =
 
 preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
 preprendStateChanges outScope inScope result =
-    ExpressionResult
+    ExpressionResult_
         (mergeStates result.outScope outScope)
         (mergeStates result.inScope inScope)
         result.result
@@ -233,39 +236,36 @@ mergeStates a b =
 
 statefulSession : State -> StatefulResult
 statefulSession state =
-    ( state
-    , emptyState
-    , { outScope = emptyState
-      , inScope = emptyState
-      , result = Undefined []
-      }
-    )
+    { outScope = state
+    , inScope = emptyState
+    , result =
+        { outScope = emptyState
+        , inScope = emptyState
+        , result = Undefined []
+        }
+    }
 
 
 statefulExecute : Expression -> StatefulResult -> StatefulResult
-statefulExecute expr ( prevOutScope, prevInScope, _ ) =
-    iterate expr ( prevOutScope, prevInScope )
+statefulExecute expr statefulResult =
+    iterate expr ( statefulResult.outScope, statefulResult.inScope )
 
 
 statefulMap : (Value -> Value) -> StatefulResult -> StatefulResult
 statefulMap fn session =
     let
-        ( outScope, inScope, prevResult ) =
-            session
+        prevResult =
+            session.result
     in
-    ( outScope, inScope, { prevResult | result = fn prevResult.result } )
+    { outScope = session.outScope
+    , inScope = session.inScope
+    , result = { prevResult | result = fn prevResult.result }
+    }
 
 
 statefulAndThen : (Value -> StatefulResult -> StatefulResult) -> StatefulResult -> StatefulResult
 statefulAndThen fn session =
-    let
-        ( _, _, prevResult ) =
-            session
-
-        result =
-            fn prevResult.result session
-    in
-    result
+    fn session.result.result session
 
 
 
@@ -279,11 +279,11 @@ statefulAndThen fn session =
 
 
 statefulRun : ExpressionResult -> StatefulResult -> StatefulResult
-statefulRun exprResult ( prevOutScope, prevInScope, _ ) =
+statefulRun exprResult statefulResult =
     let
         expressionResult =
             exprResult
-                |> preprendStateChanges prevOutScope emptyState
+                |> preprendStateChanges statefulResult.outScope emptyState
 
         -- TODO: remove this duplication with iterate_
         outScopeFiltered =
@@ -291,53 +291,29 @@ statefulRun exprResult ( prevOutScope, prevInScope, _ ) =
                 { variables =
                     Dict.filter
                         (\identifier _ ->
-                            not (Dict.member identifier prevInScope.variables)
+                            not (Dict.member identifier statefulResult.inScope.variables)
                         )
                         expressionResult.outScope.variables
                 }
-                prevOutScope
+                statefulResult.outScope
 
         inScopeUpdated =
             mergeStates
                 { variables =
                     Dict.filter
                         (\identifier _ ->
-                            Dict.member identifier prevInScope.variables
+                            Dict.member identifier statefulResult.inScope.variables
                         )
                         expressionResult.outScope.variables
                 }
-                (mergeStates expressionResult.inScope prevInScope)
+                (mergeStates expressionResult.inScope statefulResult.inScope)
     in
-    ( outScopeFiltered, inScopeUpdated, expressionResult )
+    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult }
 
 
 unwrap : StatefulResult -> ExpressionResult
-unwrap ( prevOutScope, prevInScope, expressionResult ) =
-    let
-        -- TODO: remove this duplication with iterate_
-        outScopeFiltered =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            not (Dict.member identifier prevInScope.variables)
-                        )
-                        expressionResult.outScope.variables
-                }
-                prevOutScope
-
-        inScopeUpdated =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            Dict.member identifier prevInScope.variables
-                        )
-                        expressionResult.outScope.variables
-                }
-                (mergeStates expressionResult.inScope prevInScope)
-    in
-    ExpressionResult outScopeFiltered inScopeUpdated expressionResult.result
+unwrap statefulResult =
+    statefulResult.result
 
 
 
@@ -375,7 +351,7 @@ iterate expr ( prevOutScope, prevInScope ) =
                 }
                 (mergeStates expressionResult.inScope prevInScope)
     in
-    ( outScopeFiltered, inScopeUpdated, expressionResult )
+    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult }
 
 
 evalList : List Expression -> State -> ( State, State, List Value )
@@ -384,10 +360,10 @@ evalList expressions state =
         iterate_ : Expression -> ( State, State, List Value ) -> ( State, State, List Value )
         iterate_ expr ( outScope, inScope, results ) =
             let
-                ( resultOutScope, resultInScope, expressionResult ) =
+                statefulResult =
                     iterate expr ( outScope, inScope )
             in
-            ( resultOutScope, resultInScope, expressionResult.result :: results )
+            ( statefulResult.outScope, statefulResult.inScope, statefulResult.result.result :: results )
     in
     expressions
         |> List.foldl iterate_
@@ -402,13 +378,13 @@ applyOperation : Operation -> Value -> ExpressionResult
 applyOperation operation arg0 =
     case operation of
         Assignment name ->
-            ExpressionResult
+            ExpressionResult_
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 emptyState
                 arg0
 
         LetAssignment name ->
-            ExpressionResult
+            ExpressionResult_
                 emptyState
                 { variables = Dict.fromList [ ( name, arg0 ) ] }
                 arg0
