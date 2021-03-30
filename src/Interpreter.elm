@@ -23,7 +23,7 @@ emptyState =
 
 
 type alias LineResult =
-    { outScope : State, inScope : State, result : Expression }
+    { outScope : State, inScope : State, result : Value }
 
 
 run : State -> Types.Program -> ( State, List LineResult )
@@ -46,10 +46,10 @@ run state expressions =
            )
 
 
-runBlock : State -> List Expression -> ( State, Maybe Expression )
+runBlock : State -> List Expression -> ( State, Maybe Value )
 runBlock state blockExpressions =
     let
-        iterate_ : Expression -> ( State, State, Maybe Expression ) -> ( State, State, Maybe Expression )
+        iterate_ : Expression -> ( State, State, Maybe Value ) -> ( State, State, Maybe Value )
         iterate_ expr ( outScope, inScope, returnValue ) =
             if returnValue == Nothing then
                 let
@@ -92,33 +92,30 @@ runExpression state expr =
     in
     case expr |> removeTracking of
         Value (Vector items) ->
-            let
-                appendOrLiftError curr acc =
-                    case ( acc, curr ) of
-                        ( Vector items_, e ) ->
-                            Vector (items_ ++ [ e ])
+            Debug.todo "vector not supported yet"
 
-                        _ ->
-                            acc
-            in
-            return
-                (evalList items state
-                    -- TODO: do not ignore state updates
-                    |> (\( _, _, results ) -> results)
-                    |> List.foldl appendOrLiftError (Vector [])
-                    |> Value
-                    |> Untracked
-                )
-
+        -- let
+        --     appendOrLiftError : Value -> Value -> Value
+        --     appendOrLiftError curr acc =
+        --         case ( acc, curr ) of
+        --             ( Vector items_, e ) ->
+        --                 Vector (items_ ++ [ e ])
+        --             _ ->
+        --                 acc
+        -- in
+        -- return
+        --     (evalList items state
+        --         -- TODO: do not ignore state updates
+        --         |> (\( _, _, results ) -> results)
+        --         |> List.foldl appendOrLiftError (Vector [])
+        --     )
         Value val ->
-            return (Untracked (Value val))
+            return val
 
         Variable identifier ->
             return
                 (Dict.get identifier state.variables
-                    |> Maybe.map Value
-                    |> Maybe.withDefault (Value (Undefined (trackStack <| VariableNotDefined identifier)))
-                    |> Untracked
+                    |> Maybe.withDefault (Undefined (trackStack <| VariableNotDefined identifier))
                 )
 
         Operation symbol expr0 ->
@@ -149,12 +146,12 @@ runExpression state expr =
                     mergeStates inScope (mergeStates outScope state)
 
                 applicationResult =
-                    case eval state fn |> removeTracking of
-                        Value (Abstraction paramNames functionBody) ->
+                    case eval state fn  of
+                        (Abstraction paramNames functionBody) ->
                             callFunction state_ trackStack ( paramNames, functionBody ) evaluatedArgs
 
-                        Value (Undefined stacktrace) ->
-                            return (Untracked (Value (Undefined stacktrace)))
+                        (Undefined stacktrace) ->
+                            return (Undefined stacktrace)
 
                         _ ->
                             Debug.todo "not implemented"
@@ -170,25 +167,14 @@ runExpression state expr =
             LineResult outScope
                 emptyState
                 (result
-                    |> Maybe.withDefault
-                        (Untracked
-                            (Value (Undefined (trackStack VoidReturn)))
-                        )
+                    |> Maybe.withDefault (Undefined (trackStack VoidReturn))
                 )
 
         Return returnExpr ->
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            statefulSession state
-                (\result ->
-                    case result |> removeTracking of
-                        Value val ->
-                            valueToBool val
-
-                        _ ->
-                            Debug.todo "not implemented yet"
-                )
+            statefulSession state valueToBool
                 |> thenCapture condition
                 |> thenExecute
                     (\result ->
@@ -201,15 +187,7 @@ runExpression state expr =
                 |> unwrap
 
         While condition exprWhile ->
-            statefulSession state
-                (\result ->
-                    case result |> removeTracking of
-                        Value val ->
-                            valueToBool val
-
-                        _ ->
-                            Debug.todo "not implemented yet"
-                )
+            statefulSession state valueToBool
                 |> thenCapture condition
                 |> thenExecute
                     (\result ->
@@ -255,12 +233,12 @@ statefulSession state a =
         , emptyState
         , { outScope = emptyState
           , inScope = emptyState
-          , result = Untracked <| Value <| Undefined []
+          , result = Undefined []
           }
         )
 
 
-thenCapture : Expression -> StatefulResult (Expression -> b) -> StatefulResult b
+thenCapture : Expression -> StatefulResult (Value -> b) -> StatefulResult b
 thenCapture expr (StatefulResult fn ( prevOutScope, prevInScope, _ )) =
     let
         tripleResult =
@@ -373,10 +351,10 @@ iterate expr ( prevOutScope, prevInScope ) =
     ( outScopeFiltered, inScopeUpdated, expressionResult )
 
 
-evalList : List Expression -> State -> ( State, State, List Expression )
+evalList : List Expression -> State -> ( State, State, List Value )
 evalList expressions state =
     let
-        iterate_ : Expression -> ( State, State, List Expression ) -> ( State, State, List Expression )
+        iterate_ : Expression -> ( State, State, List Value ) -> ( State, State, List Value )
         iterate_ expr ( outScope, inScope, results ) =
             let
                 ( resultOutScope, resultInScope, expressionResult ) =
@@ -393,33 +371,23 @@ evalList expressions state =
         |> (\( a, b, results ) -> ( a, b, List.reverse results ))
 
 
-applyOperation : Operation -> Expression -> LineResult
+applyOperation : Operation -> Value -> LineResult
 applyOperation operation arg0 =
     case operation of
         Assignment name ->
-            case arg0 |> removeTracking of
-                Value val ->
-                    LineResult
-                        { variables = Dict.fromList [ ( name, val ) ] }
-                        emptyState
-                        (Untracked (Value val))
-
-                _ ->
-                    Debug.todo "not implemented"
+            LineResult
+                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                emptyState
+                arg0
 
         LetAssignment name ->
-            case arg0 |> removeTracking of
-                Value val ->
-                    LineResult
-                        emptyState
-                        { variables = Dict.fromList [ ( name, val ) ] }
-                        (Untracked (Value val))
-
-                _ ->
-                    Debug.todo "not implemented"
+            LineResult
+                emptyState
+                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                arg0
 
 
-applyOperation2 : Operation2 -> Expression -> Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
+applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
 applyOperation2 reserved arg0 arg1 trackStack =
     let
         return result =
@@ -434,72 +402,61 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
         SoftEquality ->
             let
-                wrap =
-                    Untracked << Value << Boolean
-
                 trackStack_ =
                     trackStack (OperationWithUndefined "equality")
             in
             return
-                (case ( removeTracking arg0, removeTracking arg1 ) of
-                    ( Value (Number a), Value (Number b) ) ->
-                        wrap (a == b)
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a == b)
 
-                    ( Value (Boolean a), Value v ) ->
-                        wrap (comparisonWithBool v a)
+                    ( Boolean a, v ) ->
+                        Boolean (comparisonWithBool v a)
 
-                    ( Value v, Value (Boolean a) ) ->
-                        wrap (comparisonWithBool v a)
+                    ( v, Boolean a ) ->
+                        Boolean (comparisonWithBool v a)
 
-                    ( Value (Undefined stack), _ ) ->
-                        Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( Undefined stack, _ ) ->
+                        Undefined (stack ++ trackStack_)
 
-                    ( _, Value (Undefined stack) ) ->
-                        Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( _, Undefined stack ) ->
+                        Undefined (stack ++ trackStack_)
 
                     _ ->
                         -- TODO: what about true == 1? 0 == false? "1" == 1
-                        Untracked (Value (Undefined trackStack_))
+                        Undefined trackStack_
                 )
 
         GreaterThan ->
-            let
-                wrap =
-                    Untracked << Value << Boolean
-            in
             return
-                (case ( removeTracking arg0, removeTracking arg1 ) of
-                    ( Value (Number a), Value (Number b) ) ->
-                        wrap (a > b)
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a > b)
 
-                    ( Value (Number a), Value (Boolean b) ) ->
-                        wrap (a > boolToNumber b)
+                    ( Number a, Boolean b ) ->
+                        Boolean (a > boolToNumber b)
 
-                    ( Value (Boolean a), Value (Number b) ) ->
-                        wrap (boolToNumber a > b)
+                    ( Boolean a, Number b ) ->
+                        Boolean (boolToNumber a > b)
 
                     _ ->
-                        wrap False
+                        Boolean False
                 )
 
         SmallerThan ->
-            let
-                wrap =
-                    Untracked << Value << Boolean
-            in
             return
-                (case ( removeTracking arg0, removeTracking arg1 ) of
-                    ( Value (Number a), Value (Number b) ) ->
-                        wrap (a < b)
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a < b)
 
-                    ( Value (Number a), Value (Boolean b) ) ->
-                        wrap (a < boolToNumber b)
+                    ( Number a, Boolean b ) ->
+                        Boolean (a < boolToNumber b)
 
-                    ( Value (Boolean a), Value (Number b) ) ->
-                        wrap (boolToNumber a < b)
+                    ( Boolean a, Number b ) ->
+                        Boolean (boolToNumber a < b)
 
                     _ ->
-                        wrap False
+                        Boolean False
                 )
 
 
@@ -664,7 +621,7 @@ boolToNumber bool =
 --             )
 
 
-callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Expression -> LineResult
+callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> LineResult
 callFunction state trackStack ( paramNames, functionBody ) args =
     let
         closure =
@@ -674,12 +631,7 @@ callFunction state trackStack ( paramNames, functionBody ) args =
                         trackStack_ =
                             trackStack (MissingPositionalArgument index paramName)
                     in
-                    case Return.argOrDefault trackStack_ index args |> removeTracking of
-                        Value val ->
-                            setVariable paramName val state_
-
-                        _ ->
-                            Debug.todo "not implemented"
+                    setVariable paramName (Return.argOrDefault trackStack_ index args) state_
                 )
                 state
                 paramNames
@@ -835,7 +787,7 @@ mapTracking fn expr =
 --                 (eval state expr2)
 
 
-eval : State -> Expression -> Expression
+eval : State -> Expression -> Value
 eval state =
     runExpression state >> .result
 

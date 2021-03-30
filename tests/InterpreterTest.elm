@@ -30,15 +30,15 @@ suite =
             [ test "sum integer numbers" <|
                 \_ ->
                     parseAndRun "1 + 1"
-                        |> isEq (Untracked <| Value (Number 2))
+                        |> isEq (Number 2)
             , test "sum float numbers" <|
                 \_ ->
                     parseAndRun "1.5 + 1.3"
-                        |> isEq (Untracked <| Value (Number 2.8))
+                        |> isEq (Number 2.8)
             , test "execute nested expressions" <|
                 \_ ->
                     parseAndRun "1 - (3 - 2)"
-                        |> isEq (Untracked <| Value (Number 0))
+                        |> isEq (Number 0)
 
             --     , test "respects math priority" <|
             --         \_ ->
@@ -154,75 +154,72 @@ suite =
                 [ test "parses a simple assignment and return the result" <|
                     \_ ->
                         parseAndRun "x = 2 + 2"
-                            |> isEq (Untracked <| Value (Number 4))
+                            |> isEq (Number 4)
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
-                            |> isEqLast (Untracked <| Value (Number 5))
+                            |> isEqLast (Number 5)
                 , test "interprets a let assignment" <|
                     \_ ->
                         parseAndRun "let x = 1\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "keeps let assignment inside scope" <|
                     \_ ->
                         parseAndRun "fn = () => { let x = 1 }\nfn()\nx"
                             |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
-                                )
+                                (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
                 , test "but non-let assignments modify outside scope" <|
                     \_ ->
                         parseAndRun "fn = () => { x = 1 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "but allows mutations if defined on higher scope" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { x = 2 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 2))
+                            |> isEqLast (Number 2)
                 , test "although keeping to local scope if there is shadowing" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "and reassignment without let" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3 }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "values can outlive the scope" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3\nreturn x }\nfn()"
-                            |> isEqLast (Untracked <| Value (Number 3))
+                            |> isEqLast (Number 3)
                 , test "and changed on different levels" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "and changed on different levels and outlive the innermost scopes" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()"
-                            |> isEqLast (Untracked <| Value (Number 3))
+                            |> isEqLast (Number 3)
                 , test "assignments change state also when inside function arguments" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng(f())\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 , test "assignments change state also when inside function arguments #2" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => {}\ng(f())\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 , test "assignments change state also when inside function arguments #3" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10\nreturn 5 }\nz = f()\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 , test "assignments change state also when inside function arguments #4" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => x\ng(f())\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 , test "assignments change state also when inside operation arguments" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nf() + x\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 , test "assignments change state also when inside if condition" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nif(f()){}\nx"
-                            |> isEqLast (Untracked <| Value (Number 10))
+                            |> isEqLast (Number 10)
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
@@ -250,17 +247,14 @@ suite =
                             |> Result.map (List.map .result)
                             |> Expect.equal
                                 (Ok
-                                    [ Untracked <|
-                                        Value
-                                            (Abstraction [ "x" ]
-                                                (tracked ( 1, 14 )
-                                                    (Operation2 Addition
-                                                        (tracked ( 1, 12 ) (Variable "x"))
-                                                        (Untracked (Value (Number 1)))
-                                                    )
-                                                )
+                                    [ Abstraction [ "x" ]
+                                        (tracked ( 1, 14 )
+                                            (Operation2 Addition
+                                                (tracked ( 1, 12 ) (Variable "x"))
+                                                (Untracked (Value (Number 1)))
                                             )
-                                    , Untracked <| Value (Number 6)
+                                        )
+                                    , Number 6
                                     ]
                                 )
 
@@ -273,53 +267,41 @@ suite =
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
                             |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined
-                                            [ undefinedTrack ( 2, 2 ) (MissingPositionalArgument 1 "y")
-                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
-                                            ]
-                                        )
+                                (Undefined
+                                    [ undefinedTrack ( 2, 2 ) (MissingPositionalArgument 1 "y")
+                                    , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                    ]
                                 )
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
-                            |> isEq (Untracked <| Value (Undefined [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f") ]))
+                            |> isEq (Undefined [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f") ])
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
                             |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined
-                                            [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
-                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
-                                            ]
-                                        )
+                                (Undefined
+                                    [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
+                                    , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                    ]
                                 )
                 , test "accumulates undefined stack of functions" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
                             |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined
-                                            [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
-                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
-                                            ]
-                                        )
+                                (Undefined
+                                    [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
+                                    , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                    ]
                                 )
                 , test "accumulates undefined stack on second param" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
                             |> isEqLast
-                                (Untracked <|
-                                    Value
-                                        (Undefined
-                                            [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g")
-                                            , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
-                                            ]
-                                        )
+                                (Undefined
+                                    [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g")
+                                    , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
+                                    ]
                                 )
                 ]
 
@@ -482,15 +464,15 @@ suite =
                 [ test "evaluates blocks" <|
                     \_ ->
                         parseAndRun "{\nx = 1\nx + 2}"
-                            |> isEq (Untracked <| Value (Undefined [ undefinedTrack ( 3, 7 ) VoidReturn ]))
+                            |> isEq (Undefined [ undefinedTrack ( 3, 7 ) VoidReturn ])
                 , test "returns the value given to return" <|
                     \_ ->
                         parseAndRun "f = (x) => { return x + 2 }\nf(1)"
-                            |> isEqLast (Untracked <| Value (Number 3))
+                            |> isEqLast (Number 3)
                 , test "stops at early return" <|
                     \_ ->
                         parseAndRun "f = (x) => { return x + 2\nreturn 5 }\nf(1)"
-                            |> isEqLast (Untracked <| Value (Number 3))
+                            |> isEqLast (Number 3)
 
                 -- , test "evaluates multiple blocks" <|
                 --     \_ ->
@@ -501,131 +483,131 @@ suite =
                 [ test "evaluates number equality" <|
                     \_ ->
                         parseAndRun "1 + 1 == 2"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "evaluates false number equality" <|
                     \_ ->
                         parseAndRun "1 + 1 == 3"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "evaluates boolean equality" <|
                     \_ ->
                         parseAndRun "true == true"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "numbers are not true" <|
                     \_ ->
                         parseAndRun "5 == true"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "but they are also not false" <|
                     \_ ->
                         parseAndRun "5 == false"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "except 1, which is true" <|
                     \_ ->
                         parseAndRun "1 == true"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "and 0, which is false" <|
                     \_ ->
                         parseAndRun "0 == false"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "functions are not true" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nfn == true"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "nor functions are false" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nfn == false"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "undefined is not true" <|
                     \_ ->
                         parseAndRun "x == true"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "nor undefined is false" <|
                     \_ ->
                         parseAndRun "x == false"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "evaluates number smaller than" <|
                     \_ ->
                         parseAndRun "1 < 2"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "evaluates number greater than" <|
                     \_ ->
                         parseAndRun "2 > 1"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "true is greater than 0, because apparently it gets converted to 1" <|
                     \_ ->
                         parseAndRun "true > 0"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "true is smaller than 2, because apparently it gets converted to 1" <|
                     \_ ->
                         parseAndRun "true < 2"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "false is greater than -1, because apparently it gets converted to 0" <|
                     \_ ->
                         parseAndRun "false > 0 - 1"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "false is smaller than 1, because apparently it gets converted to 0" <|
                     \_ ->
                         parseAndRun "false < 1"
-                            |> isEqLast (Untracked <| Value (Boolean True))
+                            |> isEqLast (Boolean True)
                 , test "undefined is not smaller than a number" <|
                     \_ ->
                         parseAndRun "undefined < 1"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "undefined is not greater than a number" <|
                     \_ ->
                         parseAndRun "undefined > 0 - 1"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "function is not smaller than a number" <|
                     \_ ->
                         parseAndRun "fn = () => {}; fn < 1"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 , test "function is not greater than a number" <|
                     \_ ->
                         parseAndRun "fn = () => {}; fn > 0 - 1"
-                            |> isEqLast (Untracked <| Value (Boolean False))
+                            |> isEqLast (Boolean False)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
                     \_ ->
                         parseAndRun "if (true) { 1 + 1 }"
-                            |> isEqLast (Untracked <| Value (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ]))
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ])
                 , test "if returns undefined if block was not executed and there is no else" <|
                     \_ ->
                         parseAndRun "if (false) { 1 + 1 }"
-                            |> isEqLast (Untracked <| Value (Undefined [ undefinedTrack ( 1, 1 ) IfWithoutElse ]))
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 1 ) IfWithoutElse ])
                 , test "if with true boolean condition" <|
                     \_ ->
                         parseAndRun "x = 0\nif (true) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "if with false boolean condition" <|
                     \_ ->
                         parseAndRun "x = 0\nif (false) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 0))
+                            |> isEqLast (Number 0)
                 , test "if with comparisson" <|
                     \_ ->
                         parseAndRun "x = 0\nif (1 == true) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "numbers evaluates to true (even though 5 != true)" <|
                     \_ ->
                         parseAndRun "x = 0\nif (5) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "except 0" <|
                     \_ ->
                         parseAndRun "x = 0\nif (0) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 0))
+                            |> isEqLast (Number 0)
                 , test "functions are true" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nx = 0\nif (fn) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 1))
+                            |> isEqLast (Number 1)
                 , test "undefined is falsy" <|
                     \_ ->
                         parseAndRun "x = 0\nif (y) { x = 1 }\nx"
-                            |> isEqLast (Untracked <| Value (Number 0))
+                            |> isEqLast (Number 0)
                 ]
             , describe "loops"
                 [ test "loops with while" <|
                     \_ ->
                         parseAndRun "let x = 0; while (x < 3) { x = x + 1 }; x"
-                            |> isEqLast (Untracked <| Value (Number 3))
+                            |> isEqLast (Number 3)
                 ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|

@@ -67,27 +67,27 @@ andThen2 fn val val2 =
 --         )
 
 
-mapNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> a) -> (a -> Value) -> Expression -> Expression -> Expression
+mapNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> a) -> (a -> Value) -> Value -> Value -> Value
 mapNumArgs2 trackStack fn wrapper =
     -- TODO: keep tracking of original function
-    andThenNumArgs2 trackStack (\a -> fn a >> wrapper >> Value >> Untracked)
+    andThenNumArgs2 trackStack (\a -> fn a >> wrapper)
 
 
-andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Expression) -> Expression -> Expression -> Expression
+andThenNumArgs2 : List UndefinedTrackInfo -> (Float -> Float -> Value) -> Value -> Value -> Value
 andThenNumArgs2 trackStack fn arg0 arg1 =
-    case ( removeTracking arg0, removeTracking arg1 ) of
-        ( Value (Number float1), Value (Number float2) ) ->
+    case ( arg0, arg1 ) of
+        ( Number float1, Number float2 ) ->
             fn float1 float2
 
-        ( Value (Undefined stack), _ ) ->
-            Untracked (Value (Undefined (stack ++ trackStack)))
+        ( Undefined stack, _ ) ->
+            Undefined (stack ++ trackStack)
 
-        ( _, Value (Undefined stack) ) ->
-            Untracked (Value (Undefined (stack ++ trackStack)))
+        ( _, Undefined stack ) ->
+            Undefined (stack ++ trackStack)
 
         _ ->
             -- TODO: what about sum with boolean? Or with object? They should show a better error message
-            Untracked (Value (Undefined trackStack))
+            Undefined trackStack
 
 
 removeTracking : Expression -> UntrackedExp
@@ -100,14 +100,14 @@ removeTracking expr =
             e
 
 
-andThenArgs2 : List UndefinedTrackInfo -> (Expression -> Expression -> Expression) -> List Expression -> Expression
+andThenArgs2 : List UndefinedTrackInfo -> (Value -> Value -> Expression) -> List Value -> Expression
 andThenArgs2 trackStack fn args =
     fn (argOrDefault trackStack 0 args) (argOrDefault trackStack 1 args)
 
 
-argOrDefault : List UndefinedTrackInfo -> Int -> List Expression -> Expression
+argOrDefault : List UndefinedTrackInfo -> Int -> List Value -> Value
 argOrDefault trackStack index args =
     List.drop index args
         |> List.head
         -- TODO: track here
-        |> Maybe.withDefault (Untracked <| Value (Undefined trackStack))
+        |> Maybe.withDefault (Undefined trackStack)
