@@ -1,4 +1,4 @@
-module Interpreter exposing (LineResult, State, newState, run)
+module Interpreter exposing (ExpressionResult, State, emptyState, run)
 
 import Dict exposing (Dict)
 import Fuzz exposing (result)
@@ -7,7 +7,6 @@ import List.Extra
 import Parser exposing (Problem(..))
 import Return
 import Test.Runner.Failure exposing (Reason(..))
-import Tuple
 import Types exposing (..)
 
 
@@ -16,63 +15,73 @@ type alias State =
     }
 
 
-newState : State
-newState =
+emptyState : State
+emptyState =
     { variables = Dict.empty
     }
 
 
-type alias LineResult =
-    { outScope : State, inScope : State, result : Expression }
+type alias ExpressionResult =
+    Stateful Value
 
 
-run : State -> Types.Program -> List LineResult
+type alias Stateful a =
+    { outScope : State, inScope : State, result : a }
+
+
+run : State -> Types.Program -> ( State, List ExpressionResult )
 run state expressions =
     let
-        iterate_ : Expression -> ( State, State, List LineResult ) -> ( State, State, List LineResult )
-        iterate_ expr ( outScope, inScope, lineResults ) =
+        iterate_ : Expression -> Stateful (List ExpressionResult) -> Stateful (List ExpressionResult)
+        iterate_ expr acc =
             let
-                ( resultOutScope, resultInScope, expressionResult ) =
-                    iterate expr ( outScope, inScope )
+                statefulResult =
+                    statefulExecute expr acc
             in
-            ( resultOutScope, resultInScope, expressionResult :: lineResults )
+            { outScope = statefulResult.outScope
+            , inScope = statefulResult.inScope
+            , result = statefulResult :: acc.result
+            }
     in
     expressions
-        |> List.foldl iterate_ ( state, emptyState, [] )
-        |> (\( _, _, results ) -> results)
-        |> List.reverse
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> (\{ outScope, inScope, result } ->
+                ( mergeStates inScope outScope
+                , List.reverse result
+                )
+           )
 
 
-runBlock : State -> List Expression -> ( State, Maybe Expression )
+runBlock : State -> List Expression -> ( State, Maybe Value )
 runBlock state blockExpressions =
     let
-        iterate_ : Expression -> ( State, State, Maybe Expression ) -> ( State, State, Maybe Expression )
-        iterate_ expr ( outScope, inScope, returnValue ) =
-            if returnValue == Nothing then
+        iterate_ : Expression -> Stateful (Maybe Value) -> Stateful (Maybe Value)
+        iterate_ expr acc =
+            if acc.result == Nothing then
                 let
-                    ( resultOutScope, resultInScope, expressionResult ) =
-                        iterate expr ( outScope, inScope )
+                    statefulResult =
+                        statefulExecute expr acc
 
                     returnValue_ =
                         case expr |> removeTracking of
                             Return _ ->
-                                Just expressionResult.result
+                                Just statefulResult.result
 
                             _ ->
                                 Nothing
                 in
-                ( resultOutScope, resultInScope, returnValue_ )
+                Stateful statefulResult.outScope statefulResult.inScope returnValue_
 
             else
-                ( outScope, inScope, returnValue )
+                acc
     in
     -- TODO: return last if outside function? (right now returns void)
     blockExpressions
-        |> List.foldl iterate_ ( state, emptyState, Nothing )
-        |> (\( outScope, _, returnValue ) -> ( outScope, returnValue ))
+        |> List.foldl iterate_ (Stateful state emptyState Nothing)
+        |> (\{ outScope, result } -> ( outScope, result ))
 
 
-runExpression : State -> Expression -> LineResult
+runExpression : State -> Expression -> ExpressionResult
 runExpression state expr =
     let
         trackStack : UndefinedReason -> List UndefinedTrackInfo
@@ -89,219 +98,306 @@ runExpression state expr =
     in
     case expr |> removeTracking of
         Value (Vector items) ->
-            let
-                appendOrLiftError curr acc =
-                    case ( acc, curr ) of
-                        ( Vector items_, e ) ->
-                            Vector (items_ ++ [ e ])
+            Debug.todo "vector not supported yet"
 
-                        _ ->
-                            acc
-            in
-            return
-                (evalList items state
-                    |> List.foldl appendOrLiftError (Vector [])
-                    |> Value
-                    |> Untracked
-                )
-
+        -- let
+        --     appendOrLiftError : Value -> Value -> Value
+        --     appendOrLiftError curr acc =
+        --         case ( acc, curr ) of
+        --             ( Vector items_, e ) ->
+        --                 Vector (items_ ++ [ e ])
+        --             _ ->
+        --                 acc
+        -- in
+        -- return
+        --     (evalList items state
+        --         -- TODO: do not ignore state updates
+        --         |> (\( _, _, results ) -> results)
+        --         |> List.foldl appendOrLiftError (Vector [])
+        --     )
         Value val ->
-            return (Untracked (Value val))
+            return val
 
         Variable identifier ->
             return
                 (Dict.get identifier state.variables
-                    |> Maybe.map Value
-                    |> Maybe.withDefault (Value (Undefined (trackStack <| VariableNotDefined identifier)))
-                    |> Untracked
+                    |> Maybe.withDefault (Undefined (trackStack <| VariableNotDefined identifier))
                 )
 
-        ReservedApplication symbol args ->
-            let
-                evaluatedArgs =
-                    evalList args state
-            in
-            applyReserved state symbol evaluatedArgs trackStack
+        Operation symbol expr0 ->
+            statefulSession state
+                |> statefulExecute expr0
+                |> statefulAndThen
+                    (\arg0 ->
+                        statefulRun (applyOperation symbol arg0)
+                    )
+
+        Operation2 symbol expr0 expr1 ->
+            statefulSession state
+                |> statefulExecute expr0
+                |> statefulAndThen
+                    (\arg0 ->
+                        statefulExecute expr1
+                            >> statefulAndThen
+                                (\arg1 ->
+                                    statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
+                                )
+                    )
 
         Application fn args ->
             let
-                evaluatedArgs =
+                ( outScope, inScope, evaluatedArgs ) =
                     evalList args state
+
+                state_ =
+                    mergeStates inScope (mergeStates outScope state)
+
+                applicationResult =
+                    case eval state fn of
+                        Abstraction paramNames functionBody ->
+                            callFunction state_ trackStack ( paramNames, functionBody ) evaluatedArgs
+
+                        Undefined stacktrace ->
+                            return (Undefined stacktrace)
+
+                        _ ->
+                            Debug.todo "not implemented"
             in
-            case eval state fn |> removeTracking of
-                Value (Abstraction paramNames functionBody) ->
-                    callFunction state trackStack ( paramNames, functionBody ) evaluatedArgs
+            applicationResult
+                |> preprendStateChanges outScope inScope
 
-                Value (Undefined stacktrace) ->
-                    return
-                        -- TODO: should we add to the stacktrace here? Application to undefined? Maybe only if not direct result of undefined variable?
-                        (Untracked (Value (Undefined stacktrace)))
-
-                _ ->
-                    Debug.todo "not implemented"
-
-        -- MapAbstraction param index body ->
-        --     ( state
-        --     , Expression (MapAbstraction param index body)
-        --     )
-        -- SingleArity func e ->
-        --     runSingleArity state func e
-        -- DoubleArity func e1 e2 ->
-        --     ( state, runDoubleArity state func e1 e2 )
-        -- TripleArity func e1 e2 e3 ->
-        --     ( state, runTripleArity state func e1 e2 e3 )
         Block blockExpressions ->
             let
                 ( outScope, result ) =
                     runBlock state blockExpressions
             in
-            LineResult outScope
+            Stateful outScope
                 emptyState
                 (result
-                    |> Maybe.withDefault
-                        (Untracked
-                            (Value (Undefined (trackStack VoidReturn)))
-                        )
+                    |> Maybe.withDefault (Undefined (trackStack VoidReturn))
                 )
 
-        -- run state blockExpressions
-        --     |> List.reverse
-        --     |> List.head
-        --     |> Maybe.withDefault ( state, Untracked (Value (Undefined [])) )
         Return returnExpr ->
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            case eval state condition |> removeTracking of
-                Value val ->
-                    if valueToBool val then
-                        runExpression state exprIfTrue
+            statefulSession state
+                |> statefulExecute condition
+                |> statefulAndThen
+                    (\conditionResult ->
+                        if valueToBool conditionResult then
+                            statefulExecute exprIfTrue
 
-                    else
-                        return (Untracked (Value (Undefined (trackStack IfWithoutElse))))
+                        else
+                            statefulExecute (Untracked (Value (Undefined (trackStack IfWithoutElse))))
+                    )
 
-                _ ->
-                    Debug.todo "not implemented yet"
+        While condition exprWhile ->
+            let
+                whileLoop : Value -> ExpressionResult -> ExpressionResult
+                whileLoop prevResult session =
+                    session
+                        |> statefulExecute condition
+                        |> statefulAndThen
+                            (\conditionResult ->
+                                if valueToBool conditionResult then
+                                    statefulExecute exprWhile
+                                        >> statefulAndThen whileLoop
+
+                                else
+                                    statefulMap (\_ -> prevResult)
+                            )
+            in
+            statefulSession state
+                |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
 
-iterate : Expression -> ( State, State ) -> ( State, State, LineResult )
-iterate expr ( prevOutScope, prevInScope ) =
+
+-- STATEFUL
+
+
+preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
+preprendStateChanges outScope inScope result =
+    Stateful
+        (mergeStates result.outScope outScope)
+        (mergeStates result.inScope inScope)
+        result.result
+
+
+mergeStates : State -> State -> State
+mergeStates a b =
+    { variables = Dict.union a.variables b.variables }
+
+
+statefulSession : State -> ExpressionResult
+statefulSession state =
+    { outScope = state
+    , inScope = emptyState
+    , result = Undefined []
+    }
+
+
+statefulMap : (Value -> Value) -> ExpressionResult -> ExpressionResult
+statefulMap fn session =
+    { outScope = session.outScope
+    , inScope = session.inScope
+    , result = fn session.result
+    }
+
+
+statefulAndThen : (Value -> ExpressionResult -> ExpressionResult) -> ExpressionResult -> ExpressionResult
+statefulAndThen fn session =
+    fn session.result session
+
+
+statefulRun : ExpressionResult -> ExpressionResult -> ExpressionResult
+statefulRun expressionResult statefulResult =
+    moveStateOutsideScope expressionResult ( statefulResult.outScope, statefulResult.inScope )
+
+
+statefulExecute : Expression -> Stateful a -> ExpressionResult
+statefulExecute expr { outScope, inScope } =
     let
         state =
-            { variables = Dict.union prevInScope.variables prevOutScope.variables }
+            mergeStates inScope outScope
+    in
+    moveStateOutsideScope (runExpression state expr) ( outScope, inScope )
 
-        expressionResult =
-            runExpression state expr
 
+moveStateOutsideScope : ExpressionResult -> ( State, State ) -> ExpressionResult
+moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
+    let
         outScopeFiltered =
-            { variables =
-                Dict.union
-                    (Dict.filter
+            mergeStates
+                { variables =
+                    Dict.filter
                         (\identifier _ ->
                             not (Dict.member identifier prevInScope.variables)
                         )
                         expressionResult.outScope.variables
-                    )
-                    prevOutScope.variables
-            }
+                }
+                prevOutScope
 
         inScopeUpdated =
-            { variables =
-                Dict.union
-                    (Dict.filter
+            mergeStates
+                { variables =
+                    Dict.filter
                         (\identifier _ ->
                             Dict.member identifier prevInScope.variables
                         )
                         expressionResult.outScope.variables
-                    )
-                    (Dict.union
-                        expressionResult.inScope.variables
-                        prevInScope.variables
-                    )
-            }
+                }
+                (mergeStates expressionResult.inScope prevInScope)
     in
-    ( outScopeFiltered, inScopeUpdated, expressionResult )
+    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
 
 
-evalList : List Expression -> State -> List Expression
+
+-- /STATEFUL
+
+
+evalList : List Expression -> State -> ( State, State, List Value )
 evalList expressions state =
+    let
+        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
+        iterate_ expr acc =
+            let
+                statefulResult =
+                    statefulExecute expr acc
+            in
+            Stateful statefulResult.outScope statefulResult.inScope (statefulResult.result :: acc.result)
+    in
     expressions
-        -- TODO: foldl here, items can change state
-        |> List.map (eval state)
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> (\{ outScope, inScope, result } -> ( outScope, inScope, List.reverse result ))
 
 
-emptyState : State
-emptyState =
-    { variables = Dict.empty }
+applyOperation : Operation -> Value -> ExpressionResult
+applyOperation operation arg0 =
+    case operation of
+        Assignment name ->
+            Stateful
+                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                emptyState
+                arg0
+
+        LetAssignment name ->
+            Stateful
+                emptyState
+                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                arg0
 
 
-applyReserved : State -> Reserved -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> LineResult
-applyReserved state reserved evaluatedArgs trackStack =
+applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
+applyOperation2 reserved arg0 arg1 trackStack =
     let
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
     in
     case reserved of
         Addition ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number evaluatedArgs)
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number arg0 arg1)
 
         Subtraction ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number evaluatedArgs)
-
-        Assignment name ->
-            case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
-                Value val ->
-                    LineResult
-                        { variables = Dict.fromList [ ( name, val ) ] }
-                        emptyState
-                        (Untracked (Value val))
-
-                _ ->
-                    Debug.todo "not implemented"
-
-        LetAssignment name ->
-            case Return.argOrDefault (trackStack (OperationWithUndefined "assignment")) 0 evaluatedArgs |> removeTracking of
-                Value val ->
-                    LineResult
-                        emptyState
-                        { variables = Dict.fromList [ ( name, val ) ] }
-                        (Untracked (Value val))
-
-                _ ->
-                    Debug.todo "not implemented"
+            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number arg0 arg1)
 
         SoftEquality ->
             let
-                wrap =
-                    Untracked << Value << Boolean
-
                 trackStack_ =
                     trackStack (OperationWithUndefined "equality")
             in
             return
-                (evaluatedArgs
-                    |> Return.andThenArgs2 trackStack_
-                        (\arg0 arg1 ->
-                            case ( removeTracking arg0, removeTracking arg1 ) of
-                                ( Value (Number a), Value (Number b) ) ->
-                                    wrap (a == b)
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a == b)
 
-                                ( Value (Boolean a), Value v ) ->
-                                    wrap (comparisonWithBool v a)
+                    ( Boolean a, v ) ->
+                        Boolean (comparisonWithBool v a)
 
-                                ( Value v, Value (Boolean a) ) ->
-                                    wrap (comparisonWithBool v a)
+                    ( v, Boolean a ) ->
+                        Boolean (comparisonWithBool v a)
 
-                                ( Value (Undefined stack), _ ) ->
-                                    Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( Undefined stack, _ ) ->
+                        Undefined (stack ++ trackStack_)
 
-                                ( _, Value (Undefined stack) ) ->
-                                    Untracked (Value (Undefined (stack ++ trackStack_)))
+                    ( _, Undefined stack ) ->
+                        Undefined (stack ++ trackStack_)
 
-                                _ ->
-                                    -- TODO: what about true == 1? 0 == false? "1" == 1
-                                    Untracked (Value (Undefined trackStack_))
-                        )
+                    _ ->
+                        -- TODO: what about true == 1? 0 == false? "1" == 1
+                        Undefined trackStack_
+                )
+
+        GreaterThan ->
+            return
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a > b)
+
+                    ( Number a, Boolean b ) ->
+                        Boolean (a > boolToNumber b)
+
+                    ( Boolean a, Number b ) ->
+                        Boolean (boolToNumber a > b)
+
+                    _ ->
+                        Boolean False
+                )
+
+        SmallerThan ->
+            return
+                (case ( arg0, arg1 ) of
+                    ( Number a, Number b ) ->
+                        Boolean (a < b)
+
+                    ( Number a, Boolean b ) ->
+                        Boolean (a < boolToNumber b)
+
+                    ( Boolean a, Number b ) ->
+                        Boolean (boolToNumber a < b)
+
+                    _ ->
+                        Boolean False
                 )
 
 
@@ -354,8 +450,17 @@ valueToBool value =
             False
 
 
+boolToNumber : Bool -> Float
+boolToNumber bool =
+    if bool then
+        1
 
--- runSingleArity : State -> SingleArity -> Expression -> LineResult
+    else
+        0
+
+
+
+-- runSingleArity : State -> SingleArity -> Expression -> ExpressionResult
 -- runSingleArity state func expr =
 --     case func of
 --         Assignment identifier ->
@@ -457,7 +562,7 @@ valueToBool value =
 --             )
 
 
-callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Expression -> LineResult
+callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> ExpressionResult
 callFunction state trackStack ( paramNames, functionBody ) args =
     let
         closure =
@@ -467,12 +572,7 @@ callFunction state trackStack ( paramNames, functionBody ) args =
                         trackStack_ =
                             trackStack (MissingPositionalArgument index paramName)
                     in
-                    case Return.argOrDefault trackStack_ index args |> removeTracking of
-                        Value val ->
-                            setVariable paramName val state_
-
-                        _ ->
-                            Debug.todo "not implemented"
+                    setVariable paramName (Return.argOrDefault trackStack_ index args) state_
                 )
                 state
                 paramNames
@@ -628,7 +728,7 @@ mapTracking fn expr =
 --                 (eval state expr2)
 
 
-eval : State -> Expression -> Expression
+eval : State -> Expression -> Value
 eval state =
     runExpression state >> .result
 

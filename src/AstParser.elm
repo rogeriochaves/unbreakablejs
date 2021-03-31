@@ -115,6 +115,20 @@ ifCondition filename =
         |= lazy (\_ -> expression filename)
 
 
+while : String -> Parser Expression
+while filename =
+    succeed
+        (\pos condition expr ->
+            tracked filename pos (While condition expr)
+        )
+        |= getPosition
+        |. backtrackable (symbol "while")
+        |. spaces
+        |= parens (lazy (\_ -> expression filename))
+        |. spaces
+        |= lazy (\_ -> expression filename)
+
+
 functionCall : String -> Parser Expression
 functionCall filename =
     succeed
@@ -136,11 +150,11 @@ functionCall filename =
             )
 
 
-infixOperator : String -> Reserved -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator : String -> Operation2 -> Parser ( Int, Int ) -> Assoc -> Operator Expression
 infixOperator filename operation opParser assoc =
     let
         binaryOp =
-            succeed (\pos expr1 expr2 -> tracked filename pos (doubleArity operation expr1 expr2))
+            succeed (\pos expr1 expr2 -> tracked filename pos (Operation2 operation expr1 expr2))
                 |= opParser
                 |. spaces
     in
@@ -164,16 +178,19 @@ operators filename =
     [ [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
-    , [ infixOperator filename SoftEquality (symb "==") AssocLeft ]
+    , [ infixOperator filename SoftEquality (symb "==") AssocLeft
+      , infixOperator filename GreaterThan (symb ">") AssocLeft
+      , infixOperator filename SmallerThan (symb "<") AssocLeft
+      ]
     ]
 
 
 assignment : String -> Parser Expression
 assignment filename =
     oneOf
-        [ succeed (\name pos -> tracked filename pos << singleArity (LetAssignment name))
+        [ succeed (\name pos -> tracked filename pos << Operation (LetAssignment name))
             |. backtrackable (symbol "let ")
-        , succeed (\name pos -> tracked filename pos << singleArity (Assignment name))
+        , succeed (\name pos -> tracked filename pos << Operation (Assignment name))
         ]
         |= backtrackable identifier
         |. backtrackable spaces
@@ -189,9 +206,7 @@ functionDeclaration filename =
         (\name pos param body ->
             tracked filename
                 pos
-                (ReservedApplication (Assignment name)
-                    [ Untracked (Value (Abstraction param body)) ]
-                )
+                (Operation (Assignment name) (Untracked (Value (Abstraction param body))))
         )
         |= backtrackable identifier
         |. backtrackable spaces
@@ -212,16 +227,6 @@ functionDeclaration filename =
         |. backtrackable (symbol "=>")
         |. spaces
         |= lazy (\_ -> expression_ filename True True)
-
-
-singleArity : Reserved -> Expression -> UntrackedExp
-singleArity fn expr =
-    ReservedApplication fn [ expr ]
-
-
-doubleArity : Reserved -> Expression -> Expression -> UntrackedExp
-doubleArity fn expr1 expr2 =
-    ReservedApplication fn [ expr1, expr2 ]
 
 
 
@@ -263,7 +268,7 @@ statementBreak : Parser ()
 statementBreak =
     succeed ()
         |. chompWhile (\c -> c == ' ')
-        |. chompIf (\c -> c == '\n')
+        |. chompIf (\c -> c == '\n' || c == ';')
         |. spaces
 
 
@@ -300,6 +305,7 @@ expression_ filename withDeclarations withReturn =
                 [ functionDeclaration filename
                 , assignment filename
                 , ifCondition filename
+                , while filename
                 ]
 
             else

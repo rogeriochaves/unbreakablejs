@@ -30,10 +30,12 @@ type UntrackedExp
     = Value Value
     | Variable String
     | Application Expression (List Expression)
-    | ReservedApplication Reserved (List Expression)
+    | Operation Operation Expression
+    | Operation2 Operation2 Expression Expression
     | Block (List Expression)
     | Return Expression
     | IfCondition Expression Expression
+    | While Expression Expression
 
 
 type Value
@@ -44,12 +46,17 @@ type Value
     | Boolean Bool
 
 
-type Reserved
+type Operation
+    = Assignment String
+    | LetAssignment String
+
+
+type Operation2
     = Addition
     | Subtraction
-    | Assignment String
-    | LetAssignment String
     | SoftEquality
+    | GreaterThan
+    | SmallerThan
 
 
 type UndefinedReason
@@ -59,6 +66,7 @@ type UndefinedReason
     | VoidReturn
     | IfWithoutElse
     | ExplicitUndefined
+    | LoopNeverTrue
 
 
 

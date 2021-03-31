@@ -1,7 +1,7 @@
 module AstParserTest exposing (suite)
 
 import AstParser exposing (..)
-import Expect exposing (Expectation)
+import Expect
 import Test exposing (..)
 import Types exposing (..)
 
@@ -27,10 +27,9 @@ suite =
                 parse "1 + 1"
                     |> isEq
                         (tracked ( 1, 3 )
-                            (ReservedApplication Addition
-                                [ Untracked (Value (Number 1))
-                                , Untracked (Value (Number 1))
-                                ]
+                            (Operation2 Addition
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
                             )
                         )
         , test "read float numbers" <|
@@ -38,18 +37,18 @@ suite =
                 parse "1.5 + 1.3"
                     |> isEq
                         (tracked ( 1, 5 )
-                            (ReservedApplication Addition [ Untracked (Value (Number 1.5)), Untracked (Value (Number 1.3)) ])
+                            (Operation2 Addition (Untracked (Value (Number 1.5))) (Untracked (Value (Number 1.3))))
                         )
         , test "read nested operations" <|
             \_ ->
                 parse "1 - (3 - 2)"
                     |> isEq
                         (tracked ( 1, 3 )
-                            (ReservedApplication Subtraction
-                                [ Untracked (Value (Number 1))
-                                , tracked ( 1, 8 )
-                                    (ReservedApplication Subtraction [ Untracked (Value (Number 3)), Untracked (Value (Number 2)) ])
-                                ]
+                            (Operation2 Subtraction
+                                (Untracked (Value (Number 1)))
+                                (tracked ( 1, 8 )
+                                    (Operation2 Subtraction (Untracked (Value (Number 3))) (Untracked (Value (Number 2))))
+                                )
                             )
                         )
 
@@ -66,10 +65,9 @@ suite =
                 parse "age + 1"
                     |> isEq
                         (tracked ( 1, 5 )
-                            (ReservedApplication Addition
-                                [ tracked ( 1, 1 ) (Variable "age")
-                                , Untracked (Value (Number 1))
-                                ]
+                            (Operation2 Addition
+                                (tracked ( 1, 1 ) (Variable "age"))
+                                (Untracked (Value (Number 1)))
                             )
                         )
         , test "parses boolean true" <|
@@ -156,16 +154,14 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 2, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -179,22 +175,37 @@ suite =
                     parse "1 + 1 2 + 2"
                         |> isErr
                         |> Expect.true "it should break there is no line break between expressions"
+            , test "unless there is a semicolon to split them" <|
+                \_ ->
+                    parse "1 + 1; 2 + 2"
+                        |> Expect.equal
+                            (Ok
+                                [ tracked ( 1, 3 )
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
+                                    )
+                                , tracked ( 1, 10 )
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
+                                    )
+                                ]
+                            )
             , test "allow multiple line breaks" <|
                 \_ ->
                     parse "1 + 1\n\n2 + 2\n"
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 3, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -204,16 +215,14 @@ suite =
                         |> Expect.equal
                             (Ok
                                 [ tracked ( 1, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 1))
-                                        , Untracked (Value (Number 1))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 1)))
+                                        (Untracked (Value (Number 1)))
                                     )
                                 , tracked ( 3, 3 )
-                                    (ReservedApplication Addition
-                                        [ Untracked (Value (Number 2))
-                                        , Untracked (Value (Number 2))
-                                        ]
+                                    (Operation2 Addition
+                                        (Untracked (Value (Number 2)))
+                                        (Untracked (Value (Number 2)))
                                     )
                                 ]
                             )
@@ -224,10 +233,10 @@ suite =
                     parse "x = 1 + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication (Assignment "x")
-                                    [ tracked ( 1, 7 )
-                                        (ReservedApplication Addition [ Untracked <| Value (Number 1), Untracked <| Value (Number 1) ])
-                                    ]
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 7 )
+                                        (Operation2 Addition (Untracked <| Value (Number 1)) (Untracked <| Value (Number 1)))
+                                    )
                                 )
                             )
             , test "does not allow nested assignments" <|
@@ -240,10 +249,9 @@ suite =
                     parse "x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication Addition
-                                    [ tracked ( 1, 1 ) <| Variable "x"
-                                    , Untracked <| Value (Number 1)
-                                    ]
+                                (Operation2 Addition
+                                    (tracked ( 1, 1 ) <| Variable "x")
+                                    (Untracked <| Value (Number 1))
                                 )
                             )
             , test "parses assignment with variables" <|
@@ -251,13 +259,12 @@ suite =
                     parse "x = y + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication (Assignment "x")
-                                    [ tracked ( 1, 7 ) <|
-                                        ReservedApplication Addition
-                                            [ tracked ( 1, 5 ) <| Variable "y"
-                                            , Untracked <| Value (Number 1)
-                                            ]
-                                    ]
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 7 ) <|
+                                        Operation2 Addition
+                                            (tracked ( 1, 5 ) <| Variable "y")
+                                            (Untracked <| Value (Number 1))
+                                    )
                                 )
                             )
             , test "parses assignment with let" <|
@@ -265,10 +272,8 @@ suite =
                     parse "let x = 1"
                         |> isEq
                             (tracked ( 1, 7 )
-                                (ReservedApplication (LetAssignment "x")
-                                    [ Untracked <|
-                                        Value (Number 1)
-                                    ]
+                                (Operation (LetAssignment "x")
+                                    (Untracked <| Value (Number 1))
                                 )
                             )
             ]
@@ -278,21 +283,20 @@ suite =
                     parse "f = (x) => x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
-                                    [ Untracked
+                                    (Untracked
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 14 )
-                                                    (ReservedApplication Addition
-                                                        [ tracked ( 1, 12 ) (Variable "x")
-                                                        , Untracked (Value (Number 1))
-                                                        ]
+                                                    (Operation2 Addition
+                                                        (tracked ( 1, 12 ) (Variable "x"))
+                                                        (Untracked (Value (Number 1)))
                                                     )
                                                 )
                                             )
                                         )
-                                    ]
+                                    )
                                 )
                             )
             , test "parses function declaration with multiple arguments" <|
@@ -300,21 +304,20 @@ suite =
                     parse "f = (x, y) => x + 1"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
-                                    [ Untracked
+                                    (Untracked
                                         (Value
                                             (Abstraction [ "x", "y" ]
                                                 (tracked ( 1, 17 )
-                                                    (ReservedApplication Addition
-                                                        [ tracked ( 1, 15 ) (Variable "x")
-                                                        , Untracked (Value (Number 1))
-                                                        ]
+                                                    (Operation2 Addition
+                                                        (tracked ( 1, 15 ) (Variable "x"))
+                                                        (Untracked (Value (Number 1)))
                                                     )
                                                 )
                                             )
                                         )
-                                    ]
+                                    )
                                 )
                             )
             , test "does not allow nested function declarations" <|
@@ -349,16 +352,14 @@ suite =
                             (tracked ( 4, 2 )
                                 (Block
                                     [ tracked ( 2, 3 )
-                                        (ReservedApplication Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
                                     , tracked ( 3, 3 )
-                                        (ReservedApplication Addition
-                                            [ Untracked (Value (Number 2))
-                                            , Untracked (Value (Number 2))
-                                            ]
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 2)))
+                                            (Untracked (Value (Number 2)))
                                         )
                                     ]
                                 )
@@ -370,16 +371,14 @@ suite =
                             (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
-                                        (ReservedApplication Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
                                     , tracked ( 2, 3 )
-                                        (ReservedApplication Addition
-                                            [ Untracked (Value (Number 2))
-                                            , Untracked (Value (Number 2))
-                                            ]
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 2)))
+                                            (Untracked (Value (Number 2)))
                                         )
                                     ]
                                 )
@@ -389,31 +388,29 @@ suite =
                     parse "f = (x) => { 1 + 1\n2 + 2 }"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
-                                    [ Untracked
+                                    (Untracked
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 2, 8 )
                                                     (Block
                                                         [ tracked ( 1, 16 )
-                                                            (ReservedApplication Addition
-                                                                [ Untracked (Value (Number 1))
-                                                                , Untracked (Value (Number 1))
-                                                                ]
+                                                            (Operation2 Addition
+                                                                (Untracked (Value (Number 1)))
+                                                                (Untracked (Value (Number 1)))
                                                             )
                                                         , tracked ( 2, 3 )
-                                                            (ReservedApplication Addition
-                                                                [ Untracked (Value (Number 2))
-                                                                , Untracked (Value (Number 2))
-                                                                ]
+                                                            (Operation2 Addition
+                                                                (Untracked (Value (Number 2)))
+                                                                (Untracked (Value (Number 2)))
                                                             )
                                                         ]
                                                     )
                                                 )
                                             )
                                         )
-                                    ]
+                                    )
                                 )
                             )
             , test "parses assignments inside the block" <|
@@ -423,15 +420,13 @@ suite =
                             (tracked ( 2, 7 )
                                 (Block
                                     [ tracked ( 1, 4 )
-                                        (ReservedApplication (Assignment "x")
-                                            [ Untracked (Value (Number 1))
-                                            ]
+                                        (Operation (Assignment "x")
+                                            (Untracked (Value (Number 1)))
                                         )
                                     , tracked ( 2, 3 )
-                                        (ReservedApplication Addition
-                                            [ tracked ( 2, 1 ) <| Variable "x"
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                        (Operation2 Addition
+                                            (tracked ( 2, 1 ) <| Variable "x")
+                                            (Untracked (Value (Number 1)))
                                         )
                                     ]
                                 )
@@ -441,9 +436,9 @@ suite =
                     parse "f = (x) => { return 1 + 1 }"
                         |> isEq
                             (tracked ( 1, 3 )
-                                (ReservedApplication
+                                (Operation
                                     (Assignment "f")
-                                    [ Untracked
+                                    (Untracked
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 28 )
@@ -451,10 +446,9 @@ suite =
                                                         [ tracked ( 1, 14 )
                                                             (Return
                                                                 (tracked ( 1, 23 )
-                                                                    (ReservedApplication Addition
-                                                                        [ Untracked (Value (Number 1))
-                                                                        , Untracked (Value (Number 1))
-                                                                        ]
+                                                                    (Operation2 Addition
+                                                                        (Untracked (Value (Number 1)))
+                                                                        (Untracked (Value (Number 1)))
                                                                     )
                                                                 )
                                                             )
@@ -463,7 +457,7 @@ suite =
                                                 )
                                             )
                                         )
-                                    ]
+                                    )
                                 )
                             )
             , test "breaks for return outside function body" <|
@@ -478,15 +472,14 @@ suite =
                     parse "1 + 1 == 2"
                         |> isEq
                             (tracked ( 1, 7 )
-                                (ReservedApplication SoftEquality
-                                    [ tracked ( 1, 3 )
-                                        (ReservedApplication Addition
-                                            [ Untracked (Value (Number 1))
-                                            , Untracked (Value (Number 1))
-                                            ]
+                                (Operation2 SoftEquality
+                                    (tracked ( 1, 3 )
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
                                         )
-                                    , Untracked (Value (Number 2))
-                                    ]
+                                    )
+                                    (Untracked (Value (Number 2)))
                                 )
                             )
             , test "parses boolean comparison" <|
@@ -494,10 +487,31 @@ suite =
                     parse "true == false"
                         |> isEq
                             (tracked ( 1, 6 )
-                                (ReservedApplication SoftEquality
-                                    [ Untracked (Value (Boolean True))
-                                    , Untracked (Value (Boolean False))
-                                    ]
+                                (Operation2 SoftEquality
+                                    (Untracked (Value (Boolean True)))
+                                    (Untracked (Value (Boolean False)))
+                                )
+                            )
+            , test "parses greater than comparison" <|
+                \_ ->
+                    parse "1 > 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (Operation2
+                                    GreaterThan
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
+                                )
+                            )
+            , test "parses smaller than comparison" <|
+                \_ ->
+                    parse "1 < 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (Operation2
+                                    SmallerThan
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
                                 )
                             )
             , test "parses if condition" <|
@@ -509,9 +523,29 @@ suite =
                                     (tracked ( 1, 18 )
                                         (Block
                                             [ tracked ( 1, 14 )
-                                                (ReservedApplication (Assignment "x")
-                                                    [ Untracked (Value (Number 1))
-                                                    ]
+                                                (Operation (Assignment "x")
+                                                    (Untracked (Value (Number 1)))
+                                                )
+                                            ]
+                                        )
+                                    )
+                                )
+                            )
+            ]
+        , describe "loops" <|
+            [ test "parses while loop" <|
+                \_ ->
+                    parse "while (true) { 1 + 1 }"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (While
+                                    (Untracked (Value (Boolean True)))
+                                    (tracked ( 1, 23 )
+                                        (Block
+                                            [ tracked ( 1, 18 )
+                                                (Operation2 Addition
+                                                    (Untracked (Value (Number 1)))
+                                                    (Untracked (Value (Number 1)))
                                                 )
                                             ]
                                         )
