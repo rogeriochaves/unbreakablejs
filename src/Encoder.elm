@@ -13,34 +13,39 @@ removeTracking expr =
             e
 
 
-encode : UntrackedExp -> String
-encode expr =
-    case expr of
-        Value val ->
-            case val of
-                Number num ->
-                    String.fromFloat num
-
-                Vector items ->
-                    "["
-                        ++ (items
-                                |> List.map (removeTracking >> encode)
-                                |> String.join ", "
-                           )
-                        ++ "]"
-
-                Abstraction _ _ ->
-                    "[Function]"
-
-                Undefined _ ->
-                    "undefined"
-
-                Boolean bool ->
-                    if bool then
-                        "true"
-
-                    else
-                        "false"
+getValue : UntrackedExp -> Value
+getValue val =
+    case val of
+        Value v ->
+            v
 
         _ ->
-            "not implemented yet"
+            Debug.todo "not implemented yet"
+
+
+encode : Value -> String
+encode value =
+    case value of
+        Number num ->
+            String.fromFloat num
+
+        Vector items ->
+            "["
+                ++ (items
+                        |> List.map (removeTracking >> getValue >> encode)
+                        |> String.join ", "
+                   )
+                ++ "]"
+
+        Abstraction _ _ ->
+            "[Function]"
+
+        Undefined _ ->
+            "undefined"
+
+        Boolean bool ->
+            if bool then
+                "true"
+
+            else
+                "false"

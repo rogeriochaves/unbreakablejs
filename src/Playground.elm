@@ -43,7 +43,7 @@ init flags url key =
     { cells =
         [ newCell 0 ""
         ]
-    , state = Interpreter.emptyState
+    , state = emptyState
     , selectedCell = -1
     , page = Playground
     , key = key
@@ -55,7 +55,7 @@ newCell : Int -> String -> Cell
 newCell index input =
     { input = input
     , autoexpand = AutoExpand.initState (autoExpandConfig (List.length <| String.split "\n" input) index)
-    , result = Ok ( Interpreter.emptyState, Nothing )
+    , result = Ok ( emptyState, Nothing )
     , submittedInput = ""
     }
 
@@ -235,7 +235,7 @@ renderResult model index item =
         expressionResult =
             item.result
                 |> Result.map Tuple.second
-                |> Result.map (Maybe.map (.result >> removeTracking))
+                |> Result.map (Maybe.map .result)
     in
     case expressionResult of
         Err error ->
@@ -261,7 +261,7 @@ renderResult model index item =
                 , pre [ style "font-size" "14px", style "margin" "0" ] [ text msg ]
                 ]
 
-        Ok (Just (Value (Undefined stack))) ->
+        Ok (Just (Undefined stack)) ->
             let
                 stackMsgs =
                     stack
@@ -408,7 +408,7 @@ update msg model =
                 -- List.Extra.last errs
                 --     -- TODO: map syntax errors
                 --     |> Maybe.map (\e -> ( model.state, Untracked <| Value <| Undefined [] ))
-                runCell : Cell -> Result Error ( Interpreter.State, Maybe Interpreter.ExpressionResult )
+                runCell : Cell -> Result Error ( State, Maybe ExpressionResult )
                 runCell cell_ =
                     if String.isEmpty (String.trim cell_.input) then
                         Ok ( model.state, Nothing )
@@ -462,7 +462,7 @@ update msg model =
                 | cells =
                     [ newCell 0 ""
                     ]
-                , state = Interpreter.emptyState
+                , state = emptyState
                 , selectedCell = -1
               }
             , Cmd.none
@@ -472,7 +472,7 @@ update msg model =
             case example of
                 Basics ->
                     { model
-                        | state = Interpreter.emptyState
+                        | state = emptyState
                         , cells =
                             [ newCell 0 "1 + 1"
                             , newCell 1 "\\frac{25}{2}"
@@ -488,7 +488,7 @@ update msg model =
 
                 Softmax ->
                     { model
-                        | state = Interpreter.emptyState
+                        | state = emptyState
                         , cells =
                             [ newCell 0 "\\sigma(\\mathbf{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}"
                             , newCell 1 "\\mathbf{v} = (1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0)\nn = 7\n\\sigma(\\mathbf{v})"
@@ -499,7 +499,7 @@ update msg model =
 
                 Bitcoin ->
                     { model
-                        | state = Interpreter.emptyState
+                        | state = emptyState
                         , cells =
                             [ newCell 0 "q = 0.1\nz = 2\np = 1 - q\n\\lambda = z * \\frac{q}{p}"
                             , newCell 1 "1 - \\sum_{k = 0}^{z} \\frac{(\\lambda ^ k) * e ^ {-\\lambda}}{k!} * (1 - (q / p) ^ {(z - k)})"
@@ -510,7 +510,7 @@ update msg model =
 
                 Statistics ->
                     { model
-                        | state = Interpreter.emptyState
+                        | state = emptyState
                         , cells =
                             [ newCell 0 "\\mathbf{x} = (1, 3, 3, 6, 7, 8, 9)\nn = |\\mathbf{x}|"
                             , newCell 1 "Mean:\n\\bar{x} = \\frac{\\sum{\\mathbf{x}}}{n}"

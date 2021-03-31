@@ -2,16 +2,15 @@ module Playground.Types exposing (Cell, Example(..), Model, Msg(..))
 
 import AutoExpand as AutoExpand
 import Browser exposing (UrlRequest(..))
-import Browser.Navigation exposing (Key, load, pushUrl)
-import Interpreter
+import Browser.Navigation exposing (Key)
 import Playground.Routes exposing (..)
-import Types
+import Types exposing (..)
 import Url exposing (Url)
 
 
 type alias Model =
     { cells : List Cell
-    , state : Interpreter.State
+    , state : State
     , selectedCell : Int
     , page : Page
     , key : Key
@@ -21,7 +20,7 @@ type alias Model =
 type alias Cell =
     { input : String
     , autoexpand : AutoExpand.State
-    , result : Result Types.Error ( Interpreter.State, Maybe Interpreter.ExpressionResult )
+    , result : Result Types.Error ( State, Maybe ExpressionResult )
     , submittedInput : String
     }
 
