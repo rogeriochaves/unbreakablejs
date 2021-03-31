@@ -31,7 +31,7 @@ andThen2 fn val val2 =
 --             case expr of
 --                 Types.Number float ->
 --                     fn float
---                 Types.Vector _ ->
+--                 Types.Array _ ->
 --                     throwError "Cannot apply function to vector"
 --                 other ->
 --                     Expression (builder other)
@@ -42,8 +42,8 @@ andThen2 fn val val2 =
 --         (\expr ->
 --             case expr of
 --                 Types.Number float ->
---                     throwError "Vector expected"
---                 Types.Vector items ->
+--                     throwError "Array expected"
+--                 Types.Array items ->
 --                     fn items
 --                 other ->
 --                     Expression (builder other)

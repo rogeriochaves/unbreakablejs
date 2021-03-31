@@ -343,27 +343,29 @@ suite =
             --                         ]
             --                     )
             --     ]
-            -- , describe "vectors"
-            --     [ test "reads a vector" <|
-            --         \_ ->
-            --             parseAndRun "(1, 2, 3)"
-            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
+            , describe "arrays"
+                [ test "reads an array" <|
+                    \_ ->
+                        parseAndRun "[1, 2, 3]"
+                            |> isEq (Array [ Number 1, Number 2, Number 3 ])
+                ]
+
             --     , test "reads a vector with operations inside" <|
             --         \_ ->
             --             parseAndRun "(1, 1 + 1, 3)"
-            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEq (Array [ Number 1, Number 2, Number 3 ])
             --     , test "parses a simple assignment and return Undefined" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)"
-            --                 |> isEq (Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEq (Array [ Number 1, Number 2, Number 3 ])
             --     , test "saves the value to the variable" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
-            --                 |> isEqLast (Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEqLast (Array [ Number 1, Number 2, Number 3 ])
             --     , test "calls a function with vec as param" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
-            --                 |> isEqLast (Vector [ Number 1, Number 2, Number 3 ])
+            --                 |> isEqLast (Array [ Number 1, Number 2, Number 3 ])
             --     , test "replaces variables inside vector" <|
             --         \_ ->
             --             parseAndRun "f(x) = (1, x, 3)\nf(2)"
@@ -372,17 +374,17 @@ suite =
             --                     (Ok
             --                         [ Undefined
             --                         , Expression <|
-            --                             Vector [ Number 1, Number 2, Number 3 ]
+            --                             Array [ Number 1, Number 2, Number 3 ]
             --                         ]
             --                     )
             --     , test "calling a vector function with a scalar argument should fail" <|
             --         \_ ->
             --             parseAndRun "f(\\vec{y}) = \\vec{y}\nf(5)"
-            --                 |> isErr "Vector expected"
+            --                 |> isErr "Array expected"
             --     , test "validation of param type should also work for indirect cases" <|
             --         \_ ->
             --             parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = x + 1\nf(g(5))"
-            --                 |> isErr "Vector expected"
+            --                 |> isErr "Array expected"
             --     , test "validation of param type should also work for indirect cases 2" <|
             --         \_ ->
             --             parseAndRun "f(\\vec{y}) = \\vec{y}\ng(x) = (1, x, 3)\nf(g(2))"
@@ -392,7 +394,7 @@ suite =
             --                         [ Undefined
             --                         , Undefined
             --                         , Expression <|
-            --                             Vector [ Number 1, Number 2, Number 3 ]
+            --                             Array [ Number 1, Number 2, Number 3 ]
             --                         ]
             --                     )
             --     , test "dont assign vector to scalar variables" <|
@@ -434,7 +436,7 @@ suite =
             --                 |> isEq
             --                     (Expression
             --                         (DoubleArity Index
-            --                             (Vector [ Number 1, Number 2, Number 3 ])
+            --                             (Array [ Number 1, Number 2, Number 3 ])
             --                             (Variable (ScalarIdentifier "x"))
             --                         )
             --                     )
@@ -446,7 +448,7 @@ suite =
             --         \_ ->
             --             parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
             --                 |> Result.map (List.map Tuple.second)
-            --                 |> Expect.equal (Ok [ Undefined, Expression (Vector [ Number 2, Number 3, Number 4 ]) ])
+            --                 |> Expect.equal (Ok [ Undefined, Expression (Array [ Number 2, Number 3, Number 4 ]) ])
             --     , test "evaluates a vector summation" <|
             --         \_ ->
             --             parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"

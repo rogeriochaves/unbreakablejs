@@ -37,11 +37,12 @@ type UntrackedExp
     | Return Expression
     | IfCondition Expression Expression
     | While Expression Expression
+    | ArrayExpression (List Expression)
 
 
 type Value
     = Number Float
-    | Vector (List Expression)
+    | Array (List Value)
     | Abstraction (List String) Expression
     | Undefined (List UndefinedTrackInfo)
     | Boolean Bool

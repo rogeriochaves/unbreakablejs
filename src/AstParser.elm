@@ -1,6 +1,5 @@
 module AstParser exposing (parse)
 
-import Dict
 import Parser exposing (..)
 import Parser.Expression exposing (..)
 import Parser.Extras exposing (..)
@@ -423,11 +422,12 @@ undefined filename =
 
 vectors : String -> Parser Expression
 vectors filename =
-    succeed (Vector >> Value >> Untracked)
+    succeed (\pos items -> tracked filename pos (ArrayExpression items))
+        |= getPosition
         |= sequence
-            { start = "("
+            { start = "["
             , separator = ","
-            , end = ")"
+            , end = "]"
             , spaces = spaces
             , item = expression filename
             , trailing = Forbidden

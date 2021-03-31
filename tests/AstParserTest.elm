@@ -553,18 +553,26 @@ suite =
                                 )
                             )
             ]
+        , describe "arrays"
+            [ test "parses simple array" <|
+                \_ ->
+                    parse "[1, 2, 3]"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (ArrayExpression
+                                    [ Untracked (Value (Number 1))
+                                    , Untracked (Value (Number 2))
+                                    , Untracked (Value (Number 3))
+                                    ]
+                                )
+                            )
+            ]
 
-        -- , describe "vectors"
-        --     [ test "parses simple vector" <|
-        --         \_ ->
-        --             parse "(1, 2, 3)"
-        --                 |> isEq
-        --                     (Vector [ Number 1, Number 2, Number 3 ])
         --     , test "parses vector with expressions inside" <|
         --         \_ ->
         --             parse "(x, x + 1, x + 2)"
         --                 |> isEq
-        --                     (Vector
+        --                     (Array
         --                         [ Variable (ScalarIdentifier "x")
         --                         , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1)
         --                         , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
@@ -573,11 +581,11 @@ suite =
         --     , test "parses vector assignment" <|
         --         \_ ->
         --             parse "\\vec{x} = (1, 2, 3)"
-        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Array[ Number 1, Number 2, Number 3 ]))
         --     , test "vector variables can also use mathbf" <|
         --         \_ ->
         --             parse "\\mathbf{x} = (1, 2, 3)"
-        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Vector [ Number 1, Number 2, Number 3 ]))
+        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Array[ Number 1, Number 2, Number 3 ]))
         --     , test "parses expression with vector variable" <|
         --         \_ ->
         --             parse "\\vec{x} + 1"

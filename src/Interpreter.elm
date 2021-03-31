@@ -74,24 +74,10 @@ eval expr state =
             { outScope = emptyState, inScope = emptyState, result = result }
     in
     case expr |> removeTracking of
-        Value (Vector items) ->
-            Debug.todo "vector not supported yet"
+        ArrayExpression items ->
+            evalList items state
+                |> Stateful.map Array
 
-        -- let
-        --     appendOrLiftError : Value -> Value -> Value
-        --     appendOrLiftError curr acc =
-        --         case ( acc, curr ) of
-        --             ( Vector items_, e ) ->
-        --                 Vector (items_ ++ [ e ])
-        --             _ ->
-        --                 acc
-        -- in
-        -- return
-        --     (evalList items state
-        --         -- TODO: do not ignore state updates
-        --         |> (\( _, _, results ) -> results)
-        --         |> List.foldl appendOrLiftError (Vector [])
-        --     )
         Value val ->
             return val
 
@@ -311,7 +297,7 @@ comparisonWithBool value bool =
         Abstraction _ _ ->
             False
 
-        Vector _ ->
+        Array _ ->
             Debug.todo "not implemented"
 
         Undefined _ ->
@@ -334,7 +320,7 @@ valueToBool value =
         Abstraction _ _ ->
             True
 
-        Vector _ ->
+        Array _ ->
             Debug.todo "not implemented"
 
         Undefined _ ->
@@ -360,7 +346,7 @@ boolToNumber bool =
 --                     case eval state expr of
 --                         Expression (Number num) ->
 --                             ( setVariable name num state, Expression (Number num) )
---                         Expression (Vector _) ->
+--                         Expression (Array _) ->
 --                             ( state, throwError ("Cannot assign vector to scalar variables, use \\vec{" ++ name ++ "} instead") )
 --                         Undefined ->
 --                             ( state, throwError ("Cannot set variable " ++ name ++ " to Undefined") )
@@ -376,8 +362,8 @@ boolToNumber bool =
 --                     case eval state expr of
 --                         Expression (Number _) ->
 --                             ( state, throwError "Cannot assign scalar to vector variables" )
---                         Expression (Vector v) ->
---                             ( setVector name v state, Expression (Vector v) )
+--                         Expression (Array v) ->
+--                             ( setVector name v state, Expression (Array v) )
 --                         Undefined ->
 --                             ( state, throwError ("Cannot set variable " ++ name ++ " to Undefined") )
 --                         Error error ->
@@ -503,14 +489,14 @@ removeTracking expr =
 --                                     |> setVariable functionIndex (toFloat <| i + 1)
 --                         in
 --                         case ( acc, eval state_ functionBody ) of
---                             ( Expression (Vector items_), Expression e ) ->
---                                 Expression (Vector (items_ ++ [ e ]))
---                             ( Expression (Vector items_), error ) ->
+--                             ( Expression (Array items_), Expression e ) ->
+--                                 Expression (Array (items_ ++ [ e ]))
+--                             ( Expression (Array items_), error ) ->
 --                                 error
 --                             ( acc_, _ ) ->
 --                                 acc_
 --                     )
---                     (Expression (Vector []))
+--                     (Expression (Array []))
 --                     items
 --             )
 -- runDoubleArity : State -> DoubleArity -> Expression -> Expression -> Return.Value
@@ -547,7 +533,7 @@ removeTracking expr =
 --                     (\items ->
 --                         eval state e2
 --                             |> Return.andThenNum
---                                 (DoubleArity Index (Vector items))
+--                                 (DoubleArity Index (Array items))
 --                                 (\index ->
 --                                     if not (isInteger index) || index < 1 then
 --                                         throwError ("Cannot use " ++ String.fromFloat index ++ " as an index, it has to be a positive integer")
