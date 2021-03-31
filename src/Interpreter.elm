@@ -17,7 +17,7 @@ run state expressions =
         iterate_ expr acc =
             let
                 statefulResult =
-                    Stateful.run (runExpression expr) acc
+                    Stateful.run (eval expr) acc
             in
             statefulResult
                 |> Stateful.map (\_ -> statefulResult :: acc.result)
@@ -31,20 +31,6 @@ run state expressions =
            )
 
 
-evalList : List Expression -> State -> Stateful (List Value)
-evalList expressions state =
-    let
-        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
-        iterate_ expr acc =
-            acc
-                |> Stateful.run (runExpression expr)
-                |> Stateful.map (\result -> result :: acc.result)
-    in
-    expressions
-        |> List.foldl iterate_ (Stateful state emptyState [])
-        |> Stateful.map List.reverse
-
-
 runBlock : State -> List Expression -> ( State, Maybe Value )
 runBlock state blockExpressions =
     let
@@ -52,7 +38,7 @@ runBlock state blockExpressions =
         iterate_ expr acc =
             if acc.result == Nothing then
                 acc
-                    |> Stateful.run (runExpression expr)
+                    |> Stateful.run (eval expr)
                     |> Stateful.map
                         (\result ->
                             case expr |> removeTracking of
@@ -72,8 +58,8 @@ runBlock state blockExpressions =
         |> (\{ outScope, result } -> ( outScope, result ))
 
 
-runExpression : Expression -> State -> ExpressionResult
-runExpression expr state =
+eval : Expression -> State -> ExpressionResult
+eval expr state =
     let
         trackStack : UndefinedReason -> List UndefinedTrackInfo
         trackStack reason =
@@ -117,7 +103,7 @@ runExpression expr state =
 
         Operation symbol expr0 ->
             Stateful.session state
-                |> Stateful.run (runExpression expr0)
+                |> Stateful.run (eval expr0)
                 |> Stateful.andThen
                     (\arg0 ->
                         Stateful.run (\_ -> applyOperation symbol arg0)
@@ -125,10 +111,10 @@ runExpression expr state =
 
         Operation2 symbol expr0 expr1 ->
             Stateful.session state
-                |> Stateful.run (runExpression expr0)
+                |> Stateful.run (eval expr0)
                 |> Stateful.andThen
                     (\arg0 ->
-                        Stateful.run (runExpression expr1)
+                        Stateful.run (eval expr1)
                             >> Stateful.andThen
                                 (\arg1 ->
                                     Stateful.run (\_ -> applyOperation2 symbol arg0 arg1 trackStack)
@@ -139,7 +125,7 @@ runExpression expr state =
             evalList args state
                 |> Stateful.andThen
                     (\evaluatedArgs ->
-                        Stateful.run (runExpression fn)
+                        Stateful.run (eval fn)
                             >> Stateful.andThen
                                 (\abstraction ->
                                     case abstraction of
@@ -166,19 +152,19 @@ runExpression expr state =
                 )
 
         Return returnExpr ->
-            runExpression returnExpr state
+            eval returnExpr state
 
         IfCondition condition exprIfTrue ->
             Stateful.session state
-                |> Stateful.run (runExpression condition)
+                |> Stateful.run (eval condition)
                 |> Stateful.andThen
                     (\conditionResult ->
                         if valueToBool conditionResult then
-                            Stateful.run (runExpression exprIfTrue)
+                            Stateful.run (eval exprIfTrue)
 
                         else
                             Stateful.run
-                                (runExpression
+                                (eval
                                     (Untracked (Value (Undefined (trackStack IfWithoutElse))))
                                 )
                     )
@@ -188,11 +174,11 @@ runExpression expr state =
                 whileLoop : Value -> ExpressionResult -> ExpressionResult
                 whileLoop prevResult session =
                     session
-                        |> Stateful.run (runExpression condition)
+                        |> Stateful.run (eval condition)
                         |> Stateful.andThen
                             (\conditionResult ->
                                 if valueToBool conditionResult then
-                                    Stateful.run (runExpression exprWhile)
+                                    Stateful.run (eval exprWhile)
                                         >> Stateful.andThen whileLoop
 
                                 else
@@ -203,8 +189,18 @@ runExpression expr state =
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
 
-
--- STATEFUL
+evalList : List Expression -> State -> Stateful (List Value)
+evalList expressions state =
+    let
+        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
+        iterate_ expr acc =
+            acc
+                |> Stateful.run (eval expr)
+                |> Stateful.map (\result -> result :: acc.result)
+    in
+    expressions
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> Stateful.map List.reverse
 
 
 applyOperation : Operation -> Value -> ExpressionResult
@@ -473,7 +469,7 @@ callFunction trackStack ( paramNames, functionBody ) args state =
                 paramNames
     in
     -- TODO: closure should be only inScope
-    runExpression functionBody closure
+    eval functionBody closure
 
 
 removeTracking : Expression -> UntrackedExp
@@ -484,16 +480,6 @@ removeTracking expr =
 
         Untracked e ->
             e
-
-
-mapTracking : (UntrackedExp -> UntrackedExp) -> Expression -> Expression
-mapTracking fn expr =
-    case expr of
-        Tracked info e ->
-            Tracked info (fn e)
-
-        Untracked e ->
-            Untracked (fn e)
 
 
 
