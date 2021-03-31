@@ -38,10 +38,8 @@ run state expressions =
                 statefulResult =
                     statefulExecute expr acc
             in
-            { outScope = statefulResult.outScope
-            , inScope = statefulResult.inScope
-            , result = statefulResult :: acc.result
-            }
+            statefulResult
+                |> statefulMap (\_ -> statefulResult :: acc.result)
     in
     expressions
         |> List.foldl iterate_ (Stateful state emptyState [])
@@ -58,19 +56,17 @@ runBlock state blockExpressions =
         iterate_ : Expression -> Stateful (Maybe Value) -> Stateful (Maybe Value)
         iterate_ expr acc =
             if acc.result == Nothing then
-                let
-                    statefulResult =
-                        statefulExecute expr acc
+                acc
+                    |> statefulExecute expr
+                    |> statefulMap
+                        (\result ->
+                            case expr |> removeTracking of
+                                Return _ ->
+                                    Just result
 
-                    returnValue_ =
-                        case expr |> removeTracking of
-                            Return _ ->
-                                Just statefulResult.result
-
-                            _ ->
-                                Nothing
-                in
-                Stateful statefulResult.outScope statefulResult.inScope returnValue_
+                                _ ->
+                                    Nothing
+                        )
 
             else
                 acc
@@ -129,7 +125,7 @@ runExpression state expr =
                 |> statefulExecute expr0
                 |> statefulAndThen
                     (\arg0 ->
-                        statefulRun (applyOperation symbol arg0)
+                        statefulRun (\_ -> applyOperation symbol arg0)
                     )
 
         Operation2 symbol expr0 expr1 ->
@@ -140,31 +136,28 @@ runExpression state expr =
                         statefulExecute expr1
                             >> statefulAndThen
                                 (\arg1 ->
-                                    statefulRun (applyOperation2 symbol arg0 arg1 trackStack)
+                                    statefulRun (\_ -> applyOperation2 symbol arg0 arg1 trackStack)
                                 )
                     )
 
         Application fn args ->
-            let
-                ( outScope, inScope, evaluatedArgs ) =
-                    evalList args state
+            evalList args state
+                |> statefulAndThen
+                    (\evaluatedArgs ->
+                        statefulExecute fn
+                            >> statefulAndThen
+                                (\abstraction ->
+                                    case abstraction of
+                                        Abstraction paramNames functionBody ->
+                                            statefulRun (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
 
-                state_ =
-                    mergeStates inScope (mergeStates outScope state)
+                                        Undefined stacktrace ->
+                                            statefulRun (\_ -> return (Undefined stacktrace))
 
-                applicationResult =
-                    case eval state fn of
-                        Abstraction paramNames functionBody ->
-                            callFunction state_ trackStack ( paramNames, functionBody ) evaluatedArgs
-
-                        Undefined stacktrace ->
-                            return (Undefined stacktrace)
-
-                        _ ->
-                            Debug.todo "not implemented"
-            in
-            applicationResult
-                |> preprendStateChanges outScope inScope
+                                        _ ->
+                                            Debug.todo "not implemented"
+                                )
+                    )
 
         Block blockExpressions ->
             let
@@ -216,14 +209,6 @@ runExpression state expr =
 -- STATEFUL
 
 
-preprendStateChanges : State -> State -> ExpressionResult -> ExpressionResult
-preprendStateChanges outScope inScope result =
-    Stateful
-        (mergeStates result.outScope outScope)
-        (mergeStates result.inScope inScope)
-        result.result
-
-
 mergeStates : State -> State -> State
 mergeStates a b =
     { variables = Dict.union a.variables b.variables }
@@ -237,7 +222,7 @@ statefulSession state =
     }
 
 
-statefulMap : (Value -> Value) -> ExpressionResult -> ExpressionResult
+statefulMap : (a -> b) -> Stateful a -> Stateful b
 statefulMap fn session =
     { outScope = session.outScope
     , inScope = session.inScope
@@ -245,14 +230,18 @@ statefulMap fn session =
     }
 
 
-statefulAndThen : (Value -> ExpressionResult -> ExpressionResult) -> ExpressionResult -> ExpressionResult
+statefulAndThen : (a -> Stateful a -> Stateful b) -> Stateful a -> Stateful b
 statefulAndThen fn session =
     fn session.result session
 
 
-statefulRun : ExpressionResult -> ExpressionResult -> ExpressionResult
-statefulRun expressionResult statefulResult =
-    moveStateOutsideScope expressionResult ( statefulResult.outScope, statefulResult.inScope )
+statefulRun : (State -> ExpressionResult) -> ExpressionResult -> ExpressionResult
+statefulRun fn { outScope, inScope } =
+    let
+        state =
+            mergeStates inScope outScope
+    in
+    moveStateOutsideScope (fn state) ( outScope, inScope )
 
 
 statefulExecute : Expression -> Stateful a -> ExpressionResult
@@ -296,20 +285,18 @@ moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
 -- /STATEFUL
 
 
-evalList : List Expression -> State -> ( State, State, List Value )
+evalList : List Expression -> State -> Stateful (List Value)
 evalList expressions state =
     let
         iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
         iterate_ expr acc =
-            let
-                statefulResult =
-                    statefulExecute expr acc
-            in
-            Stateful statefulResult.outScope statefulResult.inScope (statefulResult.result :: acc.result)
+            acc
+                |> statefulExecute expr
+                |> statefulMap (\result -> result :: acc.result)
     in
     expressions
         |> List.foldl iterate_ (Stateful state emptyState [])
-        |> (\{ outScope, inScope, result } -> ( outScope, inScope, List.reverse result ))
+        |> statefulMap List.reverse
 
 
 applyOperation : Operation -> Value -> ExpressionResult
@@ -562,8 +549,8 @@ boolToNumber bool =
 --             )
 
 
-callFunction : State -> (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> ExpressionResult
-callFunction state trackStack ( paramNames, functionBody ) args =
+callFunction : (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> State -> ExpressionResult
+callFunction trackStack ( paramNames, functionBody ) args state =
     let
         closure =
             List.Extra.indexedFoldl
