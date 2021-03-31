@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Dict exposing (Dict)
 import Parser exposing (..)
 
 
@@ -67,6 +68,25 @@ type UndefinedReason
     | IfWithoutElse
     | ExplicitUndefined
     | LoopNeverTrue
+
+
+type alias State =
+    { variables : Dict String Value
+    }
+
+
+emptyState : State
+emptyState =
+    { variables = Dict.empty
+    }
+
+
+type alias ExpressionResult =
+    Stateful Value
+
+
+type alias Stateful a =
+    { outScope : State, inScope : State, result : a }
 
 
 

@@ -1,32 +1,13 @@
-module Interpreter exposing (ExpressionResult, State, emptyState, run)
+module Interpreter exposing (run)
 
-import Dict exposing (Dict)
+import Dict
 import Fuzz exposing (result)
-import Html exposing (ins)
 import List.Extra
 import Parser exposing (Problem(..))
 import Return
+import Stateful
 import Test.Runner.Failure exposing (Reason(..))
 import Types exposing (..)
-
-
-type alias State =
-    { variables : Dict String Value
-    }
-
-
-emptyState : State
-emptyState =
-    { variables = Dict.empty
-    }
-
-
-type alias ExpressionResult =
-    Stateful Value
-
-
-type alias Stateful a =
-    { outScope : State, inScope : State, result : a }
 
 
 run : State -> Types.Program -> ( State, List ExpressionResult )
@@ -39,15 +20,34 @@ run state expressions =
                     statefulExecute expr acc
             in
             statefulResult
-                |> statefulMap (\_ -> statefulResult :: acc.result)
+                |> Stateful.map (\_ -> statefulResult :: acc.result)
     in
     expressions
         |> List.foldl iterate_ (Stateful state emptyState [])
         |> (\{ outScope, inScope, result } ->
-                ( mergeStates inScope outScope
+                ( Stateful.mergeStates inScope outScope
                 , List.reverse result
                 )
            )
+
+
+statefulExecute : Expression -> Stateful a -> ExpressionResult
+statefulExecute expr =
+    Stateful.run (\state -> runExpression state expr)
+
+
+evalList : List Expression -> State -> Stateful (List Value)
+evalList expressions state =
+    let
+        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
+        iterate_ expr acc =
+            acc
+                |> statefulExecute expr
+                |> Stateful.map (\result -> result :: acc.result)
+    in
+    expressions
+        |> List.foldl iterate_ (Stateful state emptyState [])
+        |> Stateful.map List.reverse
 
 
 runBlock : State -> List Expression -> ( State, Maybe Value )
@@ -58,7 +58,7 @@ runBlock state blockExpressions =
             if acc.result == Nothing then
                 acc
                     |> statefulExecute expr
-                    |> statefulMap
+                    |> Stateful.map
                         (\result ->
                             case expr |> removeTracking of
                                 Return _ ->
@@ -121,38 +121,38 @@ runExpression state expr =
                 )
 
         Operation symbol expr0 ->
-            statefulSession state
+            Stateful.session state
                 |> statefulExecute expr0
-                |> statefulAndThen
+                |> Stateful.andThen
                     (\arg0 ->
-                        statefulRun (\_ -> applyOperation symbol arg0)
+                        Stateful.run (\_ -> applyOperation symbol arg0)
                     )
 
         Operation2 symbol expr0 expr1 ->
-            statefulSession state
+            Stateful.session state
                 |> statefulExecute expr0
-                |> statefulAndThen
+                |> Stateful.andThen
                     (\arg0 ->
                         statefulExecute expr1
-                            >> statefulAndThen
+                            >> Stateful.andThen
                                 (\arg1 ->
-                                    statefulRun (\_ -> applyOperation2 symbol arg0 arg1 trackStack)
+                                    Stateful.run (\_ -> applyOperation2 symbol arg0 arg1 trackStack)
                                 )
                     )
 
         Application fn args ->
             evalList args state
-                |> statefulAndThen
+                |> Stateful.andThen
                     (\evaluatedArgs ->
                         statefulExecute fn
-                            >> statefulAndThen
+                            >> Stateful.andThen
                                 (\abstraction ->
                                     case abstraction of
                                         Abstraction paramNames functionBody ->
-                                            statefulRun (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
+                                            Stateful.run (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
 
                                         Undefined stacktrace ->
-                                            statefulRun (\_ -> return (Undefined stacktrace))
+                                            Stateful.run (\_ -> return (Undefined stacktrace))
 
                                         _ ->
                                             Debug.todo "not implemented"
@@ -174,9 +174,9 @@ runExpression state expr =
             runExpression state returnExpr
 
         IfCondition condition exprIfTrue ->
-            statefulSession state
+            Stateful.session state
                 |> statefulExecute condition
-                |> statefulAndThen
+                |> Stateful.andThen
                     (\conditionResult ->
                         if valueToBool conditionResult then
                             statefulExecute exprIfTrue
@@ -191,112 +191,22 @@ runExpression state expr =
                 whileLoop prevResult session =
                     session
                         |> statefulExecute condition
-                        |> statefulAndThen
+                        |> Stateful.andThen
                             (\conditionResult ->
                                 if valueToBool conditionResult then
                                     statefulExecute exprWhile
-                                        >> statefulAndThen whileLoop
+                                        >> Stateful.andThen whileLoop
 
                                 else
-                                    statefulMap (\_ -> prevResult)
+                                    Stateful.map (\_ -> prevResult)
                             )
             in
-            statefulSession state
+            Stateful.session state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
 
 
 -- STATEFUL
-
-
-mergeStates : State -> State -> State
-mergeStates a b =
-    { variables = Dict.union a.variables b.variables }
-
-
-statefulSession : State -> ExpressionResult
-statefulSession state =
-    { outScope = state
-    , inScope = emptyState
-    , result = Undefined []
-    }
-
-
-statefulMap : (a -> b) -> Stateful a -> Stateful b
-statefulMap fn session =
-    { outScope = session.outScope
-    , inScope = session.inScope
-    , result = fn session.result
-    }
-
-
-statefulAndThen : (a -> Stateful a -> Stateful b) -> Stateful a -> Stateful b
-statefulAndThen fn session =
-    fn session.result session
-
-
-statefulRun : (State -> ExpressionResult) -> ExpressionResult -> ExpressionResult
-statefulRun fn { outScope, inScope } =
-    let
-        state =
-            mergeStates inScope outScope
-    in
-    moveStateOutsideScope (fn state) ( outScope, inScope )
-
-
-statefulExecute : Expression -> Stateful a -> ExpressionResult
-statefulExecute expr { outScope, inScope } =
-    let
-        state =
-            mergeStates inScope outScope
-    in
-    moveStateOutsideScope (runExpression state expr) ( outScope, inScope )
-
-
-moveStateOutsideScope : ExpressionResult -> ( State, State ) -> ExpressionResult
-moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
-    let
-        outScopeFiltered =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            not (Dict.member identifier prevInScope.variables)
-                        )
-                        expressionResult.outScope.variables
-                }
-                prevOutScope
-
-        inScopeUpdated =
-            mergeStates
-                { variables =
-                    Dict.filter
-                        (\identifier _ ->
-                            Dict.member identifier prevInScope.variables
-                        )
-                        expressionResult.outScope.variables
-                }
-                (mergeStates expressionResult.inScope prevInScope)
-    in
-    { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }
-
-
-
--- /STATEFUL
-
-
-evalList : List Expression -> State -> Stateful (List Value)
-evalList expressions state =
-    let
-        iterate_ : Expression -> Stateful (List Value) -> Stateful (List Value)
-        iterate_ expr acc =
-            acc
-                |> statefulExecute expr
-                |> statefulMap (\result -> result :: acc.result)
-    in
-    expressions
-        |> List.foldl iterate_ (Stateful state emptyState [])
-        |> statefulMap List.reverse
 
 
 applyOperation : Operation -> Value -> ExpressionResult
