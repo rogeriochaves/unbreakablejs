@@ -530,6 +530,30 @@ suite =
                     \_ ->
                         parseAndRun "x == false"
                             |> isEqLast (Boolean False)
+                , test "empty array is not true" <|
+                    \_ ->
+                        parseAndRun "[] == true"
+                            |> isEqLast (Boolean False)
+                , test "filled array is also not true" <|
+                    \_ ->
+                        parseAndRun "[5] == true"
+                            |> isEqLast (Boolean False)
+                , test "empty array is false" <|
+                    \_ ->
+                        parseAndRun "[] == false"
+                            |> isEqLast (Boolean True)
+                , test "but filled array is also not false" <|
+                    \_ ->
+                        parseAndRun "[5] == false"
+                            |> isEqLast (Boolean False)
+                , test "except array with 1 in the first position exaclty is true" <|
+                    \_ ->
+                        parseAndRun "[1] == true"
+                            |> isEqLast (Boolean True)
+                , test "and conversely, array with 0 in first position exactly is false" <|
+                    \_ ->
+                        parseAndRun "[0] == false"
+                            |> isEqLast (Boolean True)
                 , test "evaluates number smaller than" <|
                     \_ ->
                         parseAndRun "1 < 2"
@@ -570,6 +594,31 @@ suite =
                     \_ ->
                         parseAndRun "fn = () => {}; fn > 0 - 1"
                             |> isEqLast (Boolean False)
+                , test "takes the first value of an array when converting to a number" <|
+                    \_ ->
+                        parseAndRun "[5] == 5"
+                            |> isEqLast (Boolean True)
+                , test "takes the first value of an array when converting to a number #2" <|
+                    \_ ->
+                        parseAndRun "[5] > 4"
+                            |> isEqLast (Boolean True)
+                , test "but not when array has more than one item" <|
+                    \_ ->
+                        parseAndRun "[5, 1] > 4"
+                            |> isEqLast (Boolean False)
+                , test "which means translation further into booleans" <|
+                    \_ ->
+                        parseAndRun "[1] == true"
+                            |> isEqLast (Boolean True)
+                , test "which means translation further into booleans #2" <|
+                    \_ ->
+                        parseAndRun "[5] == true"
+                            |> isEqLast (Boolean False)
+                , skip <|
+                    test "but first it gets translated into string, so [true] becomes ['true'] so its not == true" <|
+                        \_ ->
+                            parseAndRun "[true] == true"
+                                |> isEqLast (Boolean False)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
@@ -608,6 +657,14 @@ suite =
                     \_ ->
                         parseAndRun "x = 0\nif (y) { x = 1 }\nx"
                             |> isEqLast (Number 0)
+                , test "arrays are truthy" <|
+                    \_ ->
+                        parseAndRun "x = 0\nif ([0]) { x = 1 }\nx"
+                            |> isEqLast (Number 1)
+                , test "empty arrays are also truthy" <|
+                    \_ ->
+                        parseAndRun "x = 0\nif ([]) { x = 1 }\nx"
+                            |> isEqLast (Number 1)
                 ]
             , describe "loops"
                 [ test "loops with while" <|

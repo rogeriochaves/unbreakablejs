@@ -219,43 +219,20 @@ applyOperation2 reserved arg0 arg1 trackStack =
             return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number arg0 arg1)
 
         SoftEquality ->
-            let
-                trackStack_ =
-                    trackStack (OperationWithUndefined "equality")
-            in
             return
-                (case ( arg0, arg1 ) of
-                    ( Number a, Number b ) ->
+                (case ( valueToNumber arg0, valueToNumber arg1 ) of
+                    ( Just a, Just b ) ->
                         Boolean (a == b)
 
-                    ( Boolean a, v ) ->
-                        Boolean (comparisonWithBool v a)
-
-                    ( v, Boolean a ) ->
-                        Boolean (comparisonWithBool v a)
-
-                    ( Undefined stack, _ ) ->
-                        Undefined (stack ++ trackStack_)
-
-                    ( _, Undefined stack ) ->
-                        Undefined (stack ++ trackStack_)
-
                     _ ->
-                        -- TODO: what about true == 1? 0 == false? "1" == 1
-                        Undefined trackStack_
+                        Boolean False
                 )
 
         GreaterThan ->
             return
-                (case ( arg0, arg1 ) of
-                    ( Number a, Number b ) ->
+                (case ( valueToNumber arg0, valueToNumber arg1 ) of
+                    ( Just a, Just b ) ->
                         Boolean (a > b)
-
-                    ( Number a, Boolean b ) ->
-                        Boolean (a > boolToNumber b)
-
-                    ( Boolean a, Number b ) ->
-                        Boolean (boolToNumber a > b)
 
                     _ ->
                         Boolean False
@@ -263,45 +240,13 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
         SmallerThan ->
             return
-                (case ( arg0, arg1 ) of
-                    ( Number a, Number b ) ->
+                (case ( valueToNumber arg0, valueToNumber arg1 ) of
+                    ( Just a, Just b ) ->
                         Boolean (a < b)
-
-                    ( Number a, Boolean b ) ->
-                        Boolean (a < boolToNumber b)
-
-                    ( Boolean a, Number b ) ->
-                        Boolean (boolToNumber a < b)
 
                     _ ->
                         Boolean False
                 )
-
-
-comparisonWithBool : Value -> Bool -> Bool
-comparisonWithBool value bool =
-    case value of
-        Boolean a ->
-            a == bool
-
-        Number a ->
-            if a == 0 then
-                False == bool
-
-            else if a == 1 then
-                True == bool
-
-            else
-                False
-
-        Abstraction _ _ ->
-            False
-
-        Array _ ->
-            Debug.todo "not implemented"
-
-        Undefined _ ->
-            False
 
 
 valueToBool : Value -> Bool
@@ -321,19 +266,38 @@ valueToBool value =
             True
 
         Array _ ->
-            Debug.todo "not implemented"
+            True
 
         Undefined _ ->
             False
 
 
-boolToNumber : Bool -> Float
-boolToNumber bool =
-    if bool then
-        1
+valueToNumber : Value -> Maybe Float
+valueToNumber value =
+    case value of
+        Number a ->
+            Just a
 
-    else
-        0
+        Boolean a ->
+            Just
+                (if a then
+                    1
+
+                 else
+                    0
+                )
+
+        Array [] ->
+            Just 0
+
+        Array [ first ] ->
+            valueToNumber first
+
+        Array _ ->
+            Nothing
+
+        _ ->
+            Nothing
 
 
 
