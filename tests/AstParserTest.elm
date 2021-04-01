@@ -553,6 +553,13 @@ suite =
                                 )
                             )
             ]
+        , describe "strings" <|
+            [ test "parses string" <|
+                \_ ->
+                    parse "\"foo\""
+                        |> isEq
+                            (Untracked (Value (String "foo")))
+            ]
         , describe "arrays"
             [ test "parses simple array" <|
                 \_ ->

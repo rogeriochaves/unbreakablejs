@@ -29,3 +29,6 @@ encode value =
 
             else
                 "false"
+
+        String string ->
+            string

@@ -614,11 +614,22 @@ suite =
                     \_ ->
                         parseAndRun "[5] == true"
                             |> isEqLast (Boolean False)
-                , skip <|
-                    test "but first it gets translated into string, so [true] becomes ['true'] so its not == true" <|
-                        \_ ->
-                            parseAndRun "[true] == true"
-                                |> isEqLast (Boolean False)
+                , test "comparisson converts string too" <|
+                    \_ ->
+                        parseAndRun "\"5\" == 5"
+                            |> isEqLast (Boolean True)
+                , test "but first it gets translated into string, so [true] becomes ['true'] so its not == true" <|
+                    \_ ->
+                        parseAndRun "[true] == true"
+                            |> isEqLast (Boolean False)
+                , test "arrays get translated into string when compared with string, many levels deep" <|
+                    \_ ->
+                        parseAndRun "[1,[[2]],3] == \"1,2,3\""
+                            |> isEqLast (Boolean True)
+                , test "everything gets translated to string when compared to string" <|
+                    \_ ->
+                        parseAndRun "[true] == \"true\""
+                            |> isEqLast (Boolean True)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
@@ -664,6 +675,14 @@ suite =
                 , test "empty arrays are also truthy" <|
                     \_ ->
                         parseAndRun "x = 0\nif ([]) { x = 1 }\nx"
+                            |> isEqLast (Number 1)
+                , test "empty strings are also falsy" <|
+                    \_ ->
+                        parseAndRun "x = 0\nif (\"\") { x = 1 }\nx"
+                            |> isEqLast (Number 0)
+                , test "but strings with any content and truthy" <|
+                    \_ ->
+                        parseAndRun "x = 0\nif (\"0\") { x = 1 }\nx"
                             |> isEqLast (Number 1)
                 ]
             , describe "loops"

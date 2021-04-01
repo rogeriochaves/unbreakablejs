@@ -220,12 +220,20 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
         SoftEquality ->
             return
-                (case ( valueToNumber arg0, valueToNumber arg1 ) of
-                    ( Just a, Just b ) ->
-                        Boolean (a == b)
+                (case ( arg0, arg1 ) of
+                    ( String a, b ) ->
+                        Boolean (a == valueToString b)
+
+                    ( a, String b ) ->
+                        Boolean (valueToString a == b)
 
                     _ ->
-                        Boolean False
+                        case ( valueToNumber arg0, valueToNumber arg1 ) of
+                            ( Just a, Just b ) ->
+                                Boolean (a == b)
+
+                            _ ->
+                                Boolean False
                 )
 
         GreaterThan ->
@@ -271,6 +279,12 @@ valueToBool value =
         Undefined _ ->
             False
 
+        String "" ->
+            False
+
+        String _ ->
+            True
+
 
 valueToNumber : Value -> Maybe Float
 valueToNumber value =
@@ -287,17 +301,45 @@ valueToNumber value =
                     0
                 )
 
-        Array [] ->
+        Array _ ->
+            valueToNumber (String (valueToString value))
+
+        String "" ->
             Just 0
 
-        Array [ first ] ->
-            valueToNumber first
-
-        Array _ ->
-            Nothing
+        String str ->
+            String.toFloat str
 
         _ ->
             Nothing
+
+
+valueToString : Value -> String
+valueToString value =
+    case value of
+        Number a ->
+            String.fromFloat a
+
+        Boolean a ->
+            if a then
+                "true"
+
+            else
+                "false"
+
+        Array item ->
+            List.map valueToString item
+                |> String.join ","
+
+        String str ->
+            str
+
+        Undefined _ ->
+            ""
+
+        Abstraction _ _ ->
+            -- TODO: modern browsers can do better than that
+            "[Function]"
 
 
 

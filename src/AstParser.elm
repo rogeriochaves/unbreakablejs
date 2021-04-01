@@ -346,7 +346,8 @@ expressionParsers filename withReturn =
             , backtrackable <| parens <| lazy (\_ -> expression filename)
             , functionCall filename
             , atoms filename
-            , vectors filename
+            , arrays filename
+            , strings
             ]
     in
     oneOf (return_ ++ expressions)
@@ -400,6 +401,14 @@ booleans =
         ]
 
 
+strings : Parser Expression
+strings =
+    succeed (Untracked << Value << String)
+        |. symbol "\""
+        |= (getChompedString <| chompWhile (\c -> c /= '"'))
+        |. symbol "\""
+
+
 undefined : String -> Parser Expression
 undefined filename =
     succeed
@@ -420,8 +429,8 @@ undefined filename =
         |. backtrackable (symbol "undefined")
 
 
-vectors : String -> Parser Expression
-vectors filename =
+arrays : String -> Parser Expression
+arrays filename =
     succeed (\pos items -> tracked filename pos (ArrayExpression items))
         |= getPosition
         |= sequence

@@ -46,6 +46,7 @@ type Value
     | Abstraction (List String) Expression
     | Undefined (List UndefinedTrackInfo)
     | Boolean Bool
+    | String String
 
 
 type Operation
