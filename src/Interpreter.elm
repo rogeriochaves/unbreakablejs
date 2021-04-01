@@ -219,8 +219,23 @@ applyOperation2 reserved arg0 arg1 trackStack =
             return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number arg0 arg1)
 
         SoftEquality ->
+            let
+                numberComparison =
+                    case ( valueToNumber arg0, valueToNumber arg1 ) of
+                        ( Just a, Just b ) ->
+                            Boolean (a == b)
+
+                        _ ->
+                            Boolean False
+            in
             return
                 (case ( arg0, arg1 ) of
+                    ( Boolean _, _ ) ->
+                        numberComparison
+
+                    ( _, Boolean _ ) ->
+                        numberComparison
+
                     ( String a, b ) ->
                         Boolean (a == valueToString b)
 
@@ -228,12 +243,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                         Boolean (valueToString a == b)
 
                     _ ->
-                        case ( valueToNumber arg0, valueToNumber arg1 ) of
-                            ( Just a, Just b ) ->
-                                Boolean (a == b)
-
-                            _ ->
-                                Boolean False
+                        numberComparison
                 )
 
         GreaterThan ->

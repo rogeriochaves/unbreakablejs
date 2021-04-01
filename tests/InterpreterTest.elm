@@ -630,6 +630,10 @@ suite =
                     \_ ->
                         parseAndRun "[true] == \"true\""
                             |> isEqLast (Boolean True)
+                , test "unless its a comparison with boolean" <|
+                    \_ ->
+                        parseAndRun "\"0\" == false"
+                            |> isEqLast (Boolean True)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
