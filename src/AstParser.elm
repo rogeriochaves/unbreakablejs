@@ -403,10 +403,16 @@ booleans =
 
 strings : Parser Expression
 strings =
-    succeed (Untracked << Value << String)
-        |. symbol "\""
-        |= (getChompedString <| chompWhile (\c -> c /= '"' && c /= '\n'))
-        |. symbol "\""
+    oneOf
+        [ succeed (Untracked << Value << String)
+            |. symbol "\""
+            |= (getChompedString <| chompWhile (\c -> c /= '"' && c /= '\n'))
+            |. symbol "\""
+        , succeed (Untracked << Value << String)
+            |. symbol "'"
+            |= (getChompedString <| chompWhile (\c -> c /= '\'' && c /= '\n'))
+            |. symbol "'"
+        ]
 
 
 undefined : String -> Parser Expression

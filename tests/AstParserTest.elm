@@ -564,6 +564,11 @@ suite =
                     parse "\"foo\nbar\""
                         |> isErr
                         |> Expect.true "it should break for unclosed multiline strings"
+            , test "parses single-quote strings" <|
+                \_ ->
+                    parse "'foo'"
+                        |> isEq
+                            (Untracked (Value (String "foo")))
             ]
         , describe "arrays"
             [ test "parses simple array" <|
