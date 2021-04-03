@@ -131,19 +131,32 @@ while filename =
 functionCall : String -> Parser Expression
 functionCall filename =
     succeed
-        (\posIdentifier name posApplication ->
-            tracked filename posApplication << Application (tracked filename posIdentifier (Variable name))
+        (\callee applications ->
+            List.foldl
+                (\( ( row, col ), args ) acc ->
+                    tracked filename ( row, col - 1 ) (Application acc args)
+                )
+                callee
+                applications
         )
-        |= getPosition
-        |= backtrackable identifier
-        |= getPosition
+        |= backtrackable (atoms filename)
         |= backtrackable
             (sequence
                 { start = "("
-                , separator = ","
+                , separator = ")("
                 , end = ")"
                 , spaces = spaces
-                , item = expression filename
+                , item =
+                    succeed Tuple.pair
+                        |= getPosition
+                        |= sequence
+                            { start = ""
+                            , separator = ","
+                            , end = ""
+                            , spaces = spaces
+                            , item = expression filename
+                            , trailing = Forbidden
+                            }
                 , trailing = Forbidden
                 }
             )
@@ -346,8 +359,6 @@ expressionParsers filename withReturn =
             , backtrackable <| parens <| lazy (\_ -> expression filename)
             , functionCall filename
             , atoms filename
-            , arrays filename
-            , strings
             ]
     in
     oneOf (return_ ++ expressions)
@@ -388,6 +399,8 @@ atoms filename =
             |= getPosition
             |= identifier
         , digits
+        , arrays filename
+        , strings
         ]
 
 

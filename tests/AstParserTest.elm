@@ -332,6 +332,21 @@ suite =
                             (tracked ( 1, 2 )
                                 (Application (tracked ( 1, 1 ) <| Variable "f") [ Untracked <| Value (Number 5) ])
                             )
+            , test "parses nested function call" <|
+                \_ ->
+                    parse "f(5)(4)"
+                        |> isEq
+                            (tracked ( 1, 5 )
+                                (Application
+                                    (tracked ( 1, 2 )
+                                        (Application (tracked ( 1, 1 ) <| Variable "f")
+                                            [ Untracked (Value (Number 5))
+                                            ]
+                                        )
+                                    )
+                                    [ Untracked (Value (Number 4)) ]
+                                )
+                            )
             , test "parses function call with multiple arguments" <|
                 \_ ->
                     parse "f(3, 2)"
