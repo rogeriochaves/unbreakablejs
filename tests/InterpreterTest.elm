@@ -725,6 +725,10 @@ suite =
                     \_ ->
                         parseAndRun "true + \"false\""
                             |> isEqLast (String "truefalse")
+                , test "concatenates with undefined" <|
+                    \_ ->
+                        parseAndRun "'foo' + undefined"
+                            |> isEqLast (String "fooundefined")
                 , test "subtracts string from number" <|
                     \_ ->
                         parseAndRun "5 - \"4\""

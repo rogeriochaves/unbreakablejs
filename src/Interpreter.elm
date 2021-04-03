@@ -402,7 +402,7 @@ valueToString value =
             str
 
         Undefined _ ->
-            ""
+            "undefined"
 
         Abstraction _ _ ->
             -- TODO: modern browsers can do better than that
