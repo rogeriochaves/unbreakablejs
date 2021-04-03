@@ -729,6 +729,16 @@ suite =
                     \_ ->
                         parseAndRun "'foo' + undefined"
                             |> isEqLast (String "fooundefined")
+                , test "sum with undefineds" <|
+                    \_ ->
+                        parseAndRun "undefined + undefined"
+                            -- TODO: NaN
+                            |> isEqLast
+                                (Undefined
+                                    [ undefinedTrack ( 1, 1 ) ExplicitUndefined
+                                    , undefinedTrack ( 1, 11 ) (OperationWithUndefined "addition")
+                                    ]
+                                )
                 , test "subtracts string from number" <|
                     \_ ->
                         parseAndRun "5 - \"4\""

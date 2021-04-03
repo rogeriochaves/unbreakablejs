@@ -261,6 +261,9 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     ( _, Number _ ) ->
                         numberSum
 
+                    ( Undefined _, Undefined _ ) ->
+                        numberSum
+
                     _ ->
                         stringConcat
                 )

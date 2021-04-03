@@ -31,4 +31,4 @@ encode value =
                 "false"
 
         String string ->
-            string
+            "\"" ++ string ++ "\""
