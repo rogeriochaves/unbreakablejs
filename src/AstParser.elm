@@ -405,7 +405,7 @@ strings : Parser Expression
 strings =
     succeed (Untracked << Value << String)
         |. symbol "\""
-        |= (getChompedString <| chompWhile (\c -> c /= '"'))
+        |= (getChompedString <| chompWhile (\c -> c /= '"' && c /= '\n'))
         |. symbol "\""
 
 
