@@ -4,7 +4,6 @@ import Dict
 import Fuzz exposing (result)
 import List.Extra
 import Parser exposing (Problem(..))
-import Return
 import Stateful
 import Test.Runner.Failure exposing (Reason(..))
 import Types exposing (..)
@@ -516,14 +515,17 @@ valueToString value =
 callFunction : (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> State -> ExpressionResult
 callFunction trackStack ( paramNames, functionBody ) args state =
     let
+        argOrDefault : Int -> String -> Value
+        argOrDefault index paramName =
+            List.drop index args
+                |> List.head
+                -- TODO: track here
+                |> Maybe.withDefault (Undefined (trackStack (MissingPositionalArgument index paramName)))
+
         closure =
             List.Extra.indexedFoldl
-                (\index paramName state_ ->
-                    let
-                        trackStack_ =
-                            trackStack (MissingPositionalArgument index paramName)
-                    in
-                    setVariable paramName (Return.argOrDefault trackStack_ index args) state_
+                (\index paramName ->
+                    setVariable paramName (argOrDefault index paramName)
                 )
                 state
                 paramNames
