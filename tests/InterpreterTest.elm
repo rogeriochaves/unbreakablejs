@@ -700,6 +700,49 @@ suite =
             --     \_ ->
             --         parseAndRun "x = 1\ny(z) = z + x\nx = 2\ny(3)"
             --             |> isEqLast (Expression (Number 5))
+            , describe "math types conversion"
+                [ test "string concatenation" <|
+                    \_ ->
+                        parseAndRun "\"foo\" + \"bar\""
+                            |> isEqLast (String "foobar")
+                , test "sum with boolean" <|
+                    \_ ->
+                        parseAndRun "5 + true"
+                            |> isEqLast (Number 6)
+                , test "sum booleans" <|
+                    \_ ->
+                        parseAndRun "true + true"
+                            |> isEqLast (Number 2)
+                , test "concatenates number with string" <|
+                    \_ ->
+                        parseAndRun "5 + \"5\""
+                            |> isEqLast (String "55")
+                , test "converts array to string" <|
+                    \_ ->
+                        parseAndRun "[] + true"
+                            |> isEqLast (String "true")
+                , test "sum boolean with string" <|
+                    \_ ->
+                        parseAndRun "true + \"false\""
+                            |> isEqLast (String "truefalse")
+                , test "subtracts string from number" <|
+                    \_ ->
+                        parseAndRun "5 - \"4\""
+                            |> isEqLast (Number 1)
+                , test "can't subtract strings" <|
+                    \_ ->
+                        parseAndRun "\"foo\" - \"bar\""
+                            -- TODO: NaN
+                            |> isEqLast
+                                (Undefined
+                                    [ undefinedTrack ( 1, 7 ) (OperationWithUndefined "subtraction")
+                                    ]
+                                )
+                , test "subtracts arrays" <|
+                    \_ ->
+                        parseAndRun "[] - []"
+                            |> isEqLast (Number 0)
+                ]
             ]
         ]
 

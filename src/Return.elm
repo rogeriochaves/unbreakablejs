@@ -90,16 +90,6 @@ andThenNumArgs2 trackStack fn arg0 arg1 =
             Undefined trackStack
 
 
-removeTracking : Expression -> UntrackedExp
-removeTracking expr =
-    case expr of
-        Tracked _ e ->
-            e
-
-        Untracked e ->
-            e
-
-
 andThenArgs2 : List UndefinedTrackInfo -> (Value -> Value -> Expression) -> List Value -> Expression
 andThenArgs2 trackStack fn args =
     fn (argOrDefault trackStack 0 args) (argOrDefault trackStack 1 args)

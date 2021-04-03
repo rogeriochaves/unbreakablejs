@@ -210,13 +210,71 @@ applyOperation2 reserved arg0 arg1 trackStack =
     let
         return result =
             { outScope = emptyState, inScope = emptyState, result = result }
+
+        undefinedStack =
+            case ( arg0, arg1 ) of
+                ( Undefined stack, _ ) ->
+                    stack
+
+                ( _, Undefined stack ) ->
+                    stack
+
+                _ ->
+                    []
     in
     case reserved of
         Addition ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "addition")) (+) Number arg0 arg1)
+            let
+                numberSum =
+                    case ( valueToNumber arg0, valueToNumber arg1 ) of
+                        ( Just a, Just b ) ->
+                            Number (a + b)
+
+                        _ ->
+                            Undefined (undefinedStack ++ trackStack (OperationWithUndefined "addition"))
+
+                stringConcat =
+                    String (valueToString arg0 ++ valueToString arg1)
+            in
+            return
+                (case ( arg0, arg1 ) of
+                    ( String _, _ ) ->
+                        stringConcat
+
+                    ( _, String _ ) ->
+                        stringConcat
+
+                    ( Array _, _ ) ->
+                        stringConcat
+
+                    ( _, Array _ ) ->
+                        stringConcat
+
+                    ( Boolean _, _ ) ->
+                        numberSum
+
+                    ( _, Boolean _ ) ->
+                        numberSum
+
+                    ( Number _, _ ) ->
+                        numberSum
+
+                    ( _, Number _ ) ->
+                        numberSum
+
+                    _ ->
+                        stringConcat
+                )
 
         Subtraction ->
-            return (Return.mapNumArgs2 (trackStack (OperationWithUndefined "subtraction")) (-) Number arg0 arg1)
+            return
+                (case ( valueToNumber arg0, valueToNumber arg1 ) of
+                    ( Just a, Just b ) ->
+                        Number (a - b)
+
+                    _ ->
+                        Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
+                )
 
         SoftEquality ->
             let
