@@ -155,7 +155,7 @@ members : Expression -> String -> Parser Expression
 members expr filename =
     succeed
         (\pos key ->
-            tracked filename pos (Member expr key)
+            tracked filename pos (Operation2 Member expr key)
         )
         |= getPosition
         |. symbol "["

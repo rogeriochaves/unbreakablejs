@@ -102,7 +102,7 @@ eval expr state =
                         Stateful.run (eval expr1)
                             >> Stateful.andThen
                                 (\arg1 ->
-                                    Stateful.run (\_ -> applyOperation2 symbol arg0 arg1 trackStack)
+                                    Stateful.run (\_ -> return (applyOperation2 symbol arg0 arg1 trackStack))
                                 )
                     )
 
@@ -173,36 +173,6 @@ eval expr state =
             Stateful.session state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
-        Member value key ->
-            Stateful.session state
-                |> Stateful.run (eval value)
-                |> Stateful.andThen
-                    (\value_ ->
-                        Stateful.run (eval key)
-                            >> Stateful.map
-                                (\key_ ->
-                                    case ( value_, key_ ) of
-                                        ( Undefined stack, _ ) ->
-                                            Undefined (stack ++ trackStack IndexOutOfRange)
-
-                                        ( _, Undefined stack ) ->
-                                            Undefined (stack ++ trackStack IndexOutOfRange)
-
-                                        ( Array arr, Number index ) ->
-                                            if toFloat (truncate index) == index then
-                                                List.drop (truncate index) arr
-                                                    |> List.head
-                                                    |> Maybe.withDefault (Undefined (trackStack IndexOutOfRange))
-
-                                            else
-                                                Undefined (trackStack IndexOutOfRange)
-
-                                        _ ->
-                                            -- TODO: key not available if string key, index only for lists
-                                            Undefined (trackStack IndexOutOfRange)
-                                )
-                    )
-
 
 evalList : List Expression -> State -> Stateful (List Value)
 evalList expressions state =
@@ -234,12 +204,9 @@ applyOperation operation arg0 =
                 arg0
 
 
-applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
+applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> Value
 applyOperation2 reserved arg0 arg1 trackStack =
     let
-        return result =
-            { outScope = emptyState, inScope = emptyState, result = result }
-
         undefinedStack =
             case ( arg0, arg1 ) of
                 ( Undefined stack, _ ) ->
@@ -265,48 +232,44 @@ applyOperation2 reserved arg0 arg1 trackStack =
                 stringConcat =
                     String (valueToString arg0 ++ valueToString arg1)
             in
-            return
-                (case ( arg0, arg1 ) of
-                    ( String _, _ ) ->
-                        stringConcat
+            case ( arg0, arg1 ) of
+                ( String _, _ ) ->
+                    stringConcat
 
-                    ( _, String _ ) ->
-                        stringConcat
+                ( _, String _ ) ->
+                    stringConcat
 
-                    ( Array _, _ ) ->
-                        stringConcat
+                ( Array _, _ ) ->
+                    stringConcat
 
-                    ( _, Array _ ) ->
-                        stringConcat
+                ( _, Array _ ) ->
+                    stringConcat
 
-                    ( Boolean _, _ ) ->
-                        numberSum
+                ( Boolean _, _ ) ->
+                    numberSum
 
-                    ( _, Boolean _ ) ->
-                        numberSum
+                ( _, Boolean _ ) ->
+                    numberSum
 
-                    ( Number _, _ ) ->
-                        numberSum
+                ( Number _, _ ) ->
+                    numberSum
 
-                    ( _, Number _ ) ->
-                        numberSum
+                ( _, Number _ ) ->
+                    numberSum
 
-                    ( Undefined _, Undefined _ ) ->
-                        numberSum
+                ( Undefined _, Undefined _ ) ->
+                    numberSum
 
-                    _ ->
-                        stringConcat
-                )
+                _ ->
+                    stringConcat
 
         Subtraction ->
-            return
-                (case ( valueToNumber arg0, valueToNumber arg1 ) of
-                    ( Just a, Just b ) ->
-                        Number (a - b)
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Number (a - b)
 
-                    _ ->
-                        Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
-                )
+                _ ->
+                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
 
         SoftEquality ->
             let
@@ -318,43 +281,52 @@ applyOperation2 reserved arg0 arg1 trackStack =
                         _ ->
                             Boolean False
             in
-            return
-                (case ( arg0, arg1 ) of
-                    ( Boolean _, _ ) ->
-                        numberComparison
+            case ( arg0, arg1 ) of
+                ( Boolean _, _ ) ->
+                    numberComparison
 
-                    ( _, Boolean _ ) ->
-                        numberComparison
+                ( _, Boolean _ ) ->
+                    numberComparison
 
-                    ( String a, b ) ->
-                        Boolean (a == valueToString b)
+                ( String a, b ) ->
+                    Boolean (a == valueToString b)
 
-                    ( a, String b ) ->
-                        Boolean (valueToString a == b)
+                ( a, String b ) ->
+                    Boolean (valueToString a == b)
 
-                    _ ->
-                        numberComparison
-                )
+                _ ->
+                    numberComparison
 
         GreaterThan ->
-            return
-                (case ( valueToNumber arg0, valueToNumber arg1 ) of
-                    ( Just a, Just b ) ->
-                        Boolean (a > b)
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Boolean (a > b)
 
-                    _ ->
-                        Boolean False
-                )
+                _ ->
+                    Boolean False
 
         SmallerThan ->
-            return
-                (case ( valueToNumber arg0, valueToNumber arg1 ) of
-                    ( Just a, Just b ) ->
-                        Boolean (a < b)
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Boolean (a < b)
 
-                    _ ->
-                        Boolean False
-                )
+                _ ->
+                    Boolean False
+
+        Member ->
+            case ( arg0, arg1 ) of
+                ( Array arr, Number index ) ->
+                    if toFloat (truncate index) == index then
+                        List.drop (truncate index) arr
+                            |> List.head
+                            |> Maybe.withDefault (Undefined (undefinedStack ++ trackStack IndexOutOfRange))
+
+                    else
+                        Undefined (undefinedStack ++ trackStack IndexOutOfRange)
+
+                _ ->
+                    -- TODO: key not available if string key, index only for lists
+                    Undefined (undefinedStack ++ trackStack IndexOutOfRange)
 
 
 valueToBool : Value -> Bool

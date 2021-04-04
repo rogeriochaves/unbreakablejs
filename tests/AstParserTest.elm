@@ -618,7 +618,7 @@ suite =
                     parse "a[1]"
                         |> isEq
                             (tracked ( 1, 2 )
-                                (Member
+                                (Operation2 Member
                                     (tracked ( 1, 1 ) (Variable "a"))
                                     (Untracked (Value (Number 1)))
                                 )
@@ -628,9 +628,9 @@ suite =
                     parse "a[1][0]"
                         |> isEq
                             (tracked ( 1, 5 )
-                                (Member
+                                (Operation2 Member
                                     (tracked ( 1, 2 )
-                                        (Member
+                                        (Operation2 Member
                                             (tracked ( 1, 1 ) (Variable "a"))
                                             (Untracked (Value (Number 1)))
                                         )
@@ -643,7 +643,7 @@ suite =
                     parse "(1 + 1)[1]"
                         |> isEq
                             (tracked ( 1, 8 )
-                                (Member
+                                (Operation2 Member
                                     (tracked ( 1, 4 )
                                         (Operation2 Addition
                                             (Untracked (Value (Number 1)))
