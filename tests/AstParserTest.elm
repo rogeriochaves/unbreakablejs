@@ -347,6 +347,21 @@ suite =
                                     [ Untracked (Value (Number 4)) ]
                                 )
                             )
+            , test "parses expression function call" <|
+                \_ ->
+                    parse "(1 + 1)(5)"
+                        |> isEq
+                            (tracked ( 1, 8 )
+                                (Application
+                                    (tracked ( 1, 4 )
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
+                                        )
+                                    )
+                                    [ Untracked (Value (Number 5)) ]
+                                )
+                            )
             , test "parses function call with multiple arguments" <|
                 \_ ->
                     parse "f(3, 2)"
@@ -596,6 +611,46 @@ suite =
                                     , Untracked (Value (Number 2))
                                     , Untracked (Value (Number 3))
                                     ]
+                                )
+                            )
+            , test "gets array position" <|
+                \_ ->
+                    parse "a[1]"
+                        |> isEq
+                            (tracked ( 1, 2 )
+                                (Member
+                                    (tracked ( 1, 1 ) (Variable "a"))
+                                    (Untracked (Value (Number 1)))
+                                )
+                            )
+            , test "gets array of arrays position" <|
+                \_ ->
+                    parse "a[1][0]"
+                        |> isEq
+                            (tracked ( 1, 5 )
+                                (Member
+                                    (tracked ( 1, 2 )
+                                        (Member
+                                            (tracked ( 1, 1 ) (Variable "a"))
+                                            (Untracked (Value (Number 1)))
+                                        )
+                                    )
+                                    (Untracked (Value (Number 0)))
+                                )
+                            )
+            , test "gets array position of expression" <|
+                \_ ->
+                    parse "(1 + 1)[1]"
+                        |> isEq
+                            (tracked ( 1, 8 )
+                                (Member
+                                    (tracked ( 1, 4 )
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
+                                        )
+                                    )
+                                    (Untracked (Value (Number 1)))
                                 )
                             )
             ]

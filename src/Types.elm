@@ -38,6 +38,7 @@ type UntrackedExp
     | IfCondition Expression Expression
     | While Expression Expression
     | ArrayExpression (List Expression)
+    | Member Expression Expression
 
 
 type Value

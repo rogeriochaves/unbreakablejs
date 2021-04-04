@@ -64,37 +64,6 @@ identifier =
 --         |> getChompedString
 
 
-lowercaseGreek : List (Parser ())
-lowercaseGreek =
-    List.map symbol
-        [ "\\alpha"
-        , "\\beta"
-        , "\\gamma"
-        , "\\delta"
-        , "\\epsilon"
-        , "\\varepsilon"
-        , "\\zeta"
-        , "\\eta"
-        , "\\theta"
-        , "\\vartheta"
-        , "\\iota"
-        , "\\kappa"
-        , "\\lambda"
-        , "\\mu"
-        , "\\nu"
-        , "\\xi"
-        , "\\pi"
-        , "\\rho"
-        , "\\sigma"
-        , "\\tau"
-        , "\\upsilon"
-        , "\\phi"
-        , "\\chi"
-        , "\\psi"
-        , "\\omega"
-        ]
-
-
 tracked : String -> ( Int, Int ) -> UntrackedExp -> Expression
 tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
@@ -128,35 +97,20 @@ while filename =
         |= lazy (\_ -> expression filename)
 
 
-functionCall : String -> Parser Expression
-functionCall filename =
+functionCall : Expression -> String -> Parser Expression
+functionCall expr filename =
     succeed
-        (\callee applications ->
-            List.foldl
-                (\( ( row, col ), args ) acc ->
-                    tracked filename ( row, col - 1 ) (Application acc args)
-                )
-                callee
-                applications
+        (\pos args ->
+            tracked filename pos (Application expr args)
         )
-        |= backtrackable (atoms filename)
+        |= getPosition
         |= backtrackable
             (sequence
                 { start = "("
-                , separator = ")("
+                , separator = ","
                 , end = ")"
                 , spaces = spaces
-                , item =
-                    succeed Tuple.pair
-                        |= getPosition
-                        |= sequence
-                            { start = ""
-                            , separator = ","
-                            , end = ""
-                            , spaces = spaces
-                            , item = expression filename
-                            , trailing = Forbidden
-                            }
+                , item = expression filename
                 , trailing = Forbidden
                 }
             )
@@ -195,6 +149,18 @@ operators filename =
       , infixOperator filename SmallerThan (symb "<") AssocLeft
       ]
     ]
+
+
+members : Expression -> String -> Parser Expression
+members expr filename =
+    succeed
+        (\pos key ->
+            tracked filename pos (Member expr key)
+        )
+        |= getPosition
+        |. symbol "["
+        |= expression filename
+        |. symbol "]"
 
 
 assignment : String -> Parser Expression
@@ -328,15 +294,16 @@ expression_ filename withDeclarations withReturn =
                 (lazy <|
                     \_ ->
                         expressionParsers filename withReturn
-                            |> andThen
-                                (\expr ->
-                                    oneOf
-                                        [ -- index expr
-                                          -- , exponentiation expr
-                                          -- , factorial expr
-                                          succeed expr
-                                        ]
-                                )
+                 -- |> andThen
+                 --     (\expr ->
+                 --         oneOf
+                 --             [ -- index expr
+                 --               -- , exponentiation expr
+                 --               -- , factorial expr
+                 --               members expr filename
+                 --             , succeed expr
+                 --             ]
+                 --     )
                 )
     in
     oneOf (declarations ++ [ expressionParser ])
@@ -357,11 +324,22 @@ expressionParsers filename withReturn =
         expressions =
             [ block filename withReturn
             , backtrackable <| parens <| lazy (\_ -> expression filename)
-            , functionCall filename
             , atoms filename
             ]
     in
     oneOf (return_ ++ expressions)
+        |> andThen (postfixOperators filename)
+
+
+postfixOperators : String -> Expression -> Parser Expression
+postfixOperators filename expr =
+    oneOf
+        [ members expr filename
+            |> andThen (postfixOperators filename)
+        , functionCall expr filename
+            |> andThen (postfixOperators filename)
+        , succeed expr
+        ]
 
 
 block : String -> Bool -> Parser Expression

@@ -173,6 +173,9 @@ eval expr state =
             Stateful.session state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
+        Member _ _ ->
+            Debug.todo "not implemented yet"
+
 
 evalList : List Expression -> State -> Stateful (List Value)
 evalList expressions state =
