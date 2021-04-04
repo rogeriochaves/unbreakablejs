@@ -364,6 +364,25 @@ suite =
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a['foo']"
                             |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                , test "multiple out of range positions accumulate stack" <|
+                    \_ ->
+                        parseAndRun "a = undefined; a[4][5]"
+                            |> isEqLast
+                                (Undefined
+                                    [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                    , undefinedTrack ( 1, 17 ) IndexOutOfRange
+                                    , undefinedTrack ( 1, 20 ) IndexOutOfRange
+                                    ]
+                                )
+                , test "already undefined key accumulate stack" <|
+                    \_ ->
+                        parseAndRun "a = undefined; [1,2,3][a]"
+                            |> isEqLast
+                                (Undefined
+                                    [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                    , undefinedTrack ( 1, 23 ) IndexOutOfRange
+                                    ]
+                                )
                 ]
 
             --     , test "reads a vector with operations inside" <|

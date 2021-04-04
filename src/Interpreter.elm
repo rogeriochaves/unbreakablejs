@@ -182,6 +182,12 @@ eval expr state =
                             >> Stateful.map
                                 (\key_ ->
                                     case ( value_, key_ ) of
+                                        ( Undefined stack, _ ) ->
+                                            Undefined (stack ++ trackStack IndexOutOfRange)
+
+                                        ( _, Undefined stack ) ->
+                                            Undefined (stack ++ trackStack IndexOutOfRange)
+
                                         ( Array arr, Number index ) ->
                                             if toFloat (truncate index) == index then
                                                 List.drop (truncate index) arr
