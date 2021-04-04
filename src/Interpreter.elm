@@ -546,16 +546,22 @@ callFunction trackStack ( paramNames, functionBody ) args state =
                 -- TODO: track here
                 |> Maybe.withDefault (Undefined (trackStack (MissingPositionalArgument index paramName)))
 
-        closure =
+        inState =
             List.Extra.indexedFoldl
                 (\index paramName ->
                     setVariable paramName (argOrDefault index paramName)
                 )
-                state
+                emptyState
                 paramNames
+
+        closure =
+            Stateful.mergeStates inState state
+
+        expressionResult =
+            eval functionBody closure
+                |> Stateful.moveStateOutsideScope ( state, inState )
     in
-    -- TODO: closure should be only inScope
-    eval functionBody closure
+    { expressionResult | inScope = emptyState }
 
 
 removeTracking : Expression -> UntrackedExp

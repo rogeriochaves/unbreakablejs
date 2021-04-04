@@ -307,6 +307,14 @@ suite =
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
                                     ]
                                 )
+                , test "calls a curried functions" <|
+                    \_ ->
+                        parseAndRun "f = (x) => (y) => x + y\nf(5)(6)"
+                            |> isEqLast (Number 11)
+                , test "does not keep variable hanging around" <|
+                    \_ ->
+                        parseAndRun "f = (x) => x + 1; f(5); x"
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 25 ) (VariableNotDefined "x") ])
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

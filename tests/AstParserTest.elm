@@ -320,6 +320,28 @@ suite =
                                     )
                                 )
                             )
+            , test "parses curried functions" <|
+                \_ ->
+                    parse "(x) => (y) => x + y"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (Value
+                                    (Abstraction [ "x" ]
+                                        (tracked ( 1, 8 )
+                                            (Value
+                                                (Abstraction [ "y" ]
+                                                    (tracked ( 1, 17 )
+                                                        (Operation2 Addition
+                                                            (tracked ( 1, 15 ) (Variable "x"))
+                                                            (tracked ( 1, 19 ) (Variable "y"))
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
             , test "parses function declaration with multiple arguments" <|
                 \_ ->
                     parse "f = (x, y) => x + 1"

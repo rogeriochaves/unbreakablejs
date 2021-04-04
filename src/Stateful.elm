@@ -32,15 +32,12 @@ andThen fn session_ =
 
 run : (State -> Stateful b) -> Stateful a -> Stateful b
 run fn { outScope, inScope } =
-    let
-        state =
-            mergeStates inScope outScope
-    in
-    moveStateOutsideScope (fn state) ( outScope, inScope )
+    fn (mergeStates inScope outScope)
+        |> moveStateOutsideScope ( outScope, inScope )
 
 
-moveStateOutsideScope : Stateful a -> ( State, State ) -> Stateful a
-moveStateOutsideScope expressionResult ( prevOutScope, prevInScope ) =
+moveStateOutsideScope : ( State, State ) -> Stateful a -> Stateful a
+moveStateOutsideScope ( prevOutScope, prevInScope ) expressionResult =
     let
         outScopeFiltered =
             mergeStates
