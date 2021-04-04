@@ -314,19 +314,38 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Boolean False
 
         Member ->
+            let
+                returnUndefined =
+                    Undefined (undefinedStack ++ trackStack (KeyNotInObject arg0 arg1))
+            in
             case ( arg0, arg1 ) of
                 ( Array arr, Number index ) ->
                     if toFloat (truncate index) == index then
                         List.drop (truncate index) arr
                             |> List.head
-                            |> Maybe.withDefault (Undefined (undefinedStack ++ trackStack IndexOutOfRange))
+                            |> Maybe.withDefault returnUndefined
 
                     else
-                        Undefined (undefinedStack ++ trackStack IndexOutOfRange)
+                        returnUndefined
+
+                ( String str, Number index ) ->
+                    if toFloat (truncate index) == index then
+                        let
+                            char =
+                                String.dropLeft (truncate index) str
+                                    |> String.left 1
+                        in
+                        if char /= "" then
+                            String char
+
+                        else
+                            returnUndefined
+
+                    else
+                        returnUndefined
 
                 _ ->
-                    -- TODO: key not available if string key, index only for lists
-                    Undefined (undefinedStack ++ trackStack IndexOutOfRange)
+                    returnUndefined
 
 
 valueToBool : Value -> Bool

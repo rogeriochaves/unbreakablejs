@@ -327,8 +327,8 @@ renderResult model index item =
                                             LoopNeverTrue ->
                                                 "loop condition never evaluated to true so the loop was never executed"
 
-                                            IndexOutOfRange ->
-                                                "position not found on the array"
+                                            KeyNotInObject obj key ->
+                                                "key " ++ encode key ++ " not found on " ++ encode obj
                                 in
                                 msgGotFrom
                                     ++ filename

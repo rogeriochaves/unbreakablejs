@@ -355,23 +355,31 @@ suite =
                 , test "out of range positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a[5]"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5)) ])
                 , test "float positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a[5.1]"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5.1)) ])
                 , test "string positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a['foo']"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (String "foo")) ])
                 , test "multiple out of range positions accumulate stack" <|
                     \_ ->
                         parseAndRun "a = undefined; a[4][5]"
                             |> isEqLast
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
-                                    , undefinedTrack ( 1, 17 ) IndexOutOfRange
-                                    , undefinedTrack ( 1, 20 ) IndexOutOfRange
+                                    , undefinedTrack ( 1, 17 ) (KeyNotInObject (Undefined [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]) (Number 4))
+                                    , undefinedTrack ( 1, 20 )
+                                        (KeyNotInObject
+                                            (Undefined
+                                                [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                                , undefinedTrack ( 1, 17 ) (KeyNotInObject (Undefined [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]) (Number 4))
+                                                ]
+                                            )
+                                            (Number 5)
+                                        )
                                     ]
                                 )
                 , test "already undefined key accumulate stack" <|
@@ -380,7 +388,25 @@ suite =
                             |> isEqLast
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
-                                    , undefinedTrack ( 1, 23 ) IndexOutOfRange
+                                    , undefinedTrack ( 1, 23 )
+                                        (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ])
+                                            (Undefined
+                                                [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]
+                                            )
+                                        )
+                                    ]
+                                )
+                , test "reads a string position" <|
+                    \_ ->
+                        parseAndRun "'foo'[2]"
+                            |> isEqLast (String "o")
+                , test "returns undefined for out of bounds string index" <|
+                    \_ ->
+                        parseAndRun "'foo'[3]"
+                            |> isEqLast
+                                (Undefined
+                                    [ undefinedTrack ( 1, 6 )
+                                        (KeyNotInObject (String "foo") (Number 3))
                                     ]
                                 )
                 ]

@@ -71,7 +71,7 @@ type UndefinedReason
     | IfWithoutElse
     | ExplicitUndefined
     | LoopNeverTrue
-    | IndexOutOfRange
+    | KeyNotInObject Value Value
 
 
 type alias State =
