@@ -43,7 +43,7 @@ type UntrackedExp
 type Value
     = Number Float
     | Array (List Value)
-    | Abstraction (List String) Expression
+    | Abstraction State (List String) Expression
     | Undefined (List UndefinedTrackInfo)
     | Boolean Bool
     | String String

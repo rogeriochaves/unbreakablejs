@@ -77,6 +77,9 @@ eval expr state =
             evalList items state
                 |> Stateful.map Array
 
+        Value (Abstraction _ paramNames functionBody) ->
+            return (Abstraction state paramNames functionBody)
+
         Value val ->
             return val
 
@@ -114,8 +117,12 @@ eval expr state =
                             >> Stateful.andThen
                                 (\abstraction ->
                                     case abstraction of
-                                        Abstraction paramNames functionBody ->
-                                            Stateful.run (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
+                                        Abstraction closureState paramNames functionBody ->
+                                            Stateful.run
+                                                (\state_ ->
+                                                    Stateful.mergeStates closureState state_
+                                                        |> callFunction trackStack ( paramNames, functionBody ) evaluatedArgs
+                                                )
 
                                         Undefined stacktrace ->
                                             Stateful.run (\_ -> return (Undefined stacktrace))
@@ -361,7 +368,7 @@ valueToBool value =
             else
                 True
 
-        Abstraction _ _ ->
+        Abstraction _ _ _ ->
             True
 
         Array _ ->
@@ -428,7 +435,7 @@ valueToString value =
         Undefined _ ->
             "undefined"
 
-        Abstraction _ _ ->
+        Abstraction _ _ _ ->
             -- TODO: modern browsers can do better than that
             "[Function]"
 

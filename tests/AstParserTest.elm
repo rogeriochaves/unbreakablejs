@@ -287,7 +287,8 @@ suite =
                                     (Assignment "f")
                                     (tracked ( 1, 5 )
                                         (Value
-                                            (Abstraction [ "x" ]
+                                            (Abstraction emptyState
+                                                [ "x" ]
                                                 (tracked ( 1, 14 )
                                                     (Operation2 Addition
                                                         (tracked ( 1, 12 ) (Variable "x"))
@@ -308,7 +309,8 @@ suite =
                                     (LetAssignment "f")
                                     (tracked ( 1, 9 )
                                         (Value
-                                            (Abstraction [ "x" ]
+                                            (Abstraction emptyState
+                                                [ "x" ]
                                                 (tracked ( 1, 18 )
                                                     (Operation2 Addition
                                                         (tracked ( 1, 16 ) (Variable "x"))
@@ -326,10 +328,12 @@ suite =
                         |> isEq
                             (tracked ( 1, 1 )
                                 (Value
-                                    (Abstraction [ "x" ]
+                                    (Abstraction emptyState
+                                        [ "x" ]
                                         (tracked ( 1, 8 )
                                             (Value
-                                                (Abstraction [ "y" ]
+                                                (Abstraction emptyState
+                                                    [ "y" ]
                                                     (tracked ( 1, 17 )
                                                         (Operation2 Addition
                                                             (tracked ( 1, 15 ) (Variable "x"))
@@ -351,7 +355,8 @@ suite =
                                     (Assignment "f")
                                     (tracked ( 1, 5 )
                                         (Value
-                                            (Abstraction [ "x", "y" ]
+                                            (Abstraction emptyState
+                                                [ "x", "y" ]
                                                 (tracked ( 1, 17 )
                                                     (Operation2 Addition
                                                         (tracked ( 1, 15 ) (Variable "x"))
@@ -465,7 +470,8 @@ suite =
                                     (Assignment "f")
                                     (tracked ( 1, 5 )
                                         (Value
-                                            (Abstraction [ "x" ]
+                                            (Abstraction emptyState
+                                                [ "x" ]
                                                 (tracked ( 2, 8 )
                                                     (Block
                                                         [ tracked ( 1, 16 )
@@ -513,7 +519,8 @@ suite =
                                     (Assignment "f")
                                     (tracked ( 1, 5 )
                                         (Value
-                                            (Abstraction [ "x" ]
+                                            (Abstraction emptyState
+                                                [ "x" ]
                                                 (tracked ( 1, 28 )
                                                     (Block
                                                         [ tracked ( 1, 14 )
@@ -726,7 +733,7 @@ suite =
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
-        --                         (Abstraction (VectorIdentifier "x")
+        --                         (Abstraction emptyState (VectorIdentifier "x")
         --                             (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
         --                         )
         --                     )
@@ -746,7 +753,7 @@ suite =
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
-        --                         (Abstraction (VectorIdentifier "x")
+        --                         (Abstraction emptyState (VectorIdentifier "x")
         --                             (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
         --                         )
         --                     )
@@ -763,7 +770,7 @@ suite =
         --                 |> isEq
         --                     (SingleArity
         --                         (Assignment (ScalarIdentifier "f"))
-        --                         (MapAbstraction "x"
+        --                         (MapAbstraction emptyState "x"
         --                             "i"
         --                             (DoubleArity Addition
         --                                 (DoubleArity Index (Variable (ScalarIdentifier "x")) (Variable (ScalarIdentifier "i")))
