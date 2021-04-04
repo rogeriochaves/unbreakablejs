@@ -285,12 +285,33 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation
                                     (Assignment "f")
-                                    (Untracked
+                                    (tracked ( 1, 5 )
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 14 )
                                                     (Operation2 Addition
                                                         (tracked ( 1, 12 ) (Variable "x"))
+                                                        (Untracked (Value (Number 1)))
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+            , test "parses function declaration with let" <|
+                \_ ->
+                    parse "let f = (x) => x + 1"
+                        |> isEq
+                            (tracked ( 1, 7 )
+                                (Operation
+                                    (LetAssignment "f")
+                                    (tracked ( 1, 9 )
+                                        (Value
+                                            (Abstraction [ "x" ]
+                                                (tracked ( 1, 18 )
+                                                    (Operation2 Addition
+                                                        (tracked ( 1, 16 ) (Variable "x"))
                                                         (Untracked (Value (Number 1)))
                                                     )
                                                 )
@@ -306,7 +327,7 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation
                                     (Assignment "f")
-                                    (Untracked
+                                    (tracked ( 1, 5 )
                                         (Value
                                             (Abstraction [ "x", "y" ]
                                                 (tracked ( 1, 17 )
@@ -420,7 +441,7 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation
                                     (Assignment "f")
-                                    (Untracked
+                                    (tracked ( 1, 5 )
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 2, 8 )
@@ -468,7 +489,7 @@ suite =
                             (tracked ( 1, 3 )
                                 (Operation
                                     (Assignment "f")
-                                    (Untracked
+                                    (tracked ( 1, 5 )
                                         (Value
                                             (Abstraction [ "x" ]
                                                 (tracked ( 1, 28 )

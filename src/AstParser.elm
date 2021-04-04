@@ -178,19 +178,13 @@ assignment filename =
         |= lazy (\_ -> expression filename)
 
 
-functionDeclaration : String -> Parser Expression
-functionDeclaration filename =
+abstraction : String -> Parser Expression
+abstraction filename =
     succeed
-        (\name pos param body ->
-            tracked filename
-                pos
-                (Operation (Assignment name) (Untracked (Value (Abstraction param body))))
+        (\pos param body ->
+            tracked filename pos (Value (Abstraction param body))
         )
-        |= backtrackable identifier
-        |. backtrackable spaces
         |= getPosition
-        |. backtrackable (symbol "=")
-        |. backtrackable spaces
         |= backtrackable
             (sequence
                 { start = "("
@@ -205,36 +199,6 @@ functionDeclaration filename =
         |. backtrackable (symbol "=>")
         |. spaces
         |= lazy (\_ -> expression_ filename True True)
-
-
-
--- mapFunctionDeclaration : Parser Expression
--- mapFunctionDeclaration =
---     succeed (\name param idx body -> SingleArity (Assignment (ScalarIdentifier name)) (MapAbstraction param idx body))
---         |= backtrackable scalarIdentifier
---         |= backtrackable (parens vectorIdentifier)
---         |. backtrackable (symbol "_")
---         |= braces scalarIdentifier
---         |. spaces
---         |. symbol "="
---         |. spaces
---         |= expression
--- index : Expression -> Parser Expression
--- index expr =
---     succeed (DoubleArity Index expr)
---         |. backtrackable (symbol "_")
---         |= backtrackable (braces (lazy <| \_ -> expression))
--- exponentiation : Expression -> Parser Expression
--- exponentiation expr =
---     succeed (DoubleArity Exponentiation expr)
---         |. backtrackable spaces
---         |. backtrackable (symbol "^")
---         |. backtrackable spaces
---         |= backtrackable (braces (lazy <| \_ -> expression))
--- factorial : Expression -> Parser Expression
--- factorial expr =
---     succeed (SingleArity Factorial expr)
---         |. backtrackable (symbol "!")
 
 
 program : String -> Parser Types.Program
@@ -280,8 +244,7 @@ expression_ filename withDeclarations withReturn =
     let
         declarations =
             if withDeclarations then
-                [ functionDeclaration filename
-                , assignment filename
+                [ assignment filename
                 , ifCondition filename
                 , while filename
                 ]
@@ -323,6 +286,7 @@ expressionParsers filename withReturn =
 
         expressions =
             [ block filename withReturn
+            , abstraction filename
             , backtrackable <| parens <| lazy (\_ -> expression filename)
             , atoms filename
             ]
