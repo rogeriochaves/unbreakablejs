@@ -173,8 +173,29 @@ eval expr state =
             Stateful.session state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
-        Member _ _ ->
-            Debug.todo "not implemented yet"
+        Member value key ->
+            Stateful.session state
+                |> Stateful.run (eval value)
+                |> Stateful.andThen
+                    (\value_ ->
+                        Stateful.run (eval key)
+                            >> Stateful.map
+                                (\key_ ->
+                                    case ( value_, key_ ) of
+                                        ( Array arr, Number index ) ->
+                                            if toFloat (truncate index) == index then
+                                                List.drop (truncate index) arr
+                                                    |> List.head
+                                                    |> Maybe.withDefault (Undefined (trackStack IndexOutOfRange))
+
+                                            else
+                                                Undefined (trackStack IndexOutOfRange)
+
+                                        _ ->
+                                            -- TODO: key not available if string key, index only for lists
+                                            Undefined (trackStack IndexOutOfRange)
+                                )
+                    )
 
 
 evalList : List Expression -> State -> Stateful (List Value)

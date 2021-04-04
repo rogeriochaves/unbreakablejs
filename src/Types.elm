@@ -71,6 +71,7 @@ type UndefinedReason
     | IfWithoutElse
     | ExplicitUndefined
     | LoopNeverTrue
+    | IndexOutOfRange
 
 
 type alias State =

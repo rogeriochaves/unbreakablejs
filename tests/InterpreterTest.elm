@@ -348,6 +348,22 @@ suite =
                     \_ ->
                         parseAndRun "[1, 2, 3]"
                             |> isEq (Array [ Number 1, Number 2, Number 3 ])
+                , test "reads a position in an array" <|
+                    \_ ->
+                        parseAndRun "a = [1, 2, 3]; a[1]"
+                            |> isEqLast (Number 2)
+                , test "out of range positions return undefined" <|
+                    \_ ->
+                        parseAndRun "a = [1, 2, 3]; a[5]"
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                , test "float positions return undefined" <|
+                    \_ ->
+                        parseAndRun "a = [1, 2, 3]; a[5.1]"
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
+                , test "string positions return undefined" <|
+                    \_ ->
+                        parseAndRun "a = [1, 2, 3]; a['foo']"
+                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) IndexOutOfRange ])
                 ]
 
             --     , test "reads a vector with operations inside" <|

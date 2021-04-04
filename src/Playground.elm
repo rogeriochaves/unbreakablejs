@@ -326,6 +326,9 @@ renderResult model index item =
 
                                             LoopNeverTrue ->
                                                 "loop condition never evaluated to true so the loop was never executed"
+
+                                            IndexOutOfRange ->
+                                                "position not found on the array"
                                 in
                                 msgGotFrom
                                     ++ filename
