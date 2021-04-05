@@ -17,8 +17,16 @@ run state expressions =
             let
                 statefulResult =
                     Stateful.run (eval expr) acc
+
+                outScope =
+                    case expr |> removeTracking of
+                        Operation (LetAssignment _) _ ->
+                            Stateful.mergeStates statefulResult.inScope statefulResult.outScope
+
+                        _ ->
+                            statefulResult.outScope
             in
-            statefulResult
+            { statefulResult | outScope = outScope, inScope = emptyState }
                 |> Stateful.map (\_ -> statefulResult :: acc.result)
     in
     expressions
@@ -81,17 +89,20 @@ eval expr state =
             return val
 
         Variable identifier ->
-            return
-                (Dict.get identifier state.variables
-                    |> Maybe.withDefault (Undefined (trackStack <| VariableNotDefined identifier))
-                )
+            getVariable identifier state
+                |> Maybe.map
+                    (\( state_, result ) ->
+                        { outScope = emptyState, inScope = state_, result = result }
+                    )
+                |> Maybe.withDefault
+                    (return (Undefined (trackStack <| VariableNotDefined identifier)))
 
         Operation symbol expr0 ->
             Stateful.session state
                 |> Stateful.run (eval expr0)
                 |> Stateful.andThen
                     (\arg0 ->
-                        Stateful.run (\_ -> applyOperation symbol arg0)
+                        Stateful.runInScope (\inScope -> applyOperation inScope symbol arg0)
                     )
 
         Operation2 symbol expr0 expr1 ->
@@ -188,19 +199,19 @@ evalList expressions state =
         |> Stateful.map List.reverse
 
 
-applyOperation : Operation -> Value -> ExpressionResult
-applyOperation operation arg0 =
+applyOperation : State -> Operation -> Value -> ExpressionResult
+applyOperation inScope operation arg0 =
     case operation of
         Assignment name ->
             Stateful
-                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                (emptyState |> setVariable name ( inScope, arg0 ))
                 emptyState
                 arg0
 
         LetAssignment name ->
             Stateful
                 emptyState
-                { variables = Dict.fromList [ ( name, arg0 ) ] }
+                (emptyState |> setVariable name ( inScope, arg0 ))
                 arg0
 
 
@@ -549,7 +560,7 @@ callFunction trackStack ( paramNames, functionBody ) args state =
         inState =
             List.Extra.indexedFoldl
                 (\index paramName ->
-                    setVariable paramName (argOrDefault index paramName)
+                    setVariable paramName ( state, argOrDefault index paramName )
                 )
                 emptyState
                 paramNames
@@ -561,7 +572,7 @@ callFunction trackStack ( paramNames, functionBody ) args state =
             eval functionBody closure
                 |> Stateful.moveStateOutsideScope ( state, inState )
     in
-    { expressionResult | inScope = emptyState }
+    expressionResult
 
 
 removeTracking : Expression -> UntrackedExp
@@ -701,6 +712,11 @@ removeTracking expr =
 --                 (eval state expr2)
 
 
-setVariable : String -> Value -> State -> State
-setVariable name value state =
-    { state | variables = Dict.insert name value state.variables }
+setVariable : String -> ( State, Value ) -> State -> State
+setVariable name value (State state) =
+    State (Dict.insert name value state)
+
+
+getVariable : String -> State -> Maybe ( State, Value )
+getVariable name (State state) =
+    Dict.get name state

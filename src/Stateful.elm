@@ -5,8 +5,8 @@ import Types exposing (..)
 
 
 mergeStates : State -> State -> State
-mergeStates a b =
-    { variables = Dict.union a.variables b.variables }
+mergeStates (State a) (State b) =
+    State (Dict.union a b)
 
 
 session : State -> ExpressionResult
@@ -36,29 +36,42 @@ run fn { outScope, inScope } =
         |> moveStateOutsideScope ( outScope, inScope )
 
 
+runInScope : (State -> Stateful b) -> Stateful a -> Stateful b
+runInScope fn { outScope, inScope } =
+    fn inScope
+        |> moveStateOutsideScope ( outScope, inScope )
+
+
+getVariables : State -> Dict.Dict String ( State, Value )
+getVariables (State state) =
+    state
+
+
 moveStateOutsideScope : ( State, State ) -> Stateful a -> Stateful a
 moveStateOutsideScope ( prevOutScope, prevInScope ) expressionResult =
     let
         outScopeFiltered =
             mergeStates
-                { variables =
-                    Dict.filter
+                (State
+                    (Dict.filter
                         (\identifier _ ->
-                            not (Dict.member identifier prevInScope.variables)
+                            not (Dict.member identifier (getVariables prevInScope))
                         )
-                        expressionResult.outScope.variables
-                }
+                        (getVariables expressionResult.outScope)
+                    )
+                )
                 prevOutScope
 
         inScopeUpdated =
             mergeStates
-                { variables =
-                    Dict.filter
+                (State
+                    (Dict.filter
                         (\identifier _ ->
-                            Dict.member identifier prevInScope.variables
+                            Dict.member identifier (getVariables prevInScope)
                         )
-                        expressionResult.outScope.variables
-                }
+                        (getVariables expressionResult.outScope)
+                    )
+                )
                 (mergeStates expressionResult.inScope prevInScope)
     in
     { outScope = outScopeFiltered, inScope = inScopeUpdated, result = expressionResult.result }

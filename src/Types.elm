@@ -74,15 +74,13 @@ type UndefinedReason
     | KeyNotInObject Value Value
 
 
-type alias State =
-    { variables : Dict String Value
-    }
+type State
+    = State (Dict String ( State, Value ))
 
 
 emptyState : State
 emptyState =
-    { variables = Dict.empty
-    }
+    State Dict.empty
 
 
 type alias ExpressionResult =
