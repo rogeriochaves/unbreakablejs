@@ -158,72 +158,72 @@ suite =
                 , test "saves the value to the variable" <|
                     \_ ->
                         parseAndRun "x = 2 + 2\nx + 1"
-                            |> isEqLast (Number 5)
+                            |> isLastEq (Number 5)
                 , test "interprets a let assignment" <|
                     \_ ->
                         parseAndRun "let x = 1\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "keeps let assignment inside scope" <|
                     \_ ->
                         parseAndRun "fn = () => { let x = 1 }\nfn()\nx"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined [ undefinedTrack ( 3, 1 ) (VariableNotDefined "x") ])
                 , test "but non-let assignments modify outside scope" <|
                     \_ ->
                         parseAndRun "fn = () => { x = 1 }\nfn()\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "but allows mutations if defined on higher scope" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { x = 2 }\nfn()\nx"
-                            |> isEqLast (Number 2)
+                            |> isLastEq (Number 2)
                 , test "although keeping to local scope if there is shadowing" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2 }\nfn()\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "and reassignment without let" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3 }\nfn()\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "values can outlive the scope" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\nx = 3\nreturn x }\nfn()"
-                            |> isEqLast (Number 3)
+                            |> isLastEq (Number 3)
                 , test "and changed on different levels" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "and changed on different levels and outlive the innermost scopes" <|
                     \_ ->
                         parseAndRun "let x = 1\nfn = () => { let x = 2\ng = () => { x = 3 }\ng()\nreturn x }\nfn()"
-                            |> isEqLast (Number 3)
+                            |> isLastEq (Number 3)
                 , test "assignments change state also when inside function arguments" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng(f())\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside function arguments #2" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => {}\ng(f())\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside function arguments #3" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10\nreturn 5 }\nz = f()\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside function arguments #4" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10 }\ng = () => x\ng(f())\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside operation arguments" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nf() + x\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside if condition" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\nif(f()){}\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 , test "assignments change state also when inside another assignment" <|
                     \_ ->
                         parseAndRun "x = 1\nf = () => { x = 10; return 5 }\ny = f()\nx"
-                            |> isEqLast (Number 10)
+                            |> isLastEq (Number 10)
                 ]
 
             --     , test "returns unapplied expression if the variable is not defined" <|
@@ -270,7 +270,7 @@ suite =
                 , test "returns undefined when missing params" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3)"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 2 ) (MissingPositionalArgument 1 "y")
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
@@ -283,7 +283,7 @@ suite =
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
@@ -292,7 +292,7 @@ suite =
                 , test "accumulates undefined stack of functions" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g(3), 1)"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
@@ -301,7 +301,7 @@ suite =
                 , test "accumulates undefined stack on second param" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(3, g(1))"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g")
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
@@ -310,15 +310,15 @@ suite =
                 , test "calls a curried functions" <|
                     \_ ->
                         parseAndRun "f = (x) => (y) => x + y\nf(5)(6)"
-                            |> isEqLast (Number 11)
+                            |> isLastEq (Number 11)
                 , test "does not keep variable hanging around" <|
                     \_ ->
                         parseAndRun "f = (x) => x + 1; f(5); x"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 25 ) (VariableNotDefined "x") ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 25 ) (VariableNotDefined "x") ])
                 , test "calls a curried functions #2" <|
                     \_ ->
                         parseAndRun "sum = () => { let x = 10; let ret = (y) => x + y; x = 15; return ret }; sum()(4)"
-                            |> isEqLast (Number 19)
+                            |> isLastEq (Number 19)
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
@@ -363,23 +363,23 @@ suite =
                 , test "reads a position in an array" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a[1]"
-                            |> isEqLast (Number 2)
+                            |> isLastEq (Number 2)
                 , test "out of range positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a[5]"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5)) ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5)) ])
                 , test "float positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a[5.1]"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5.1)) ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (Number 5.1)) ])
                 , test "string positions return undefined" <|
                     \_ ->
                         parseAndRun "a = [1, 2, 3]; a['foo']"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (String "foo")) ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 17 ) (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ]) (String "foo")) ])
                 , test "multiple out of range positions accumulate stack" <|
                     \_ ->
                         parseAndRun "a = undefined; a[4][5]"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
                                     , undefinedTrack ( 1, 17 ) (KeyNotInObject (Undefined [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]) (Number 4))
@@ -397,7 +397,7 @@ suite =
                 , test "already undefined key accumulate stack" <|
                     \_ ->
                         parseAndRun "a = undefined; [1,2,3][a]"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
                                     , undefinedTrack ( 1, 23 )
@@ -411,11 +411,11 @@ suite =
                 , test "reads a string position" <|
                     \_ ->
                         parseAndRun "'foo'[2]"
-                            |> isEqLast (String "o")
+                            |> isLastEq (String "o")
                 , test "returns undefined for out of bounds string index" <|
                     \_ ->
                         parseAndRun "'foo'[3]"
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 6 )
                                         (KeyNotInObject (String "foo") (Number 3))
@@ -434,11 +434,11 @@ suite =
             --     , test "saves the value to the variable" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\n\\vec{x}"
-            --                 |> isEqLast (Array [ Number 1, Number 2, Number 3 ])
+            --                 |> isLastEq (Array [ Number 1, Number 2, Number 3 ])
             --     , test "calls a function with vec as param" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (1, 2, 3)\nf(\\vec{y}) = \\vec{y}\nf(\\vec{x})"
-            --                 |> isEqLast (Array [ Number 1, Number 2, Number 3 ])
+            --                 |> isLastEq (Array [ Number 1, Number 2, Number 3 ])
             --     , test "replaces variables inside vector" <|
             --         \_ ->
             --             parseAndRun "f(x) = (1, x, 3)\nf(2)"
@@ -516,7 +516,7 @@ suite =
             --     , test "evaluates indexes from vector variables in scalar context" <|
             --         \_ ->
             --             parseAndRun "\\vec{x} = (3, 2, 1)\nx_{1}"
-            --                 |> isEqLast (Expression (Number 3))
+            --                 |> isLastEq (Expression (Number 3))
             --     , test "evaluates map function" <|
             --         \_ ->
             --             parseAndRun "f(\\vec{x})_{i} = x_{i} + 1\nf((1,2,3))"
@@ -525,11 +525,11 @@ suite =
             --     , test "evaluates a vector summation" <|
             --         \_ ->
             --             parseAndRun "\\mathbf{x} = (1, 2, 3)\n\\sum{\\mathbf{x}}"
-            --                 |> isEqLast (Expression (Number 6))
+            --                 |> isLastEq (Expression (Number 6))
             --     , test "expands a summation as far as it can" <|
             --         \_ ->
             --             parseAndRun "\\mathbf{x} = (1, 2, y)\n\\sum{\\mathbf{x}}"
-            --                 |> isEqLast (Expression (DoubleArity Addition (Number 3) (Variable (ScalarIdentifier "y"))))
+            --                 |> isLastEq (Expression (DoubleArity Addition (Number 3) (Variable (ScalarIdentifier "y"))))
             --     , test "does not enter an infinite loop trying to expand undefined vars" <|
             --         \_ ->
             --             parseAndRun "\\sum{\\mathbf{x}}"
@@ -537,7 +537,7 @@ suite =
             --     , test "evaluates cardinality" <|
             --         \_ ->
             --             parseAndRun "\\mathbf{a} = (x, y, z)\n|\\mathbf{a}|"
-            --                 |> isEqLast (Expression (Number 3))
+            --                 |> isLastEq (Expression (Number 3))
             --     ]
             , describe "blocks"
                 [ test "evaluates blocks" <|
@@ -547,266 +547,266 @@ suite =
                 , test "returns the value given to return" <|
                     \_ ->
                         parseAndRun "f = (x) => { return x + 2 }\nf(1)"
-                            |> isEqLast (Number 3)
+                            |> isLastEq (Number 3)
                 , test "stops at early return" <|
                     \_ ->
                         parseAndRun "f = (x) => { return x + 2\nreturn 5 }\nf(1)"
-                            |> isEqLast (Number 3)
+                            |> isLastEq (Number 3)
 
                 -- , test "evaluates multiple blocks" <|
                 --     \_ ->
                 --         parseAndRun "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
-                --             |> isEqLast (Expression (Number 5))
+                --             |> isLastEq (Expression (Number 5))
                 ]
             , describe "equality"
                 [ test "evaluates number equality" <|
                     \_ ->
                         parseAndRun "1 + 1 == 2"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "evaluates false number equality" <|
                     \_ ->
                         parseAndRun "1 + 1 == 3"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "evaluates boolean equality" <|
                     \_ ->
                         parseAndRun "true == true"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "numbers are not true" <|
                     \_ ->
                         parseAndRun "5 == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "but they are also not false" <|
                     \_ ->
                         parseAndRun "5 == false"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "except 1, which is true" <|
                     \_ ->
                         parseAndRun "1 == true"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "and 0, which is false" <|
                     \_ ->
                         parseAndRun "0 == false"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "functions are not true" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nfn == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "nor functions are false" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nfn == false"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "undefined is not true" <|
                     \_ ->
                         parseAndRun "x == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "nor undefined is false" <|
                     \_ ->
                         parseAndRun "x == false"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "empty array is not true" <|
                     \_ ->
                         parseAndRun "[] == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "filled array is also not true" <|
                     \_ ->
                         parseAndRun "[5] == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "empty array is false" <|
                     \_ ->
                         parseAndRun "[] == false"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "but filled array is also not false" <|
                     \_ ->
                         parseAndRun "[5] == false"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "except array with 1 in the first position exaclty is true" <|
                     \_ ->
                         parseAndRun "[1] == true"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "and conversely, array with 0 in first position exactly is false" <|
                     \_ ->
                         parseAndRun "[0] == false"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "evaluates number smaller than" <|
                     \_ ->
                         parseAndRun "1 < 2"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "evaluates number greater than" <|
                     \_ ->
                         parseAndRun "2 > 1"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "true is greater than 0, because apparently it gets converted to 1" <|
                     \_ ->
                         parseAndRun "true > 0"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "true is smaller than 2, because apparently it gets converted to 1" <|
                     \_ ->
                         parseAndRun "true < 2"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "false is greater than -1, because apparently it gets converted to 0" <|
                     \_ ->
                         parseAndRun "false > 0 - 1"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "false is smaller than 1, because apparently it gets converted to 0" <|
                     \_ ->
                         parseAndRun "false < 1"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "undefined is not smaller than a number" <|
                     \_ ->
                         parseAndRun "undefined < 1"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "undefined is not greater than a number" <|
                     \_ ->
                         parseAndRun "undefined > 0 - 1"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "function is not smaller than a number" <|
                     \_ ->
                         parseAndRun "fn = () => {}; fn < 1"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "function is not greater than a number" <|
                     \_ ->
                         parseAndRun "fn = () => {}; fn > 0 - 1"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "takes the first value of an array when converting to a number" <|
                     \_ ->
                         parseAndRun "[5] == 5"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "takes the first value of an array when converting to a number #2" <|
                     \_ ->
                         parseAndRun "[5] > 4"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "but not when array has more than one item" <|
                     \_ ->
                         parseAndRun "[5, 1] > 4"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "which means translation further into booleans" <|
                     \_ ->
                         parseAndRun "[1] == true"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "which means translation further into booleans #2" <|
                     \_ ->
                         parseAndRun "[5] == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "comparisson converts string too" <|
                     \_ ->
                         parseAndRun "\"5\" == 5"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "but first it gets translated into string, so [true] becomes ['true'] so its not == true" <|
                     \_ ->
                         parseAndRun "[true] == true"
-                            |> isEqLast (Boolean False)
+                            |> isLastEq (Boolean False)
                 , test "arrays get translated into string when compared with string, many levels deep" <|
                     \_ ->
                         parseAndRun "[1,[[2]],3] == \"1,2,3\""
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "everything gets translated to string when compared to string" <|
                     \_ ->
                         parseAndRun "[true] == \"true\""
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 , test "unless its a comparison with boolean" <|
                     \_ ->
                         parseAndRun "\"0\" == false"
-                            |> isEqLast (Boolean True)
+                            |> isLastEq (Boolean True)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
                     \_ ->
                         parseAndRun "if (true) { 1 + 1 }"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ])
                 , test "if returns undefined if block was not executed and there is no else" <|
                     \_ ->
                         parseAndRun "if (false) { 1 + 1 }"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 1 ) IfWithoutElse ])
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 1 ) IfWithoutElse ])
                 , test "if with true boolean condition" <|
                     \_ ->
                         parseAndRun "x = 0\nif (true) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "if with false boolean condition" <|
                     \_ ->
                         parseAndRun "x = 0\nif (false) { x = 1 }\nx"
-                            |> isEqLast (Number 0)
+                            |> isLastEq (Number 0)
                 , test "if with comparisson" <|
                     \_ ->
                         parseAndRun "x = 0\nif (1 == true) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "numbers evaluates to true (even though 5 != true)" <|
                     \_ ->
                         parseAndRun "x = 0\nif (5) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "except 0" <|
                     \_ ->
                         parseAndRun "x = 0\nif (0) { x = 1 }\nx"
-                            |> isEqLast (Number 0)
+                            |> isLastEq (Number 0)
                 , test "functions are true" <|
                     \_ ->
                         parseAndRun "fn = () => {}\nx = 0\nif (fn) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "undefined is falsy" <|
                     \_ ->
                         parseAndRun "x = 0\nif (y) { x = 1 }\nx"
-                            |> isEqLast (Number 0)
+                            |> isLastEq (Number 0)
                 , test "arrays are truthy" <|
                     \_ ->
                         parseAndRun "x = 0\nif ([0]) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "empty arrays are also truthy" <|
                     \_ ->
                         parseAndRun "x = 0\nif ([]) { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "empty strings are also falsy" <|
                     \_ ->
                         parseAndRun "x = 0\nif (\"\") { x = 1 }\nx"
-                            |> isEqLast (Number 0)
+                            |> isLastEq (Number 0)
                 , test "but strings with any content and truthy" <|
                     \_ ->
                         parseAndRun "x = 0\nif (\"0\") { x = 1 }\nx"
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 ]
             , describe "loops"
                 [ test "loops with while" <|
                     \_ ->
                         parseAndRun "let x = 0; while (x < 3) { x = x + 1 }; x"
-                            |> isEqLast (Number 3)
+                            |> isLastEq (Number 3)
                 ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|
             --     \_ ->
             --         parseAndRun "x = 1\ny(z) = z + x\nx = 2\ny(3)"
-            --             |> isEqLast (Expression (Number 5))
+            --             |> isLastEq (Expression (Number 5))
             , describe "math types conversion"
                 [ test "string concatenation" <|
                     \_ ->
                         parseAndRun "\"foo\" + \"bar\""
-                            |> isEqLast (String "foobar")
+                            |> isLastEq (String "foobar")
                 , test "sum with boolean" <|
                     \_ ->
                         parseAndRun "5 + true"
-                            |> isEqLast (Number 6)
+                            |> isLastEq (Number 6)
                 , test "sum booleans" <|
                     \_ ->
                         parseAndRun "true + true"
-                            |> isEqLast (Number 2)
+                            |> isLastEq (Number 2)
                 , test "concatenates number with string" <|
                     \_ ->
                         parseAndRun "5 + \"5\""
-                            |> isEqLast (String "55")
+                            |> isLastEq (String "55")
                 , test "converts array to string" <|
                     \_ ->
                         parseAndRun "[] + true"
-                            |> isEqLast (String "true")
+                            |> isLastEq (String "true")
                 , test "sum boolean with string" <|
                     \_ ->
                         parseAndRun "true + \"false\""
-                            |> isEqLast (String "truefalse")
+                            |> isLastEq (String "truefalse")
                 , test "concatenates with undefined" <|
                     \_ ->
                         parseAndRun "'foo' + undefined"
-                            |> isEqLast (String "fooundefined")
+                            |> isLastEq (String "fooundefined")
                 , test "sum with undefineds" <|
                     \_ ->
                         parseAndRun "undefined + undefined"
                             -- TODO: NaN
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 1 ) ExplicitUndefined
                                     , undefinedTrack ( 1, 11 ) (OperationWithUndefined "addition")
@@ -815,12 +815,12 @@ suite =
                 , test "subtracts string from number" <|
                     \_ ->
                         parseAndRun "5 - \"4\""
-                            |> isEqLast (Number 1)
+                            |> isLastEq (Number 1)
                 , test "can't subtract strings" <|
                     \_ ->
                         parseAndRun "\"foo\" - \"bar\""
                             -- TODO: NaN
-                            |> isEqLast
+                            |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 7 ) (OperationWithUndefined "subtraction")
                                     ]
@@ -828,7 +828,7 @@ suite =
                 , test "subtracts arrays" <|
                     \_ ->
                         parseAndRun "[] - []"
-                            |> isEqLast (Number 0)
+                            |> isLastEq (Number 0)
                 ]
             ]
         ]
@@ -846,7 +846,7 @@ isEq expected actual =
         |> Expect.equal (Ok [ expected ])
 
 
-isEqLast expected actual =
+isLastEq expected actual =
     actual
         |> Result.map (List.map .result)
         |> Result.toMaybe
