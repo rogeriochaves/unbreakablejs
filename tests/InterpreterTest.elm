@@ -315,6 +315,10 @@ suite =
                     \_ ->
                         parseAndRun "f = (x) => x + 1; f(5); x"
                             |> isEqLast (Undefined [ undefinedTrack ( 1, 25 ) (VariableNotDefined "x") ])
+                , test "calls a curried functions #2" <|
+                    \_ ->
+                        parseAndRun "sum = () => { let x = 10; let ret = (y) => x + y; x = 15; return ret }; sum()(4)"
+                            |> isEqLast (Number 19)
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

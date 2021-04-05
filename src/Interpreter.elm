@@ -38,7 +38,7 @@ run state expressions =
            )
 
 
-runBlock : State -> List Expression -> ( State, Maybe Value )
+runBlock : State -> List Expression -> Stateful (Maybe Value)
 runBlock state blockExpressions =
     let
         iterate_ : Expression -> Stateful (Maybe Value) -> Stateful (Maybe Value)
@@ -62,7 +62,6 @@ runBlock state blockExpressions =
     -- TODO: return last if outside function? (right now returns void)
     blockExpressions
         |> List.foldl iterate_ (Stateful state emptyState Nothing)
-        |> (\{ outScope, result } -> ( outScope, result ))
 
 
 eval : Expression -> State -> ExpressionResult
@@ -138,11 +137,11 @@ eval expr state =
 
         Block blockExpressions ->
             let
-                ( outScope, result ) =
+                { outScope, inScope, result } =
                     runBlock state blockExpressions
             in
             Stateful outScope
-                emptyState
+                inScope
                 (result
                     |> Maybe.withDefault (Undefined (trackStack VoidReturn))
                 )
