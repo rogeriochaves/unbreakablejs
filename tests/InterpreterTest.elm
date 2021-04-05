@@ -248,7 +248,19 @@ suite =
                 [ test "declares a simple function" <|
                     \_ ->
                         parseAndRun "f = (x) => x + 1\nf(5)"
-                            |> isEqLast (Number 6)
+                            |> Result.map (List.map .result)
+                            |> Expect.equal
+                                (Ok
+                                    [ Abstraction [ "x" ]
+                                        (tracked ( 1, 14 )
+                                            (Operation2 Addition
+                                                (tracked ( 1, 12 ) (Variable "x"))
+                                                (Untracked (Value (Number 1)))
+                                            )
+                                        )
+                                    , Number 6
+                                    ]
+                                )
 
                 -- , test "declares a function with multiple arguments" <|
                 --     \_ ->
@@ -303,10 +315,6 @@ suite =
                     \_ ->
                         parseAndRun "f = (x) => x + 1; f(5); x"
                             |> isEqLast (Undefined [ undefinedTrack ( 1, 25 ) (VariableNotDefined "x") ])
-                , test "does not keep variable hanging around #2" <|
-                    \_ ->
-                        parseAndRun "f = (x) => () => x + 1; f(5)(); x"
-                            |> isEqLast (Undefined [ undefinedTrack ( 1, 33 ) (VariableNotDefined "x") ])
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|

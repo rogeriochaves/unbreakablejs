@@ -182,7 +182,7 @@ abstraction : String -> Parser Expression
 abstraction filename =
     succeed
         (\pos param body ->
-            tracked filename pos (Value (Abstraction emptyState param body))
+            tracked filename pos (Value (Abstraction param body))
         )
         |= getPosition
         |= backtrackable
