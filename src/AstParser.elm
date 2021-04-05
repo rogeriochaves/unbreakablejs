@@ -178,11 +178,38 @@ assignment filename =
         |= lazy (\_ -> expression filename)
 
 
+functionDeclaration : String -> Parser Expression
+functionDeclaration filename =
+    succeed
+        (\pos name params body ->
+            tracked filename
+                pos
+                (Operation (LetAssignment name)
+                    (tracked filename pos (Value (Abstraction params body)))
+                )
+        )
+        |= getPosition
+        |. backtrackable (symbol "function")
+        |. spaces
+        |= identifier
+        |. spaces
+        |= sequence
+            { start = "("
+            , separator = ","
+            , end = ")"
+            , spaces = spaces
+            , item = identifier
+            , trailing = Forbidden
+            }
+        |. spaces
+        |= lazy (\_ -> block filename True)
+
+
 abstraction : String -> Parser Expression
 abstraction filename =
     succeed
-        (\pos param body ->
-            tracked filename pos (Value (Abstraction param body))
+        (\pos params body ->
+            tracked filename pos (Value (Abstraction params body))
         )
         |= getPosition
         |= backtrackable
@@ -244,7 +271,8 @@ expression_ filename withDeclarations withReturn =
     let
         declarations =
             if withDeclarations then
-                [ assignment filename
+                [ functionDeclaration filename
+                , assignment filename
                 , ifCondition filename
                 , while filename
                 ]

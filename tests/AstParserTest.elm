@@ -416,6 +416,31 @@ suite =
                                     ]
                                 )
                             )
+            , test "parses names function declaration as let assignments" <|
+                \_ ->
+                    parse "function plusOne(x) {\nx + 1;\n}"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (Operation
+                                    (LetAssignment "plusOne")
+                                    (tracked ( 1, 1 )
+                                        (Value
+                                            (Abstraction [ "x" ]
+                                                (tracked ( 3, 2 )
+                                                    (Block
+                                                        [ tracked ( 2, 3 )
+                                                            (Operation2 Addition
+                                                                (tracked ( 2, 1 ) (Variable "x"))
+                                                                (Untracked (Value (Number 1)))
+                                                            )
+                                                        ]
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
             ]
         , describe "blocks"
             [ test "parses blocks breaking lines" <|
