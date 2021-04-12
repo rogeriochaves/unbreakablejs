@@ -39,6 +39,22 @@ suite =
                 \_ ->
                     parseAndRun "1 - (3 - 2)"
                         |> isEq (Number 0)
+            , test "increments with ++" <|
+                \_ ->
+                    parseAndRun "x = 1; x++; x"
+                        |> isLastEq (Number 2)
+            , test "increments with ++ returns old value" <|
+                \_ ->
+                    parseAndRun "x = 1; x++"
+                        |> isLastEq (Number 1)
+            , test "decrements with --" <|
+                \_ ->
+                    parseAndRun "x = 1; x--; x"
+                        |> isLastEq (Number 0)
+            , test "decrements with -- returns old value" <|
+                \_ ->
+                    parseAndRun "x = 1; x--"
+                        |> isLastEq (Number 1)
 
             --     , test "respects math priority" <|
             --         \_ ->

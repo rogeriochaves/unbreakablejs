@@ -101,7 +101,7 @@ eval expr state =
                 |> Stateful.run (eval expr0)
                 |> Stateful.andThen
                     (\arg0 ->
-                        Stateful.runInScope (\inScope -> applyOperation inScope symbol arg0)
+                        Stateful.runInScope (\inScope -> applyOperation inScope symbol arg0 trackStack)
                     )
 
         Operation2 symbol expr0 expr1 ->
@@ -198,8 +198,8 @@ evalList expressions state =
         |> Stateful.map List.reverse
 
 
-applyOperation : State -> Operation -> Value -> ExpressionResult
-applyOperation inScope operation arg0 =
+applyOperation : State -> Operation -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
+applyOperation inScope operation arg0 trackStack =
     case operation of
         Assignment name ->
             Stateful
@@ -211,6 +211,26 @@ applyOperation inScope operation arg0 =
             Stateful
                 emptyState
                 (emptyState |> setVariable name ( inScope, arg0 ))
+                arg0
+
+        Increment name ->
+            let
+                newValue =
+                    applyOperation2 Addition arg0 (Number 1) trackStack
+            in
+            Stateful
+                (emptyState |> setVariable name ( inScope, newValue ))
+                emptyState
+                arg0
+
+        Decrement name ->
+            let
+                newValue =
+                    applyOperation2 Subtraction arg0 (Number 1) trackStack
+            in
+            Stateful
+                (emptyState |> setVariable name ( inScope, newValue ))
+                emptyState
                 arg0
 
 

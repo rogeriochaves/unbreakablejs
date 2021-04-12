@@ -316,11 +316,31 @@ expressionParsers filename withReturn =
             [ block filename withReturn
             , abstraction filename
             , backtrackable <| parens <| lazy (\_ -> expression filename)
+            , increment filename
+            , decrement filename
             , atoms filename
             ]
     in
     oneOf (return_ ++ expressions)
         |> andThen (postfixOperators filename)
+
+
+increment : String -> Parser Expression
+increment filename =
+    succeed (\posVar name posInc -> tracked filename posInc (Operation (Increment name) (tracked filename posVar (Variable name))))
+        |= getPosition
+        |= backtrackable identifier
+        |= getPosition
+        |. backtrackable (symbol "++")
+
+
+decrement : String -> Parser Expression
+decrement filename =
+    succeed (\posVar name posInc -> tracked filename posInc (Operation (Decrement name) (tracked filename posVar (Variable name))))
+        |= getPosition
+        |= backtrackable identifier
+        |= getPosition
+        |. backtrackable (symbol "--")
 
 
 postfixOperators : String -> Expression -> Parser Expression
@@ -330,12 +350,6 @@ postfixOperators filename expr =
             |> andThen (postfixOperators filename)
         , functionCall expr filename
             |> andThen (postfixOperators filename)
-        , succeed (\pos -> tracked filename pos (Operation2 Addition expr (Untracked (Value (Number 1)))))
-            |= getPosition
-            |. symbol "++"
-        , succeed (\pos -> tracked filename pos (Operation2 Subtraction expr (Untracked (Value (Number 1)))))
-            |= getPosition
-            |. symbol "--"
         , succeed expr
         ]
 

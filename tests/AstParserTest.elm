@@ -87,20 +87,14 @@ suite =
                 parse "x++"
                     |> isEq
                         (tracked ( 1, 2 )
-                            (Operation2 Addition
-                                (tracked ( 1, 1 ) <| Variable "x")
-                                (Untracked (Value (Number 1)))
-                            )
+                            (Operation (Increment "x") (tracked ( 1, 1 ) (Variable "x")))
                         )
         , test "read decrement" <|
             \_ ->
                 parse "x--"
                     |> isEq
                         (tracked ( 1, 2 )
-                            (Operation2 Subtraction
-                                (tracked ( 1, 1 ) <| Variable "x")
-                                (Untracked (Value (Number 1)))
-                            )
+                            (Operation (Decrement "x") (tracked ( 1, 1 ) (Variable "x")))
                         )
 
         -- , test "read double-arity symbolic function" <|

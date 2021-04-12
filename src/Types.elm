@@ -52,6 +52,8 @@ type Value
 type Operation
     = Assignment String
     | LetAssignment String
+    | Increment String
+    | Decrement String
 
 
 type Operation2
