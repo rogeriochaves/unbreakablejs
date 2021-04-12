@@ -82,6 +82,26 @@ suite =
             \_ ->
                 parse "undefined"
                     |> isEq (Untracked (Value (Undefined [ undefinedTrack ( 1, 1 ) ExplicitUndefined ])))
+        , test "read increment" <|
+            \_ ->
+                parse "x++"
+                    |> isEq
+                        (tracked ( 1, 2 )
+                            (Operation2 Addition
+                                (tracked ( 1, 1 ) <| Variable "x")
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
+        , test "read decrement" <|
+            \_ ->
+                parse "x--"
+                    |> isEq
+                        (tracked ( 1, 2 )
+                            (Operation2 Subtraction
+                                (tracked ( 1, 1 ) <| Variable "x")
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

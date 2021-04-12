@@ -330,6 +330,12 @@ postfixOperators filename expr =
             |> andThen (postfixOperators filename)
         , functionCall expr filename
             |> andThen (postfixOperators filename)
+        , succeed (\pos -> tracked filename pos (Operation2 Addition expr (Untracked (Value (Number 1)))))
+            |= getPosition
+            |. symbol "++"
+        , succeed (\pos -> tracked filename pos (Operation2 Subtraction expr (Untracked (Value (Number 1)))))
+            |= getPosition
+            |. symbol "--"
         , succeed expr
         ]
 
