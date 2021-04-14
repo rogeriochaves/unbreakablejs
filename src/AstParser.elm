@@ -97,6 +97,34 @@ while filename =
         |= lazy (\_ -> expression filename)
 
 
+forLoop : String -> Parser Expression
+forLoop filename =
+    succeed
+        (\pos ( assignment_, condition, increment_ ) expr ->
+            tracked filename pos (ForLoop assignment_ condition increment_ expr)
+        )
+        |= getPosition
+        |. backtrackable (symbol "for")
+        |. spaces
+        |= parens
+            (succeed
+                (\assignment_ condition increment_ -> ( assignment_, condition, increment_ ))
+                |. spaces
+                |= lazy (\_ -> expression_ filename True False)
+                |. spaces
+                |. symbol ";"
+                |. spaces
+                |= lazy (\_ -> expression_ filename True False)
+                |. spaces
+                |. symbol ";"
+                |. spaces
+                |= lazy (\_ -> expression_ filename True False)
+                |. spaces
+            )
+        |. spaces
+        |= lazy (\_ -> expression filename)
+
+
 functionCall : Expression -> String -> Parser Expression
 functionCall expr filename =
     succeed
@@ -275,6 +303,7 @@ expression_ filename withDeclarations withReturn =
                 , assignment filename
                 , ifCondition filename
                 , while filename
+                , forLoop filename
                 ]
 
             else

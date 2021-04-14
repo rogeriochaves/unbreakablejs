@@ -37,6 +37,7 @@ type UntrackedExp
     | Return Expression
     | IfCondition Expression Expression
     | While Expression Expression
+    | ForLoop Expression Expression Expression Expression
     | ArrayExpression (List Expression)
 
 

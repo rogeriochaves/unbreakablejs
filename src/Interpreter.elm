@@ -183,6 +183,27 @@ eval expr state =
             Stateful.session state
                 |> whileLoop (Undefined (trackStack LoopNeverTrue))
 
+        ForLoop assignment condition increment exprFor ->
+            let
+                forLoop : Value -> ExpressionResult -> ExpressionResult
+                forLoop prevResult session =
+                    session
+                        |> Stateful.run (eval condition)
+                        |> Stateful.andThen
+                            (\conditionResult ->
+                                if valueToBool conditionResult then
+                                    Stateful.run (eval exprFor)
+                                        >> Stateful.run (eval increment)
+                                        >> Stateful.andThen forLoop
+
+                                else
+                                    Stateful.map (\_ -> prevResult)
+                            )
+            in
+            Stateful.session state
+                |> Stateful.run (eval assignment)
+                |> forLoop (Undefined (trackStack LoopNeverTrue))
+
 
 evalList : List Expression -> State -> Stateful (List Value)
 evalList expressions state =

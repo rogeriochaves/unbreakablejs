@@ -783,6 +783,10 @@ suite =
                     \_ ->
                         parseAndRun "let x = 0; while (x < 3) { x = x + 1 }; x"
                             |> isLastEq (Number 3)
+                , test "loops with for-loop" <|
+                    \_ ->
+                        parseAndRun "let x = 0; for (let i = 0; i < 5; i++) { x = x + i }; x"
+                            |> isLastEq (Number 10)
                 ]
 
             -- , test "use current variables state when reusing a function declared after a variable is defined outsite its scope" <|

@@ -664,6 +664,39 @@ suite =
                                     )
                                 )
                             )
+            , test "parses for-loop" <|
+                \_ ->
+                    parse "for (let i = 0; i < 5; i++) { 1 + 1 }"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (ForLoop
+                                    (tracked ( 1, 12 )
+                                        (Operation (LetAssignment "i")
+                                            (Untracked (Value (Number 0)))
+                                        )
+                                    )
+                                    (tracked ( 1, 19 )
+                                        (Operation2
+                                            SmallerThan
+                                            (tracked ( 1, 17 ) (Variable "i"))
+                                            (Untracked (Value (Number 5)))
+                                        )
+                                    )
+                                    (tracked ( 1, 25 )
+                                        (Operation (Increment "i") (tracked ( 1, 24 ) (Variable "i")))
+                                    )
+                                    (tracked ( 1, 38 )
+                                        (Block
+                                            [ tracked ( 1, 33 )
+                                                (Operation2 Addition
+                                                    (Untracked (Value (Number 1)))
+                                                    (Untracked (Value (Number 1)))
+                                                )
+                                            ]
+                                        )
+                                    )
+                                )
+                            )
             ]
         , describe "strings" <|
             [ test "parses string" <|
