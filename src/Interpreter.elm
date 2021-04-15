@@ -38,30 +38,22 @@ run state expressions =
            )
 
 
-runBlock : State -> List Expression -> Stateful (Maybe Value)
-runBlock state blockExpressions =
+runBlock : State -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> Stateful Value
+runBlock state blockExpressions trackStack =
     let
-        iterate_ : Expression -> Stateful (Maybe Value) -> Stateful (Maybe Value)
+        iterate_ : Expression -> Stateful Value -> Stateful Value
         iterate_ expr acc =
-            if acc.result == Nothing then
-                acc
-                    |> Stateful.run (eval expr)
-                    |> Stateful.map
-                        (\result ->
-                            case expr |> removeTracking of
-                                Return _ ->
-                                    Just result
+            case acc.result of
+                ReturnValue _ ->
+                    acc
 
-                                _ ->
-                                    Nothing
-                        )
-
-            else
-                acc
+                _ ->
+                    acc
+                        |> Stateful.run (eval expr)
     in
     -- TODO: return last if outside function? (right now returns void)
     blockExpressions
-        |> List.foldl iterate_ (Stateful state emptyState Nothing)
+        |> List.foldl iterate_ (Stateful state emptyState (Undefined (trackStack VoidReturn)))
 
 
 eval : Expression -> State -> ExpressionResult
@@ -136,18 +128,11 @@ eval expr state =
                     )
 
         Block blockExpressions ->
-            let
-                { outScope, inScope, result } =
-                    runBlock state blockExpressions
-            in
-            Stateful outScope
-                inScope
-                (result
-                    |> Maybe.withDefault (Undefined (trackStack VoidReturn))
-                )
+            runBlock state blockExpressions trackStack
 
         Return returnExpr ->
             eval returnExpr state
+                |> Stateful.map ReturnValue
 
         IfCondition condition exprIfTrue ->
             Stateful.session state
@@ -439,6 +424,9 @@ valueToBool value =
         String _ ->
             True
 
+        ReturnValue val ->
+            valueToBool val
+
 
 valueToNumber : Value -> Maybe Float
 valueToNumber value =
@@ -494,6 +482,9 @@ valueToString value =
         Abstraction _ _ ->
             -- TODO: modern browsers can do better than that
             "[Function]"
+
+        ReturnValue val ->
+            valueToString val
 
 
 
@@ -623,6 +614,15 @@ callFunction trackStack ( paramNames, functionBody ) args state =
         expressionResult =
             eval functionBody closure
                 |> Stateful.moveStateOutsideScope ( state, inState )
+                |> Stateful.map
+                    (\result ->
+                        case result of
+                            ReturnValue val ->
+                                val
+
+                            _ ->
+                                result
+                    )
     in
     expressionResult
 

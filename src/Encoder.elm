@@ -32,3 +32,6 @@ encode value =
 
         String string ->
             "\"" ++ string ++ "\""
+
+        ReturnValue val ->
+            encode val

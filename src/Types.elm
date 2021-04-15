@@ -49,6 +49,7 @@ type Value
     | Undefined (List UndefinedTrackInfo)
     | Boolean Bool
     | String String
+    | ReturnValue Value
 
 
 type Operation

@@ -335,6 +335,10 @@ suite =
                     \_ ->
                         parseAndRun "sum = () => { let x = 10; let ret = (y) => x + y; x = 15; return ret }; sum()(4)"
                             |> isLastEq (Number 19)
+                , test "does an early return" <|
+                    \_ ->
+                        parseAndRun "fn = () => { if (true) { return 1 }; return 0 }; fn()"
+                            |> isLastEq (Number 1)
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
@@ -559,7 +563,7 @@ suite =
                 [ test "evaluates blocks" <|
                     \_ ->
                         parseAndRun "{\nx = 1\nx + 2}"
-                            |> isEq (Undefined [ undefinedTrack ( 3, 7 ) VoidReturn ])
+                            |> isLastEq (Number 3)
                 , test "returns the value given to return" <|
                     \_ ->
                         parseAndRun "f = (x) => { return x + 2 }\nf(1)"
@@ -728,8 +732,7 @@ suite =
                 [ test "if returns value of the block" <|
                     \_ ->
                         parseAndRun "if (true) { 1 + 1 }"
-                            -- TODO: should actually return 2
-                            |> isLastEq (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ])
+                            |> isLastEq (Number 2)
                 , test "if returns undefined if block was not executed and there is no else" <|
                     \_ ->
                         parseAndRun "if (false) { 1 + 1 }"
