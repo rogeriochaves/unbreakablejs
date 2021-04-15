@@ -728,11 +728,16 @@ suite =
                 [ test "if returns value of the block" <|
                     \_ ->
                         parseAndRun "if (true) { 1 + 1 }"
+                            -- TODO: should actually return 2
                             |> isLastEq (Undefined [ undefinedTrack ( 1, 20 ) VoidReturn ])
                 , test "if returns undefined if block was not executed and there is no else" <|
                     \_ ->
                         parseAndRun "if (false) { 1 + 1 }"
                             |> isLastEq (Undefined [ undefinedTrack ( 1, 1 ) IfWithoutElse ])
+                , test "if returns value of the else if there is one" <|
+                    \_ ->
+                        parseAndRun "if (false) { 1 + 1 } else 2 + 2"
+                            |> isLastEq (Number 4)
                 , test "if with true boolean condition" <|
                     \_ ->
                         parseAndRun "x = 0\nif (true) { x = 1 }\nx"

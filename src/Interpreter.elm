@@ -164,6 +164,18 @@ eval expr state =
                                 )
                     )
 
+        IfElseCondition condition exprIfTrue exprIfFalse ->
+            Stateful.session state
+                |> Stateful.run (eval condition)
+                |> Stateful.andThen
+                    (\conditionResult ->
+                        if valueToBool conditionResult then
+                            Stateful.run (eval exprIfTrue)
+
+                        else
+                            Stateful.run (eval exprIfFalse)
+                    )
+
         While condition exprWhile ->
             let
                 whileLoop : Value -> ExpressionResult -> ExpressionResult

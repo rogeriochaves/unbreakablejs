@@ -643,6 +643,32 @@ suite =
                                     )
                                 )
                             )
+            , test "parses if-else condition" <|
+                \_ ->
+                    parse "if (true) { x = 1 } else { x = 2 }"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (IfElseCondition (Untracked (Value (Boolean True)))
+                                    (tracked ( 1, 20 )
+                                        (Block
+                                            [ tracked ( 1, 15 )
+                                                (Operation (Assignment "x")
+                                                    (Untracked (Value (Number 1)))
+                                                )
+                                            ]
+                                        )
+                                    )
+                                    (tracked ( 1, 35 )
+                                        (Block
+                                            [ tracked ( 1, 30 )
+                                                (Operation (Assignment "x")
+                                                    (Untracked (Value (Number 2)))
+                                                )
+                                            ]
+                                        )
+                                    )
+                                )
+                            )
             ]
         , describe "loops" <|
             [ test "parses while loop" <|

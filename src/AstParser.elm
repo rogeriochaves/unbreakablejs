@@ -69,8 +69,8 @@ tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
 
 
-ifCondition : String -> Parser Expression
-ifCondition filename =
+ifCondition : String -> Bool -> Parser Expression
+ifCondition filename withReturn =
     succeed
         (\pos condition expr ->
             tracked filename pos (IfCondition condition expr)
@@ -78,9 +78,27 @@ ifCondition filename =
         |= getPosition
         |. backtrackable (symbol "if")
         |. spaces
-        |= parens (lazy (\_ -> expression filename))
+        |= parens (lazy (\_ -> expression_ filename True withReturn))
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression_ filename True withReturn)
+
+
+ifElseCondition : String -> Bool -> Parser Expression
+ifElseCondition filename withReturn =
+    succeed
+        (\pos condition exprIfTrue exprIfFalse ->
+            tracked filename pos (IfElseCondition condition exprIfTrue exprIfFalse)
+        )
+        |= getPosition
+        |. backtrackable (symbol "if")
+        |. backtrackable spaces
+        |= backtrackable (parens (lazy (\_ -> expression_ filename True withReturn)))
+        |. backtrackable spaces
+        |= backtrackable (lazy (\_ -> block filename withReturn))
+        |. backtrackable spaces
+        |. backtrackable (symbol "else")
+        |. spaces
+        |= lazy (\_ -> expression_ filename True withReturn)
 
 
 while : String -> Parser Expression
@@ -301,7 +319,8 @@ expression_ filename withDeclarations withReturn =
             if withDeclarations then
                 [ functionDeclaration filename
                 , assignment filename
-                , ifCondition filename
+                , ifElseCondition filename withReturn
+                , ifCondition filename withReturn
                 , while filename
                 , forLoop filename
                 ]
