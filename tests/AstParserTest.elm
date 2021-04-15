@@ -114,6 +114,16 @@ suite =
                                 )
                             )
                         )
+        , test "reads &&" <|
+            \_ ->
+                parse "true && false"
+                    |> isEq
+                        (tracked ( 1, 6 )
+                            (Operation2 And
+                                (Untracked (Value (Boolean True)))
+                                (Untracked (Value (Boolean False)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->
