@@ -67,6 +67,14 @@ suite =
                 \_ ->
                     parseAndRun "true && false"
                         |> isLastEq (Boolean False)
+            , test "or operator" <|
+                \_ ->
+                    parseAndRun "true || false"
+                        |> isLastEq (Boolean True)
+            , test "or operator #2" <|
+                \_ ->
+                    parseAndRun "2 + 2 == 5 || 2 + 2 == 4"
+                        |> isLastEq (Boolean True)
 
             --     , test "respects math priority" <|
             --         \_ ->

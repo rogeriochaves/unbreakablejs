@@ -404,6 +404,9 @@ applyOperation2 reserved arg0 arg1 trackStack =
         And ->
             Boolean (valueToBool arg0 && valueToBool arg1)
 
+        Or ->
+            Boolean (valueToBool arg0 || valueToBool arg1)
+
 
 valueToBool : Value -> Bool
 valueToBool value =

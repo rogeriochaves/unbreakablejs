@@ -68,6 +68,7 @@ type Operation2
     | SmallerThan
     | Member
     | And
+    | Or
 
 
 type UndefinedReason
