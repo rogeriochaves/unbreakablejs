@@ -96,6 +96,24 @@ suite =
                         (tracked ( 1, 2 )
                             (Operation (Decrement "x") (tracked ( 1, 1 ) (Variable "x")))
                         )
+        , test "reads negation" <|
+            \_ ->
+                parse "!true"
+                    |> isEq
+                        (tracked ( 1, 1 )
+                            (Operation Not (Untracked (Value (Boolean True))))
+                        )
+        , test "reads double negation" <|
+            \_ ->
+                parse "!!true"
+                    |> isEq
+                        (tracked ( 1, 1 )
+                            (Operation Not
+                                (tracked ( 1, 2 )
+                                    (Operation Not (Untracked (Value (Boolean True))))
+                                )
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

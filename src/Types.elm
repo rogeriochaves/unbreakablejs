@@ -57,6 +57,7 @@ type Operation
     | LetAssignment String
     | Increment String
     | Decrement String
+    | Not
 
 
 type Operation2

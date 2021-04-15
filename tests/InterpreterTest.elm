@@ -55,6 +55,10 @@ suite =
                 \_ ->
                     parseAndRun "x = 1; x--"
                         |> isLastEq (Number 1)
+            , test "negates a value" <|
+                \_ ->
+                    parseAndRun "!0"
+                        |> isLastEq (Boolean True)
 
             --     , test "respects math priority" <|
             --         \_ ->

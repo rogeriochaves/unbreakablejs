@@ -251,6 +251,12 @@ applyOperation inScope operation arg0 trackStack =
                 emptyState
                 arg0
 
+        Not ->
+            Stateful
+                emptyState
+                emptyState
+                (Boolean (not (valueToBool arg0)))
+
 
 applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> Value
 applyOperation2 reserved arg0 arg1 trackStack =

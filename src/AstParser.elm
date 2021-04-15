@@ -27,43 +27,6 @@ identifier =
         }
 
 
-
--- vectorIdentifier : Parser String
--- vectorIdentifier =
---     succeed identity
---         |. oneOf [ symbol "\\vec", symbol "\\mathbf" ]
---         |= braces scalarIdentifier
--- scalarIdentifier : Parser String
--- scalarIdentifier =
---     let
---         decorators =
---             succeed ()
---                 |. oneOf [ symbol "\\tilde", symbol "\\bar" ]
---                 |. braces names
---         names =
---             oneOf
---                 (lowercaseGreek
---                     ++ [ succeed ()
---                             |. chompIf (\c -> Char.isLower c && Char.isAlphaNum c)
---                        , succeed ()
---                             |. symbol "\\operatorname"
---                             |. braces
---                                 (variable
---                                     { start = Char.isAlphaNum
---                                     , inner = \c -> Char.isAlphaNum c
---                                     , reserved = Set.empty
---                                     }
---                                 )
---                        ]
---                 )
---     in
---     oneOf
---         [ decorators
---         , names
---         ]
---         |> getChompedString
-
-
 tracked : String -> ( Int, Int ) -> UntrackedExp -> Expression
 tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
@@ -183,11 +146,10 @@ operators filename =
                 |= getPosition
                 |. symbol sign
     in
-    -- [ [ prefixOperator (SingleArity Negation) (symbol "-") ]
-    -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
-    -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
-    -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
-    [ [ infixOperator filename Addition (symb "+") AssocLeft
+    [ -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
+      -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
+      -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
+      [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
     , [ infixOperator filename SoftEquality (symb "==") AssocLeft
@@ -330,20 +292,7 @@ expression_ filename withDeclarations withReturn =
 
         expressionParser =
             buildExpressionParser (operators filename)
-                (lazy <|
-                    \_ ->
-                        expressionParsers filename withReturn
-                 -- |> andThen
-                 --     (\expr ->
-                 --         oneOf
-                 --             [ -- index expr
-                 --               -- , exponentiation expr
-                 --               -- , factorial expr
-                 --               members expr filename
-                 --             , succeed expr
-                 --             ]
-                 --     )
-                )
+                (lazy (\_ -> expressionParsers filename withReturn))
     in
     oneOf (declarations ++ [ expressionParser ])
 
@@ -364,6 +313,7 @@ expressionParsers filename withReturn =
             [ block filename withReturn
             , abstraction filename
             , backtrackable <| parens <| lazy (\_ -> expression filename)
+            , not_ filename
             , increment filename
             , decrement filename
             , atoms filename
@@ -371,6 +321,15 @@ expressionParsers filename withReturn =
     in
     oneOf (return_ ++ expressions)
         |> andThen (postfixOperators filename)
+
+
+not_ : String -> Parser Expression
+not_ filename =
+    succeed (\pos expr -> tracked filename pos (Operation Not expr))
+        |= getPosition
+        |. symbol "!"
+        |. spaces
+        |= lazy (\_ -> expression filename)
 
 
 increment : String -> Parser Expression
