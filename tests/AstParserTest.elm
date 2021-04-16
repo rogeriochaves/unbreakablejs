@@ -141,6 +141,46 @@ suite =
                         (tracked ( 1, 1 )
                             (Operation Negative (Untracked (Value (Number 1))))
                         )
+        , test "reads multiplication" <|
+            \_ ->
+                parse "2 * 2"
+                    |> isEq
+                        (tracked ( 1, 3 )
+                            (Operation2 Multiplication
+                                (Untracked (Value (Number 2)))
+                                (Untracked (Value (Number 2)))
+                            )
+                        )
+        , test "reads division" <|
+            \_ ->
+                parse "2 / 2"
+                    |> isEq
+                        (tracked ( 1, 3 )
+                            (Operation2 Division
+                                (Untracked (Value (Number 2)))
+                                (Untracked (Value (Number 2)))
+                            )
+                        )
+        , test "reads exponentiation" <|
+            \_ ->
+                parse "2 ** 2"
+                    |> isEq
+                        (tracked ( 1, 3 )
+                            (Operation2 Exponentiation
+                                (Untracked (Value (Number 2)))
+                                (Untracked (Value (Number 2)))
+                            )
+                        )
+        , test "reads remainder" <|
+            \_ ->
+                parse "2 % 2"
+                    |> isEq
+                        (tracked ( 1, 3 )
+                            (Operation2 Remainder
+                                (Untracked (Value (Number 2)))
+                                (Untracked (Value (Number 2)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

@@ -64,6 +64,10 @@ type Operation
 type Operation2
     = Addition
     | Subtraction
+    | Multiplication
+    | Division
+    | Exponentiation
+    | Remainder
     | SoftEquality
     | GreaterThan
     | SmallerThan

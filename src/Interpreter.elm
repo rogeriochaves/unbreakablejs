@@ -368,6 +368,42 @@ applyOperation2 reserved arg0 arg1 trackStack =
                 _ ->
                     Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
 
+        Multiplication ->
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Number (a * b)
+
+                _ ->
+                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "multiplication"))
+
+        Division ->
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Number (a / b)
+
+                _ ->
+                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "division"))
+
+        Exponentiation ->
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    Number (a ^ b)
+
+                _ ->
+                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "exponentiation"))
+
+        Remainder ->
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    round (a * 10000)
+                        |> remainderBy (round (b * 10000))
+                        |> toFloat
+                        |> (\val -> val / 10000)
+                        |> Number
+
+                _ ->
+                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "remainder"))
+
         SoftEquality ->
             Boolean softEquality
 

@@ -155,6 +155,11 @@ operators filename =
                 |. symbol "-"
             )
       ]
+    , [ infixOperator filename Exponentiation (symb "**") AssocLeft ]
+    , [ infixOperator filename Multiplication (symb "*") AssocLeft
+      , infixOperator filename Division (symb "/") AssocLeft
+      ]
+    , [ infixOperator filename Remainder (symb "%") AssocLeft ]
     , [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]

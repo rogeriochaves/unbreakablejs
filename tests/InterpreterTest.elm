@@ -87,15 +87,43 @@ suite =
                 \_ ->
                     parseAndRun "-true"
                         |> isLastEq (Number -1)
+            , test "multiplies numbers" <|
+                \_ ->
+                    parseAndRun "2 * 2"
+                        |> isEq (Number 4)
+            , test "divides numbers" <|
+                \_ ->
+                    parseAndRun "2 / 2"
+                        |> isEq (Number 1)
+            , test "exponentiate numbers" <|
+                \_ ->
+                    parseAndRun "2 ** 3"
+                        |> isEq (Number 8)
+            , test "remainder numbers" <|
+                \_ ->
+                    parseAndRun "5 % 2"
+                        |> isEq (Number 1)
+            , test "remainder numbers #2" <|
+                \_ ->
+                    parseAndRun "5.5 % 2.5"
+                        |> isEq (Number 0.5)
+            , test "respects math priority" <|
+                \_ ->
+                    parseAndRun "2 + 3 * 2"
+                        |> isEq (Number 8)
+            , test "respects math priority #2" <|
+                \_ ->
+                    parseAndRun "2 * 3 + 2"
+                        |> isEq (Number 8)
+            , test "respects math priority #3" <|
+                \_ ->
+                    parseAndRun "2 * 3 ** 5"
+                        |> isEq (Number 486)
+            , test "respects math priority #4" <|
+                \_ ->
+                    parseAndRun "2 ** 5 * 4"
+                        |> isEq (Number 128)
 
-            --     , test "respects math priority" <|
-            --         \_ ->
-            --             parseAndRun "2 + 3 * 2"
-            --                 |> isEq (Number 8)
-            --     , test "respects math priority #2" <|
-            --         \_ ->
-            --             parseAndRun "2 * 3 + 2"
-            --                 |> isEq (Number 8)
             --     , test "symbol function aplication with other expression" <|
             --         \_ ->
             --             parseAndRun "\\sqrt{9} + 2"
@@ -108,10 +136,6 @@ suite =
             --         \_ ->
             --             parseAndRun "2 ^ 5"
             --                 |> isEq (Number 32)
-            --     , test "respects math priority #3" <|
-            --         \_ ->
-            --             parseAndRun "2 * 3 ^ 5"
-            --                 |> isEq (Number 486)
             --     , test "negation" <|
             --         \_ ->
             --             parseAndRun "5 * -3"
@@ -120,10 +144,6 @@ suite =
             --         \_ ->
             --             parseAndRun "5!"
             --                 |> isEq (Number 120)
-            --     , test "respects math priority #4" <|
-            --         \_ ->
-            --             parseAndRun "-5!"
-            --                 |> isEq (Number -120)
             --     , test "factorial should break for float numbers" <|
             --         \_ ->
             --             parseAndRun "5.1!"
@@ -136,10 +156,6 @@ suite =
             --         \_ ->
             --             parseAndRun "0!"
             --                 |> isEq (Number 1)
-            --     , test "respects math priority #5" <|
-            --         \_ ->
-            --             parseAndRun "2 ^ 5 * 4"
-            --                 |> isEq (Number 128)
             --     , test "evaluates modulo" <|
             --         \_ ->
             --             parseAndRun "5 \\mod 2"
