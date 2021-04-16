@@ -149,7 +149,13 @@ operators filename =
     [ -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
       -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
       -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
-      [ infixOperator filename Addition (symb "+") AssocLeft
+      [ Prefix
+            (succeed (\pos expr -> tracked filename pos (Operation Negative expr))
+                |= getPosition
+                |. symbol "-"
+            )
+      ]
+    , [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
     , [ infixOperator filename SoftEquality (symb "==") AssocLeft

@@ -134,6 +134,13 @@ suite =
                                 (Untracked (Value (Boolean False)))
                             )
                         )
+        , test "reads negative" <|
+            \_ ->
+                parse "-1"
+                    |> isEq
+                        (tracked ( 1, 1 )
+                            (Operation Negative (Untracked (Value (Number 1))))
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

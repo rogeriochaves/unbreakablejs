@@ -75,6 +75,18 @@ suite =
                 \_ ->
                     parseAndRun "2 + 2 == 5 || 2 + 2 == 4"
                         |> isLastEq (Boolean True)
+            , test "negative number" <|
+                \_ ->
+                    parseAndRun "-1"
+                        |> isLastEq (Number -1)
+            , test "negative number #2" <|
+                \_ ->
+                    parseAndRun "2 + -1"
+                        |> isLastEq (Number 1)
+            , test "negative number #3" <|
+                \_ ->
+                    parseAndRun "-true"
+                        |> isLastEq (Number -1)
 
             --     , test "respects math priority" <|
             --         \_ ->

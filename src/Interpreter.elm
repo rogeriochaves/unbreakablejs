@@ -218,6 +218,18 @@ evalList expressions state =
 
 applyOperation : State -> Operation -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
 applyOperation inScope operation arg0 trackStack =
+    let
+        undefinedStack =
+            case arg0 of
+                Undefined stack ->
+                    stack
+
+                _ ->
+                    []
+
+        returnValue =
+            Stateful emptyState emptyState
+    in
     case operation of
         Assignment name ->
             Stateful
@@ -252,10 +264,16 @@ applyOperation inScope operation arg0 trackStack =
                 arg0
 
         Not ->
-            Stateful
-                emptyState
-                emptyState
-                (Boolean (not (valueToBool arg0)))
+            returnValue (Boolean (not (valueToBool arg0)))
+
+        Negative ->
+            returnValue
+                (valueToNumber arg0
+                    |> Maybe.map ((*) -1)
+                    |> Maybe.map Number
+                    |> Maybe.withDefault
+                        (Undefined (undefinedStack ++ trackStack (OperationWithUndefined "negative")))
+                )
 
 
 applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> Value

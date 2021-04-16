@@ -58,6 +58,7 @@ type Operation
     | Increment String
     | Decrement String
     | Not
+    | Negative
 
 
 type Operation2
