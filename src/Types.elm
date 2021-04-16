@@ -67,6 +67,8 @@ type Operation2
     | SoftEquality
     | GreaterThan
     | SmallerThan
+    | GreaterOrEqualThan
+    | SmallerOrEqualThan
     | Member
     | And
     | Or

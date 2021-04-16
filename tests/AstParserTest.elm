@@ -671,6 +671,28 @@ suite =
                                     (Untracked (Value (Number 2)))
                                 )
                             )
+            , test "parses smaller or equal than comparison" <|
+                \_ ->
+                    parse "1 <= 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (Operation2
+                                    SmallerOrEqualThan
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
+                                )
+                            )
+            , test "parses greater or equal than comparison" <|
+                \_ ->
+                    parse "1 >= 2"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (Operation2
+                                    GreaterOrEqualThan
+                                    (Untracked (Value (Number 1)))
+                                    (Untracked (Value (Number 2)))
+                                )
+                            )
             , test "parses if condition" <|
                 \_ ->
                     parse "if (true) {x = 1}"

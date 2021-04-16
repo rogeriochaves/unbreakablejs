@@ -289,6 +289,31 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
                 _ ->
                     []
+
+        numberComparison comparator =
+            case ( valueToNumber arg0, valueToNumber arg1 ) of
+                ( Just a, Just b ) ->
+                    comparator a b
+
+                _ ->
+                    False
+
+        softEquality =
+            case ( arg0, arg1 ) of
+                ( Boolean _, _ ) ->
+                    numberComparison (==)
+
+                ( _, Boolean _ ) ->
+                    numberComparison (==)
+
+                ( String a, b ) ->
+                    a == valueToString b
+
+                ( a, String b ) ->
+                    valueToString a == b
+
+                _ ->
+                    numberComparison (==)
     in
     case reserved of
         Addition ->
@@ -344,46 +369,19 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
 
         SoftEquality ->
-            let
-                numberComparison =
-                    case ( valueToNumber arg0, valueToNumber arg1 ) of
-                        ( Just a, Just b ) ->
-                            Boolean (a == b)
-
-                        _ ->
-                            Boolean False
-            in
-            case ( arg0, arg1 ) of
-                ( Boolean _, _ ) ->
-                    numberComparison
-
-                ( _, Boolean _ ) ->
-                    numberComparison
-
-                ( String a, b ) ->
-                    Boolean (a == valueToString b)
-
-                ( a, String b ) ->
-                    Boolean (valueToString a == b)
-
-                _ ->
-                    numberComparison
+            Boolean softEquality
 
         GreaterThan ->
-            case ( valueToNumber arg0, valueToNumber arg1 ) of
-                ( Just a, Just b ) ->
-                    Boolean (a > b)
-
-                _ ->
-                    Boolean False
+            Boolean (numberComparison (>))
 
         SmallerThan ->
-            case ( valueToNumber arg0, valueToNumber arg1 ) of
-                ( Just a, Just b ) ->
-                    Boolean (a < b)
+            Boolean (numberComparison (<))
 
-                _ ->
-                    Boolean False
+        GreaterOrEqualThan ->
+            Boolean (numberComparison (>) || softEquality)
+
+        SmallerOrEqualThan ->
+            Boolean (numberComparison (<) || softEquality)
 
         Member ->
             let

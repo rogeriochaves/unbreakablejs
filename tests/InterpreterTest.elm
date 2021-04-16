@@ -711,6 +711,22 @@ suite =
                     \_ ->
                         parseAndRun "undefined > 0 - 1"
                             |> isLastEq (Boolean False)
+                , test "evaluates number smaller or equal than" <|
+                    \_ ->
+                        parseAndRun "2 <= 2"
+                            |> isLastEq (Boolean True)
+                , test "evaluates number smaller or equal than #2" <|
+                    \_ ->
+                        parseAndRun "[true] <= 'true'"
+                            |> isLastEq (Boolean True)
+                , test "evaluates number greater or equal than" <|
+                    \_ ->
+                        parseAndRun "2 >= 2"
+                            |> isLastEq (Boolean True)
+                , test "evaluates number greater or equal than #2" <|
+                    \_ ->
+                        parseAndRun "[true] >= 'true'"
+                            |> isLastEq (Boolean True)
                 , test "function is not smaller than a number" <|
                     \_ ->
                         parseAndRun "fn = () => {}; fn < 1"

@@ -159,6 +159,8 @@ operators filename =
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
     , [ infixOperator filename SoftEquality (symb "==") AssocLeft
+      , infixOperator filename GreaterOrEqualThan (symb ">=") AssocLeft
+      , infixOperator filename SmallerOrEqualThan (symb "<=") AssocLeft
       , infixOperator filename GreaterThan (symb ">") AssocLeft
       , infixOperator filename SmallerThan (symb "<") AssocLeft
       ]
