@@ -163,7 +163,8 @@ operators filename =
     , [ infixOperator filename Addition (symb "+") AssocLeft
       , infixOperator filename Subtraction (symb "-") AssocLeft
       ]
-    , [ infixOperator filename SoftEquality (symb "==") AssocLeft
+    , [ infixOperator filename HardEquality (symb "===") AssocLeft
+      , infixOperator filename SoftEquality (symb "==") AssocLeft
       , infixOperator filename GreaterOrEqualThan (symb ">=") AssocLeft
       , infixOperator filename SmallerOrEqualThan (symb "<=") AssocLeft
       , infixOperator filename GreaterThan (symb ">") AssocLeft

@@ -767,6 +767,21 @@ suite =
                                     (Untracked (Value (Boolean False)))
                                 )
                             )
+            , test "parses hard equality" <|
+                \_ ->
+                    parse "1 + 1 === 2"
+                        |> isEq
+                            (tracked ( 1, 7 )
+                                (Operation2 HardEquality
+                                    (tracked ( 1, 3 )
+                                        (Operation2 Addition
+                                            (Untracked (Value (Number 1)))
+                                            (Untracked (Value (Number 1)))
+                                        )
+                                    )
+                                    (Untracked (Value (Number 2)))
+                                )
+                            )
             , test "parses greater than comparison" <|
                 \_ ->
                     parse "1 > 2"

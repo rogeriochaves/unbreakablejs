@@ -300,6 +300,9 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
         softEquality =
             case ( arg0, arg1 ) of
+                ( Undefined _, Undefined _ ) ->
+                    True
+
                 ( Boolean _, _ ) ->
                     numberComparison (==)
 
@@ -406,6 +409,14 @@ applyOperation2 reserved arg0 arg1 trackStack =
 
         SoftEquality ->
             Boolean softEquality
+
+        HardEquality ->
+            case ( arg0, arg1 ) of
+                ( Undefined _, Undefined _ ) ->
+                    Boolean True
+
+                _ ->
+                    Boolean (arg0 == arg1)
 
         GreaterThan ->
             Boolean (numberComparison (>))

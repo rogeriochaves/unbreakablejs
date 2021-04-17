@@ -69,6 +69,7 @@ type Operation2
     | Exponentiation
     | Remainder
     | SoftEquality
+    | HardEquality
     | GreaterThan
     | SmallerThan
     | GreaterOrEqualThan

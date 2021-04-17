@@ -795,6 +795,22 @@ suite =
                     \_ ->
                         parseAndRun "\"0\" == false"
                             |> isLastEq (Boolean True)
+                , test "evaluates hard equality" <|
+                    \_ ->
+                        parseAndRun "1 + 1 === 2"
+                            |> isLastEq (Boolean True)
+                , test "hard equality compared precise values" <|
+                    \_ ->
+                        parseAndRun "2 === '2'"
+                            |> isLastEq (Boolean False)
+                , test "undefineds are comparable with each other" <|
+                    \_ ->
+                        parseAndRun "undefined == undefined"
+                            |> isLastEq (Boolean True)
+                , test "two undefineds are exactly the same" <|
+                    \_ ->
+                        parseAndRun "undefined === undefined"
+                            |> isLastEq (Boolean True)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
