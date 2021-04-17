@@ -182,6 +182,16 @@ suite =
                                 (Untracked (Value (Number 2)))
                             )
                         )
+        , test "allow spaces at the beginning" <|
+            \_ ->
+                parse "    \n1 + 1"
+                    |> isEq
+                        (tracked ( 2, 3 )
+                            (Operation2 Addition
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

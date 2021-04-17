@@ -360,6 +360,7 @@ programLoop track expressions =
         [ succeed (Done (List.reverse expressions))
             |. symbol "EOF"
         , succeed appendExpr
+            |. spaces
             |= expression_ track True False
             |. statementBreak
         ]
