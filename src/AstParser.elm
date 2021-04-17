@@ -358,9 +358,10 @@ programLoop track expressions =
     in
     oneOf
         [ succeed (Done (List.reverse expressions))
+            |. backtrackable (chompWhile (\c -> c == ' ' || c == '\t' || c == '\n' || c == ';'))
             |. symbol "EOF"
         , succeed appendExpr
-            |. spaces
+            |. chompWhile (\c -> c == ' ' || c == '\t' || c == '\n' || c == ';')
             |= expression_ track True False
             |. statementBreak
         ]

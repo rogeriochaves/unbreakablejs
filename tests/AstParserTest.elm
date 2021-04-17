@@ -192,6 +192,16 @@ suite =
                                 (Untracked (Value (Number 1)))
                             )
                         )
+        , test "allow multiple statement breaks" <|
+            \_ ->
+                parse "    \n1 + 1;;;;;"
+                    |> isEq
+                        (tracked ( 2, 3 )
+                            (Operation2 Addition
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->
