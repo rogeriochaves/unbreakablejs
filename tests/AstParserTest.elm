@@ -1017,14 +1017,18 @@ suite =
                             )
             ]
         , describe "objects"
-            [ test "parses simple object" <|
+            [ test "parses object with multiple types of keys" <|
                 \_ ->
-                    parse "{ foo: 'bar' }"
+                    parse "{ foo: 'bar', 'baz qux': 5, \"pudim\": false, 5: 7, 5.7: 8 }"
                         |> isEq
                             (tracked ( 1, 1 )
                                 (ObjectExpression
                                     (Dict.fromList
                                         [ ( "foo", Untracked (Value (String "bar")) )
+                                        , ( "baz qux", Untracked (Value (Number 5)) )
+                                        , ( "pudim", Untracked (Value (Boolean False)) )
+                                        , ( "5", Untracked (Value (Number 7)) )
+                                        , ( "5.7", Untracked (Value (Number 8)) )
                                         ]
                                     )
                                 )

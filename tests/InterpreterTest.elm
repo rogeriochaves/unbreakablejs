@@ -511,6 +511,10 @@ suite =
                     \_ ->
                         parseAndRun "x = {foo: 'bar'}; x['foo']"
                             |> isLastEq (String "bar")
+                , test "reads an object number key" <|
+                    \_ ->
+                        parseAndRun "x = {5: 'bar'}; x[5]"
+                            |> isLastEq (String "bar")
                 ]
 
             --     , test "reads a vector with operations inside" <|

@@ -529,7 +529,18 @@ objects filename =
         objectItem =
             succeed (\key value -> ( key, value ))
                 |. spaces
-                |= identifier
+                |= oneOf
+                    [ identifier
+                    , between (symbol "'") (symbol "'") (getChompedString <| chompWhile (\c -> c /= '\'' && c /= '\n'))
+                    , between (symbol "\"") (symbol "\"") (getChompedString <| chompWhile (\c -> c /= '"' && c /= '\n'))
+                    , number
+                        { int = Just String.fromInt
+                        , hex = Nothing
+                        , octal = Nothing
+                        , binary = Nothing
+                        , float = Just String.fromFloat
+                        }
+                    ]
                 |. spaces
                 |. symbol ":"
                 |. spaces

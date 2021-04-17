@@ -1,5 +1,6 @@
 module Encoder exposing (encode)
 
+import Dict
 import Types exposing (..)
 
 
@@ -17,8 +18,20 @@ encode value =
                    )
                 ++ "]"
 
-        Object _ ->
-            "[object Object]"
+        Object dict ->
+            "Object {"
+                ++ (Dict.toList dict
+                        |> List.map
+                            (\( key, val ) ->
+                                if String.contains " " key then
+                                    "\"" ++ key ++ "\": " ++ encode val
+
+                                else
+                                    key ++ ": " ++ encode val
+                            )
+                        |> String.join ", "
+                   )
+                ++ "}"
 
         Abstraction _ _ ->
             "[Function]"
