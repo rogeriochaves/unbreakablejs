@@ -33,57 +33,61 @@ tracked filename ( row, col ) =
     Tracked { line = row, column = col, filename = filename }
 
 
-ifCondition : String -> Bool -> Parser Expression
-ifCondition filename withReturn =
+type alias Tracker =
+    ( Int, Int ) -> UntrackedExp -> Expression
+
+
+ifCondition : Tracker -> Bool -> Parser Expression
+ifCondition track withReturn =
     succeed
         (\pos condition expr ->
-            tracked filename pos (IfCondition condition expr)
+            track pos (IfCondition condition expr)
         )
         |= getPosition
         |. backtrackable (symbol "if")
         |. spaces
-        |= parens (lazy (\_ -> expression_ filename True withReturn))
+        |= parens (lazy (\_ -> expression_ track True withReturn))
         |. spaces
-        |= lazy (\_ -> expression_ filename True withReturn)
+        |= lazy (\_ -> expression_ track True withReturn)
 
 
-ifElseCondition : String -> Bool -> Parser Expression
-ifElseCondition filename withReturn =
+ifElseCondition : Tracker -> Bool -> Parser Expression
+ifElseCondition track withReturn =
     succeed
         (\pos condition exprIfTrue exprIfFalse ->
-            tracked filename pos (IfElseCondition condition exprIfTrue exprIfFalse)
+            track pos (IfElseCondition condition exprIfTrue exprIfFalse)
         )
         |= getPosition
         |. backtrackable (symbol "if")
         |. backtrackable spaces
-        |= backtrackable (parens (lazy (\_ -> expression_ filename True withReturn)))
+        |= backtrackable (parens (lazy (\_ -> expression_ track True withReturn)))
         |. backtrackable spaces
-        |= backtrackable (lazy (\_ -> block filename withReturn))
+        |= backtrackable (lazy (\_ -> block track withReturn))
         |. backtrackable spaces
         |. backtrackable (symbol "else")
         |. spaces
-        |= lazy (\_ -> expression_ filename True withReturn)
+        |= lazy (\_ -> expression_ track True withReturn)
 
 
-while : String -> Parser Expression
-while filename =
+while : Tracker -> Parser Expression
+while track =
     succeed
         (\pos condition expr ->
-            tracked filename pos (While condition expr)
+            track pos (While condition expr)
         )
         |= getPosition
         |. backtrackable (symbol "while")
         |. spaces
-        |= parens (lazy (\_ -> expression filename))
+        |= parens (lazy (\_ -> expression track))
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression track)
 
 
-forLoop : String -> Parser Expression
-forLoop filename =
+forLoop : Tracker -> Parser Expression
+forLoop track =
     succeed
         (\pos ( assignment_, condition, increment_ ) expr ->
-            tracked filename pos (ForLoop assignment_ condition increment_ expr)
+            track pos (ForLoop assignment_ condition increment_ expr)
         )
         |= getPosition
         |. backtrackable (symbol "for")
@@ -92,26 +96,26 @@ forLoop filename =
             (succeed
                 (\assignment_ condition increment_ -> ( assignment_, condition, increment_ ))
                 |. spaces
-                |= lazy (\_ -> expression_ filename True False)
+                |= lazy (\_ -> expression_ track True False)
                 |. spaces
                 |. symbol ";"
                 |. spaces
-                |= lazy (\_ -> expression_ filename True False)
+                |= lazy (\_ -> expression_ track True False)
                 |. spaces
                 |. symbol ";"
                 |. spaces
-                |= lazy (\_ -> expression_ filename True False)
+                |= lazy (\_ -> expression_ track True False)
                 |. spaces
             )
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression track)
 
 
-functionCall : Expression -> String -> Parser Expression
-functionCall expr filename =
+functionCall : Tracker -> Expression -> Parser Expression
+functionCall track expr =
     succeed
         (\pos args ->
-            tracked filename pos (Application expr args)
+            track pos (Application expr args)
         )
         |= getPosition
         |= backtrackable
@@ -120,25 +124,25 @@ functionCall expr filename =
                 , separator = ","
                 , end = ")"
                 , spaces = spaces
-                , item = expression filename
+                , item = expression track
                 , trailing = Forbidden
                 }
             )
 
 
-infixOperator : String -> Operation2 -> Parser ( Int, Int ) -> Assoc -> Operator Expression
-infixOperator filename operation opParser assoc =
+infixOperator : Tracker -> Operation2 -> Parser ( Int, Int ) -> Assoc -> Operator Expression
+infixOperator track operation opParser assoc =
     let
         binaryOp =
-            succeed (\pos expr1 expr2 -> tracked filename pos (Operation2 operation expr1 expr2))
+            succeed (\pos expr1 expr2 -> track pos (Operation2 operation expr1 expr2))
                 |= opParser
                 |. spaces
     in
     Infix binaryOp assoc
 
 
-operators : String -> OperatorTable Expression
-operators filename =
+operators : Tracker -> OperatorTable Expression
+operators track =
     let
         symb : String -> Parser ( Int, Int )
         symb sign =
@@ -151,63 +155,63 @@ operators filename =
       -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
       -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
       [ Prefix
-            (succeed (\pos expr -> tracked filename pos (Operation Negative expr))
+            (succeed (\pos expr -> track pos (Operation Negative expr))
                 |= getPosition
                 |. symbol "-"
             )
       ]
-    , [ infixOperator filename Exponentiation (symb "**") AssocLeft ]
-    , [ infixOperator filename Multiplication (symb "*") AssocLeft
-      , infixOperator filename Division (symb "/") AssocLeft
+    , [ infixOperator track Exponentiation (symb "**") AssocLeft ]
+    , [ infixOperator track Multiplication (symb "*") AssocLeft
+      , infixOperator track Division (symb "/") AssocLeft
       ]
-    , [ infixOperator filename Remainder (symb "%") AssocLeft ]
-    , [ infixOperator filename Addition (symb "+") AssocLeft
-      , infixOperator filename Subtraction (symb "-") AssocLeft
+    , [ infixOperator track Remainder (symb "%") AssocLeft ]
+    , [ infixOperator track Addition (symb "+") AssocLeft
+      , infixOperator track Subtraction (symb "-") AssocLeft
       ]
-    , [ infixOperator filename HardEquality (symb "===") AssocLeft
-      , infixOperator filename SoftEquality (symb "==") AssocLeft
-      , infixOperator filename HardNotEquality (symb "!==") AssocLeft
-      , infixOperator filename SoftNotEquality (symb "!=") AssocLeft
-      , infixOperator filename GreaterOrEqualThan (symb ">=") AssocLeft
-      , infixOperator filename SmallerOrEqualThan (symb "<=") AssocLeft
-      , infixOperator filename GreaterThan (symb ">") AssocLeft
-      , infixOperator filename SmallerThan (symb "<") AssocLeft
+    , [ infixOperator track HardEquality (symb "===") AssocLeft
+      , infixOperator track SoftEquality (symb "==") AssocLeft
+      , infixOperator track HardNotEquality (symb "!==") AssocLeft
+      , infixOperator track SoftNotEquality (symb "!=") AssocLeft
+      , infixOperator track GreaterOrEqualThan (symb ">=") AssocLeft
+      , infixOperator track SmallerOrEqualThan (symb "<=") AssocLeft
+      , infixOperator track GreaterThan (symb ">") AssocLeft
+      , infixOperator track SmallerThan (symb "<") AssocLeft
       ]
-    , [ infixOperator filename And (symb "&&") AssocLeft
-      , infixOperator filename Or (symb "||") AssocLeft
+    , [ infixOperator track And (symb "&&") AssocLeft
+      , infixOperator track Or (symb "||") AssocLeft
       ]
     ]
 
 
-members : Expression -> String -> Parser Expression
-members expr filename =
+members : Tracker -> Expression -> Parser Expression
+members track expr =
     succeed
         (\pos key ->
-            tracked filename pos (Operation2 Member expr key)
+            track pos (Operation2 Member expr key)
         )
         |= getPosition
         |. symbol "["
-        |= expression filename
+        |= expression track
         |. symbol "]"
 
 
-assignment : String -> Parser Expression
-assignment filename =
+assignment : Tracker -> Parser Expression
+assignment track =
     oneOf
-        [ succeed (\name pos -> tracked filename pos << Operation (LetAssignment name))
+        [ succeed (\name pos -> track pos << Operation (LetAssignment name))
             |. backtrackable (symbol "let ")
-        , succeed (\name pos -> tracked filename pos << Operation (Assignment name))
+        , succeed (\name pos -> track pos << Operation (Assignment name))
         ]
         |= backtrackable identifier
         |. backtrackable spaces
         |= getPosition
         |. backtrackable (symbol "=")
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression track)
 
 
-operationAssignment : String -> Parser Expression
-operationAssignment filename =
+operationAssignment : Tracker -> Parser Expression
+operationAssignment track =
     let
         symb operation str =
             succeed operation
@@ -215,13 +219,11 @@ operationAssignment filename =
     in
     succeed
         (\posVar name posSign operation posEqual expr ->
-            tracked filename
-                posEqual
+            track posEqual
                 (Operation (Assignment name)
-                    (tracked filename
-                        posSign
+                    (track posSign
                         (Operation2 operation
-                            (tracked filename posVar (Variable name))
+                            (track posVar (Variable name))
                             expr
                         )
                     )
@@ -244,17 +246,16 @@ operationAssignment filename =
         |= getPosition
         |. backtrackable (symbol "=")
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression track)
 
 
-functionDeclaration : String -> Parser Expression
-functionDeclaration filename =
+functionDeclaration : Tracker -> Parser Expression
+functionDeclaration track =
     succeed
         (\pos name params body ->
-            tracked filename
-                pos
+            track pos
                 (Operation (LetAssignment name)
-                    (tracked filename pos (Value (Abstraction params body)))
+                    (track pos (Value (Abstraction params body)))
                 )
         )
         |= getPosition
@@ -271,14 +272,14 @@ functionDeclaration filename =
             , trailing = Forbidden
             }
         |. spaces
-        |= lazy (\_ -> block filename True)
+        |= lazy (\_ -> block track True)
 
 
-abstraction : String -> Parser Expression
-abstraction filename =
+abstraction : Tracker -> Parser Expression
+abstraction track =
     succeed
         (\pos params body ->
-            tracked filename pos (Value (Abstraction params body))
+            track pos (Value (Abstraction params body))
         )
         |= getPosition
         |= backtrackable
@@ -294,12 +295,12 @@ abstraction filename =
         |. backtrackable spaces
         |. backtrackable (symbol "=>")
         |. spaces
-        |= lazy (\_ -> expression_ filename True True)
+        |= lazy (\_ -> expression_ track True True)
 
 
-program : String -> Parser Types.Program
-program filename =
-    loop [] (programLoop filename)
+program : Tracker -> Parser Types.Program
+program track =
+    loop [] (programLoop track)
 
 
 statementBreak : Parser ()
@@ -310,8 +311,8 @@ statementBreak =
         |. spaces
 
 
-programLoop : String -> List Expression -> Parser (Step (List Expression) (List Expression))
-programLoop filename expressions =
+programLoop : Tracker -> List Expression -> Parser (Step (List Expression) (List Expression))
+programLoop track expressions =
     let
         appendExpr expr =
             case List.head expressions of
@@ -325,141 +326,141 @@ programLoop filename expressions =
         [ succeed (Done (List.reverse expressions))
             |. symbol "EOF"
         , succeed appendExpr
-            |= expression_ filename True False
+            |= expression_ track True False
             |. statementBreak
         ]
 
 
-expression : String -> Parser Expression
-expression filename =
-    expression_ filename False False
+expression : Tracker -> Parser Expression
+expression track =
+    expression_ track False False
 
 
-expression_ : String -> Bool -> Bool -> Parser Expression
-expression_ filename withDeclarations withReturn =
+expression_ : Tracker -> Bool -> Bool -> Parser Expression
+expression_ track withDeclarations withReturn =
     let
         declarations =
             if withDeclarations then
-                [ functionDeclaration filename
-                , assignment filename
-                , operationAssignment filename
-                , ifElseCondition filename withReturn
-                , ifCondition filename withReturn
-                , while filename
-                , forLoop filename
+                [ functionDeclaration track
+                , assignment track
+                , operationAssignment track
+                , ifElseCondition track withReturn
+                , ifCondition track withReturn
+                , while track
+                , forLoop track
                 ]
 
             else
                 []
 
         expressionParser =
-            buildExpressionParser (operators filename)
-                (lazy (\_ -> expressionParsers filename withReturn))
+            buildExpressionParser (operators track)
+                (lazy (\_ -> expressionParsers track withReturn))
     in
     oneOf (declarations ++ [ expressionParser ])
 
 
-expressionParsers : String -> Bool -> Parser Expression
-expressionParsers filename withReturn =
+expressionParsers : Tracker -> Bool -> Parser Expression
+expressionParsers track withReturn =
     let
         return_ =
             if withReturn then
-                [ return filename ]
+                [ return track ]
 
             else
-                [ return filename
+                [ return track
                     |. problem "return can only be used inside a function body"
                 ]
 
         expressions =
-            [ block filename withReturn
-            , abstraction filename
-            , backtrackable <| parens <| lazy (\_ -> expression filename)
-            , not_ filename
-            , increment filename
-            , decrement filename
-            , atoms filename
+            [ block track withReturn
+            , abstraction track
+            , backtrackable <| parens <| lazy (\_ -> expression track)
+            , not_ track
+            , increment track
+            , decrement track
+            , atoms track
             ]
     in
     oneOf (return_ ++ expressions)
-        |> andThen (postfixOperators filename)
+        |> andThen (postfixOperators track)
 
 
-not_ : String -> Parser Expression
-not_ filename =
-    succeed (\pos expr -> tracked filename pos (Operation Not expr))
+not_ : Tracker -> Parser Expression
+not_ track =
+    succeed (\pos expr -> track pos (Operation Not expr))
         |= getPosition
         |. symbol "!"
         |. spaces
-        |= lazy (\_ -> expression filename)
+        |= lazy (\_ -> expression track)
 
 
-increment : String -> Parser Expression
-increment filename =
-    succeed (\posVar name posInc -> tracked filename posInc (Operation (Increment name) (tracked filename posVar (Variable name))))
+increment : Tracker -> Parser Expression
+increment track =
+    succeed (\posVar name posInc -> track posInc (Operation (Increment name) (track posVar (Variable name))))
         |= getPosition
         |= backtrackable identifier
         |= getPosition
         |. backtrackable (symbol "++")
 
 
-decrement : String -> Parser Expression
-decrement filename =
-    succeed (\posVar name posInc -> tracked filename posInc (Operation (Decrement name) (tracked filename posVar (Variable name))))
+decrement : Tracker -> Parser Expression
+decrement track =
+    succeed (\posVar name posInc -> track posInc (Operation (Decrement name) (track posVar (Variable name))))
         |= getPosition
         |= backtrackable identifier
         |= getPosition
         |. backtrackable (symbol "--")
 
 
-postfixOperators : String -> Expression -> Parser Expression
-postfixOperators filename expr =
+postfixOperators : Tracker -> Expression -> Parser Expression
+postfixOperators track expr =
     oneOf
-        [ members expr filename
-            |> andThen (postfixOperators filename)
-        , functionCall expr filename
-            |> andThen (postfixOperators filename)
+        [ members track expr
+            |> andThen (postfixOperators track)
+        , functionCall track expr
+            |> andThen (postfixOperators track)
         , succeed expr
         ]
 
 
-block : String -> Bool -> Parser Expression
-block filename withReturn =
+block : Tracker -> Bool -> Parser Expression
+block track withReturn =
     let
         expressionLine =
             oneOf
                 [ succeed identity
-                    |= backtrackable (expression_ filename True withReturn)
+                    |= backtrackable (expression_ track True withReturn)
                     |. backtrackable statementBreak
                 , succeed identity
-                    |= expression_ filename True withReturn
+                    |= expression_ track True withReturn
                 ]
     in
-    succeed (\list pos -> tracked filename pos <| Block list)
+    succeed (\list pos -> track pos <| Block list)
         |= backtrackable (braces (many expressionLine))
         |= getPosition
 
 
-return : String -> Parser Expression
-return filename =
-    succeed (\pos expr -> tracked filename pos (Return expr))
+return : Tracker -> Parser Expression
+return track =
+    succeed (\pos expr -> track pos (Return expr))
         |= getPosition
         |. backtrackable (symbol "return")
         |. spaces
-        |= expression filename
+        |= expression track
 
 
-atoms : String -> Parser Expression
-atoms filename =
+atoms : Tracker -> Parser Expression
+atoms track =
     oneOf
         [ booleans
-        , undefined filename
-        , succeed (\pos name -> tracked filename pos (Variable name))
+        , undefined track
+        , succeed (\pos name -> track pos (Variable name))
             |= getPosition
             |= identifier
         , digits
-        , arrays filename
-        , objects filename
+        , arrays track
+        , objects track
         , strings
         ]
 
@@ -488,16 +489,25 @@ strings =
         ]
 
 
-undefined : String -> Parser Expression
-undefined filename =
+undefined : Tracker -> Parser Expression
+undefined track =
     succeed
         (\( row, col ) ->
+            let
+                info =
+                    case track ( row, col ) (Value (Undefined [])) of
+                        Tracked trackInfo _ ->
+                            trackInfo
+
+                        _ ->
+                            { line = row, column = col, filename = "" }
+            in
             Untracked
                 (Value
                     (Undefined
                         [ { line = row
                           , column = col
-                          , filename = filename
+                          , filename = info.filename
                           , reason = ExplicitUndefined
                           }
                         ]
@@ -508,22 +518,22 @@ undefined filename =
         |. backtrackable (symbol "undefined")
 
 
-arrays : String -> Parser Expression
-arrays filename =
-    succeed (\pos items -> tracked filename pos (ArrayExpression items))
+arrays : Tracker -> Parser Expression
+arrays track =
+    succeed (\pos items -> track pos (ArrayExpression items))
         |= getPosition
         |= sequence
             { start = "["
             , separator = ","
             , end = "]"
             , spaces = spaces
-            , item = expression filename
+            , item = expression track
             , trailing = Forbidden
             }
 
 
-objects : String -> Parser Expression
-objects filename =
+objects : Tracker -> Parser Expression
+objects track =
     let
         objectItem : Parser ( String, Expression )
         objectItem =
@@ -544,15 +554,15 @@ objects filename =
                 |. spaces
                 |. symbol ":"
                 |. spaces
-                |= expression filename
+                |= expression track
                 |. spaces
                 |. oneOf [ symbol ",", succeed () ]
     in
-    succeed (\pos dict -> tracked filename pos (ObjectExpression (Dict.fromList dict)))
+    succeed (\pos dict -> track pos (ObjectExpression (Dict.fromList dict)))
         |= getPosition
         |= backtrackable (braces (many objectItem))
 
 
 parse : String -> String -> Result Error Types.Program
 parse filename content =
-    run (program filename) (content ++ "\nEOF")
+    run (program (tracked filename)) (content ++ "\nEOF")
