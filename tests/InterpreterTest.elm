@@ -1,6 +1,7 @@
 module InterpreterTest exposing (suite)
 
 import AstParser exposing (..)
+import Dict
 import Expect
 import Interpreter exposing (..)
 import Parser exposing (Problem(..))
@@ -494,6 +495,23 @@ suite =
                                     ]
                                 )
                 ]
+            , describe "objects"
+                [ test "reads an object" <|
+                    \_ ->
+                        parseAndRun "{foo: 'bar', baz: 'qux'}"
+                            |> isLastEq
+                                (Object
+                                    (Dict.fromList
+                                        [ ( "foo", String "bar" )
+                                        , ( "baz", String "qux" )
+                                        ]
+                                    )
+                                )
+                , test "reads an object key" <|
+                    \_ ->
+                        parseAndRun "x = {foo: 'bar'}; x['foo']"
+                            |> isLastEq (String "bar")
+                ]
 
             --     , test "reads a vector with operations inside" <|
             --         \_ ->
@@ -914,6 +932,10 @@ suite =
                     \_ ->
                         parseAndRun "[] + true"
                             |> isLastEq (String "true")
+                , test "converts object to string" <|
+                    \_ ->
+                        parseAndRun "{foo: 'bar'} + true"
+                            |> isLastEq (String "[object Object]true")
                 , test "sum boolean with string" <|
                     \_ ->
                         parseAndRun "true + \"false\""

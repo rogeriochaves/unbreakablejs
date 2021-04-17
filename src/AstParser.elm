@@ -1,5 +1,6 @@
 module AstParser exposing (parse)
 
+import Dict
 import Parser exposing (..)
 import Parser.Expression exposing (..)
 import Parser.Extras exposing (..)
@@ -458,6 +459,7 @@ atoms filename =
             |= identifier
         , digits
         , arrays filename
+        , objects filename
         , strings
         ]
 
@@ -518,6 +520,26 @@ arrays filename =
             , item = expression filename
             , trailing = Forbidden
             }
+
+
+objects : String -> Parser Expression
+objects filename =
+    let
+        objectItem : Parser ( String, Expression )
+        objectItem =
+            succeed (\key value -> ( key, value ))
+                |. spaces
+                |= identifier
+                |. spaces
+                |. symbol ":"
+                |. spaces
+                |= expression filename
+                |. spaces
+                |. oneOf [ symbol ",", succeed () ]
+    in
+    succeed (\pos dict -> tracked filename pos (ObjectExpression (Dict.fromList dict)))
+        |= getPosition
+        |= backtrackable (braces (many objectItem))
 
 
 parse : String -> String -> Result Error Types.Program

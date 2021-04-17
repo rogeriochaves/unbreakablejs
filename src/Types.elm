@@ -40,11 +40,13 @@ type UntrackedExp
     | While Expression Expression
     | ForLoop Expression Expression Expression Expression
     | ArrayExpression (List Expression)
+    | ObjectExpression (Dict String Expression)
 
 
 type Value
     = Number Float
     | Array (List Value)
+    | Object (Dict String Value)
     | Abstraction (List String) Expression
     | Undefined (List UndefinedTrackInfo)
     | Boolean Bool

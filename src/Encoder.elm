@@ -17,6 +17,9 @@ encode value =
                    )
                 ++ "]"
 
+        Object _ ->
+            "[object Object]"
+
         Abstraction _ _ ->
             "[Function]"
 

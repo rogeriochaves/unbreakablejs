@@ -1,6 +1,7 @@
 module AstParserTest exposing (suite)
 
 import AstParser exposing (..)
+import Dict
 import Expect
 import Test exposing (..)
 import Types exposing (..)
@@ -1012,6 +1013,20 @@ suite =
                                         )
                                     )
                                     (Untracked (Value (Number 1)))
+                                )
+                            )
+            ]
+        , describe "objects"
+            [ test "parses simple object" <|
+                \_ ->
+                    parse "{ foo: 'bar' }"
+                        |> isEq
+                            (tracked ( 1, 1 )
+                                (ObjectExpression
+                                    (Dict.fromList
+                                        [ ( "foo", Untracked (Value (String "bar")) )
+                                        ]
+                                    )
                                 )
                             )
             ]

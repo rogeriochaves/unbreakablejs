@@ -1,6 +1,6 @@
 module Interpreter exposing (run)
 
-import Dict
+import Dict exposing (Dict)
 import Fuzz exposing (result)
 import List.Extra
 import Parser exposing (Problem(..))
@@ -72,12 +72,19 @@ eval expr state =
             { outScope = emptyState, inScope = emptyState, result = result }
     in
     case expr |> removeTracking of
+        Value val ->
+            return val
+
         ArrayExpression items ->
             evalList items state
                 |> Stateful.map Array
 
-        Value val ->
-            return val
+        ObjectExpression dict ->
+            evalList (Dict.values dict) state
+                |> Stateful.map
+                    (\result ->
+                        Object (List.map2 Tuple.pair (Dict.keys dict) result |> Dict.fromList)
+                    )
 
         Variable identifier ->
             getVariable identifier state
@@ -345,6 +352,12 @@ applyOperation2 reserved arg0 arg1 trackStack =
                 ( _, Array _ ) ->
                     stringConcat
 
+                ( Object _, _ ) ->
+                    stringConcat
+
+                ( _, Object _ ) ->
+                    stringConcat
+
                 ( Boolean _, _ ) ->
                     numberSum
 
@@ -456,6 +469,10 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     else
                         returnUndefined
 
+                ( Object dict, key ) ->
+                    Dict.get (valueToString key) dict
+                        |> Maybe.withDefault returnUndefined
+
                 ( String str, Number index ) ->
                     if toFloat (truncate index) == index then
                         let
@@ -499,6 +516,9 @@ valueToBool value =
             True
 
         Array _ ->
+            True
+
+        Object _ ->
             True
 
         Undefined _ ->
@@ -558,6 +578,9 @@ valueToString value =
         Array item ->
             List.map valueToString item
                 |> String.join ","
+
+        Object _ ->
+            "[object Object]"
 
         String str ->
             str
