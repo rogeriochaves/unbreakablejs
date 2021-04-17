@@ -202,6 +202,47 @@ assignment filename =
         |= lazy (\_ -> expression filename)
 
 
+operationAssignment : String -> Parser Expression
+operationAssignment filename =
+    let
+        symb operation str =
+            succeed operation
+                |. symbol str
+    in
+    succeed
+        (\posVar name posSign operation posEqual expr ->
+            tracked filename
+                posEqual
+                (Operation (Assignment name)
+                    (tracked filename
+                        posSign
+                        (Operation2 operation
+                            (tracked filename posVar (Variable name))
+                            expr
+                        )
+                    )
+                )
+        )
+        |= getPosition
+        |= backtrackable identifier
+        |. backtrackable spaces
+        |= getPosition
+        |= backtrackable
+            (oneOf
+                [ symb Addition "+"
+                , symb Subtraction "-"
+                , symb Division "/"
+                , symb Exponentiation "**"
+                , symb Multiplication "*"
+                , symb Remainder "%"
+                ]
+            )
+        |= getPosition
+        |. backtrackable (symbol "=")
+        |. spaces
+        |= lazy (\_ -> expression filename)
+
+
 functionDeclaration : String -> Parser Expression
 functionDeclaration filename =
     succeed
@@ -297,6 +338,7 @@ expression_ filename withDeclarations withReturn =
             if withDeclarations then
                 [ functionDeclaration filename
                 , assignment filename
+                , operationAssignment filename
                 , ifElseCondition filename withReturn
                 , ifCondition filename withReturn
                 , while filename

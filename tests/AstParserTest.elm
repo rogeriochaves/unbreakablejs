@@ -375,6 +375,84 @@ suite =
                                     (Untracked <| Value (Number 1))
                                 )
                             )
+            , test "parses += assignment" <|
+                \_ ->
+                    parse "x += 1"
+                        |> isEq
+                            (tracked ( 1, 4 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Addition
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
+            , test "parses -= assignment" <|
+                \_ ->
+                    parse "x -= 1"
+                        |> isEq
+                            (tracked ( 1, 4 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Subtraction
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
+            , test "parses *= assignment" <|
+                \_ ->
+                    parse "x *= 1"
+                        |> isEq
+                            (tracked ( 1, 4 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Multiplication
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
+            , test "parses /= assignment" <|
+                \_ ->
+                    parse "x /= 1"
+                        |> isEq
+                            (tracked ( 1, 4 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Division
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
+            , test "parses %= assignment" <|
+                \_ ->
+                    parse "x %= 1"
+                        |> isEq
+                            (tracked ( 1, 4 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Remainder
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
+            , test "parses **= assignment" <|
+                \_ ->
+                    parse "x **= 1"
+                        |> isEq
+                            (tracked ( 1, 5 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 3 ) <|
+                                        Operation2 Exponentiation
+                                            (tracked ( 1, 1 ) <| Variable "x")
+                                            (Untracked <| Value (Number 1))
+                                    )
+                                )
+                            )
             ]
         , describe "functions"
             [ test "parses function declaration" <|
