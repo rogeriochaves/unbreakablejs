@@ -9,6 +9,10 @@ import Test.Runner.Failure exposing (Reason(..))
 import Types exposing (..)
 
 
+type alias TrackStack =
+    UndefinedReason -> List UndefinedTrackInfo
+
+
 run : State -> Types.Program -> ( State, List ExpressionResult )
 run state expressions =
     let
@@ -38,7 +42,7 @@ run state expressions =
            )
 
 
-runBlock : State -> List Expression -> (UndefinedReason -> List UndefinedTrackInfo) -> Stateful Value
+runBlock : State -> List Expression -> TrackStack -> Stateful Value
 runBlock state blockExpressions trackStack =
     let
         iterate_ : Expression -> Stateful Value -> Stateful Value
@@ -51,7 +55,6 @@ runBlock state blockExpressions trackStack =
                     acc
                         |> Stateful.run (eval expr)
     in
-    -- TODO: return last if outside function? (right now returns void)
     blockExpressions
         |> List.foldl iterate_ (Stateful state emptyState (Undefined (trackStack VoidReturn)))
 
@@ -116,28 +119,23 @@ eval expr state =
                     )
 
         Application fn args ->
+            let
+                call evaluatedArgs abstraction =
+                    case abstraction of
+                        Abstraction paramNames functionBody ->
+                            Stateful.run (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
+
+                        _ ->
+                            Stateful.run
+                                (\_ ->
+                                    return (buildUndefined abstraction trackStack (NotAFunction abstraction))
+                                )
+            in
             evalList args state
                 |> Stateful.andThen
                     (\evaluatedArgs ->
                         Stateful.run (eval fn)
-                            >> Stateful.andThen
-                                (\abstraction ->
-                                    let
-                                        undefinedStack =
-                                            case abstraction of
-                                                Undefined stack ->
-                                                    stack
-
-                                                _ ->
-                                                    []
-                                    in
-                                    case abstraction of
-                                        Abstraction paramNames functionBody ->
-                                            Stateful.run (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
-
-                                        _ ->
-                                            Stateful.run (\_ -> return (Undefined (undefinedStack ++ trackStack (NotAFunction abstraction))))
-                                )
+                            >> Stateful.andThen (call evaluatedArgs)
                     )
 
         Block blockExpressions ->
@@ -229,19 +227,14 @@ evalList expressions state =
         |> Stateful.map List.reverse
 
 
-applyOperation : State -> Operation -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> ExpressionResult
+applyOperation : State -> Operation -> Value -> TrackStack -> ExpressionResult
 applyOperation inScope operation arg0 trackStack =
     let
-        undefinedStack =
-            case arg0 of
-                Undefined stack ->
-                    stack
-
-                _ ->
-                    []
-
         returnValue =
             Stateful emptyState emptyState
+
+        buildUndefined_ =
+            buildUndefined arg0 trackStack
     in
     case operation of
         Assignment name ->
@@ -249,7 +242,7 @@ applyOperation inScope operation arg0 trackStack =
                 assignValue =
                     case arg0 of
                         Undefined _ ->
-                            Undefined (undefinedStack ++ trackStack (AssignmentToUndefined name))
+                            buildUndefined_ (AssignmentToUndefined name)
 
                         _ ->
                             arg0
@@ -264,7 +257,7 @@ applyOperation inScope operation arg0 trackStack =
                 assignValue =
                     case arg0 of
                         Undefined _ ->
-                            Undefined (undefinedStack ++ trackStack (AssignmentToUndefined name))
+                            buildUndefined_ (AssignmentToUndefined name)
 
                         _ ->
                             arg0
@@ -303,23 +296,15 @@ applyOperation inScope operation arg0 trackStack =
                     |> Maybe.map ((*) -1)
                     |> Maybe.map Number
                     |> Maybe.withDefault
-                        (Undefined (undefinedStack ++ trackStack (OperationWithUndefined "negative")))
+                        (buildUndefined_ (OperationWithUndefined "negative"))
                 )
 
 
-applyOperation2 : Operation2 -> Value -> Value -> (UndefinedReason -> List UndefinedTrackInfo) -> Value
+applyOperation2 : Operation2 -> Value -> Value -> TrackStack -> Value
 applyOperation2 reserved arg0 arg1 trackStack =
     let
-        undefinedStack =
-            case ( arg0, arg1 ) of
-                ( Undefined stack, _ ) ->
-                    stack
-
-                ( _, Undefined stack ) ->
-                    stack
-
-                _ ->
-                    []
+        buildUndefined_ =
+            buildUndefined2 arg0 arg1 trackStack
 
         numberComparison comparator =
             case ( valueToNumber arg0, valueToNumber arg1 ) of
@@ -358,7 +343,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                             Number (a + b)
 
                         _ ->
-                            Undefined (undefinedStack ++ trackStack (OperationWithUndefined "addition"))
+                            buildUndefined_ (OperationWithUndefined "addition")
 
                 stringConcat =
                     String (valueToString arg0 ++ valueToString arg1)
@@ -406,7 +391,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Number (a - b)
 
                 _ ->
-                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "subtraction"))
+                    buildUndefined_ (OperationWithUndefined "subtraction")
 
         Multiplication ->
             case ( valueToNumber arg0, valueToNumber arg1 ) of
@@ -414,7 +399,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Number (a * b)
 
                 _ ->
-                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "multiplication"))
+                    buildUndefined_ (OperationWithUndefined "multiplication")
 
         Division ->
             case ( valueToNumber arg0, valueToNumber arg1 ) of
@@ -422,7 +407,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Number (a / b)
 
                 _ ->
-                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "division"))
+                    buildUndefined_ (OperationWithUndefined "division")
 
         Exponentiation ->
             case ( valueToNumber arg0, valueToNumber arg1 ) of
@@ -430,7 +415,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                     Number (a ^ b)
 
                 _ ->
-                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "exponentiation"))
+                    buildUndefined_ (OperationWithUndefined "exponentiation")
 
         Remainder ->
             case ( valueToNumber arg0, valueToNumber arg1 ) of
@@ -442,7 +427,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
                         |> Number
 
                 _ ->
-                    Undefined (undefinedStack ++ trackStack (OperationWithUndefined "remainder"))
+                    buildUndefined_ (OperationWithUndefined "remainder")
 
         SoftEquality ->
             Boolean softEquality
@@ -481,7 +466,7 @@ applyOperation2 reserved arg0 arg1 trackStack =
         Member ->
             let
                 returnUndefined =
-                    Undefined (undefinedStack ++ trackStack (KeyNotInObject arg0 arg1))
+                    buildUndefined_ (KeyNotInObject arg0 arg1)
             in
             case ( arg0, arg1 ) of
                 ( Array arr, Number index ) ->
@@ -620,6 +605,29 @@ valueToString value =
             valueToString val
 
 
+buildUndefined : Value -> TrackStack -> UndefinedReason -> Value
+buildUndefined value trackStack reason =
+    case value of
+        Undefined undefinedStack ->
+            Undefined (undefinedStack ++ trackStack reason)
+
+        _ ->
+            Undefined (trackStack reason)
+
+
+buildUndefined2 : Value -> Value -> TrackStack -> UndefinedReason -> Value
+buildUndefined2 value value2 trackStack reason =
+    case ( value, value2 ) of
+        ( Undefined undefinedStack, _ ) ->
+            Undefined (undefinedStack ++ trackStack reason)
+
+        ( _, Undefined undefinedStack ) ->
+            Undefined (undefinedStack ++ trackStack reason)
+
+        _ ->
+            Undefined (trackStack reason)
+
+
 
 -- runSingleArity : State -> SingleArity -> Expression -> ExpressionResult
 -- runSingleArity state func expr =
@@ -723,7 +731,7 @@ valueToString value =
 --             )
 
 
-callFunction : (UndefinedReason -> List UndefinedTrackInfo) -> ( List String, Expression ) -> List Value -> State -> ExpressionResult
+callFunction : TrackStack -> ( List String, Expression ) -> List Value -> State -> ExpressionResult
 callFunction trackStack ( paramNames, functionBody ) args state =
     let
         argOrDefault : Int -> String -> Value
