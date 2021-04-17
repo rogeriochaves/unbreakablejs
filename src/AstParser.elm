@@ -373,7 +373,8 @@ expressionParsers track withReturn =
                 ]
 
         expressions =
-            [ block track withReturn
+            [ objects track
+            , block track withReturn
             , abstraction track
             , backtrackable <| parens <| lazy (\_ -> expression track)
             , not_ track
@@ -460,7 +461,6 @@ atoms track =
             |= identifier
         , digits
         , arrays track
-        , objects track
         , strings
         ]
 

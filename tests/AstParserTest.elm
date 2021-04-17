@@ -1033,6 +1033,15 @@ suite =
                                     )
                                 )
                             )
+            , test "parses empty object" <|
+                \_ ->
+                    parse "x = {}"
+                        |> isEq
+                            (tracked ( 1, 3 )
+                                (Operation (Assignment "x")
+                                    (tracked ( 1, 5 ) (ObjectExpression Dict.empty))
+                                )
+                            )
             ]
 
         --     , test "parses vector with expressions inside" <|
