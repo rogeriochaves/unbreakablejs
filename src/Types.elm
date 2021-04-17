@@ -70,6 +70,8 @@ type Operation2
     | Remainder
     | SoftEquality
     | HardEquality
+    | SoftNotEquality
+    | HardNotEquality
     | GreaterThan
     | SmallerThan
     | GreaterOrEqualThan

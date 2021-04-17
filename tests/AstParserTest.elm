@@ -782,6 +782,26 @@ suite =
                                     (Untracked (Value (Number 2)))
                                 )
                             )
+            , test "parses soft not equal" <|
+                \_ ->
+                    parse "true != false"
+                        |> isEq
+                            (tracked ( 1, 6 )
+                                (Operation2 SoftNotEquality
+                                    (Untracked (Value (Boolean True)))
+                                    (Untracked (Value (Boolean False)))
+                                )
+                            )
+            , test "parses hard not equal" <|
+                \_ ->
+                    parse "true !== false"
+                        |> isEq
+                            (tracked ( 1, 6 )
+                                (Operation2 HardNotEquality
+                                    (Untracked (Value (Boolean True)))
+                                    (Untracked (Value (Boolean False)))
+                                )
+                            )
             , test "parses greater than comparison" <|
                 \_ ->
                     parse "1 > 2"

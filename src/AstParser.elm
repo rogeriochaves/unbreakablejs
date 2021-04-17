@@ -165,6 +165,8 @@ operators filename =
       ]
     , [ infixOperator filename HardEquality (symb "===") AssocLeft
       , infixOperator filename SoftEquality (symb "==") AssocLeft
+      , infixOperator filename HardNotEquality (symb "!==") AssocLeft
+      , infixOperator filename SoftNotEquality (symb "!=") AssocLeft
       , infixOperator filename GreaterOrEqualThan (symb ">=") AssocLeft
       , infixOperator filename SmallerOrEqualThan (symb "<=") AssocLeft
       , infixOperator filename GreaterThan (symb ">") AssocLeft

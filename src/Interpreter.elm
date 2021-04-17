@@ -418,6 +418,17 @@ applyOperation2 reserved arg0 arg1 trackStack =
                 _ ->
                     Boolean (arg0 == arg1)
 
+        SoftNotEquality ->
+            Boolean (not softEquality)
+
+        HardNotEquality ->
+            case ( arg0, arg1 ) of
+                ( Undefined _, Undefined _ ) ->
+                    Boolean False
+
+                _ ->
+                    Boolean (arg0 /= arg1)
+
         GreaterThan ->
             Boolean (numberComparison (>))
 

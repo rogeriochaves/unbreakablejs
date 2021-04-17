@@ -811,6 +811,14 @@ suite =
                     \_ ->
                         parseAndRun "undefined === undefined"
                             |> isLastEq (Boolean True)
+                , test "soft not equality" <|
+                    \_ ->
+                        parseAndRun "2 != '2'"
+                            |> isLastEq (Boolean False)
+                , test "hard not equality" <|
+                    \_ ->
+                        parseAndRun "2 !== '2'"
+                            |> isLastEq (Boolean True)
                 ]
             , describe "if conditions"
                 [ test "if returns value of the block" <|
