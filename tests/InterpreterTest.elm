@@ -455,12 +455,30 @@ suite =
                             |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
-                                    , undefinedTrack ( 1, 17 ) (KeyNotInObject (Undefined [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]) (Number 4))
+                                    , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
+                                    , undefinedTrack ( 1, 17 )
+                                        (KeyNotInObject
+                                            (Undefined
+                                                [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                                , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
+                                                ]
+                                            )
+                                            (Number 4)
+                                        )
                                     , undefinedTrack ( 1, 20 )
                                         (KeyNotInObject
                                             (Undefined
                                                 [ undefinedTrack ( 1, 5 ) ExplicitUndefined
-                                                , undefinedTrack ( 1, 17 ) (KeyNotInObject (Undefined [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]) (Number 4))
+                                                , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
+                                                , undefinedTrack ( 1, 17 )
+                                                    (KeyNotInObject
+                                                        (Undefined
+                                                            [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                                            , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
+                                                            ]
+                                                        )
+                                                        (Number 4)
+                                                    )
                                                 ]
                                             )
                                             (Number 5)
@@ -473,10 +491,13 @@ suite =
                             |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                    , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
                                     , undefinedTrack ( 1, 23 )
                                         (KeyNotInObject (Array [ Number 1, Number 2, Number 3 ])
                                             (Undefined
-                                                [ undefinedTrack ( 1, 5 ) ExplicitUndefined ]
+                                                [ undefinedTrack ( 1, 5 ) ExplicitUndefined
+                                                , undefinedTrack ( 1, 3 ) (AssignmentToUndefined "a")
+                                                ]
                                             )
                                         )
                                     ]

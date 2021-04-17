@@ -329,6 +329,9 @@ renderResult model index item =
 
                                             KeyNotInObject obj key ->
                                                 "key " ++ encode key ++ " not found on " ++ encode obj
+
+                                            AssignmentToUndefined name ->
+                                                name ++ " got assigned to undefined"
                                 in
                                 msgGotFrom
                                     ++ filename

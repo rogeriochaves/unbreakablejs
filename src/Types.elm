@@ -92,6 +92,7 @@ type UndefinedReason
     | ExplicitUndefined
     | LoopNeverTrue
     | KeyNotInObject Value Value
+    | AssignmentToUndefined String
 
 
 type State

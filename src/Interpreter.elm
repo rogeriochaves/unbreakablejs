@@ -239,16 +239,34 @@ applyOperation inScope operation arg0 trackStack =
     in
     case operation of
         Assignment name ->
+            let
+                assignValue =
+                    case arg0 of
+                        Undefined _ ->
+                            Undefined (undefinedStack ++ trackStack (AssignmentToUndefined name))
+
+                        _ ->
+                            arg0
+            in
             Stateful
-                (emptyState |> setVariable name ( inScope, arg0 ))
+                (emptyState |> setVariable name ( inScope, assignValue ))
                 emptyState
-                arg0
+                assignValue
 
         LetAssignment name ->
+            let
+                assignValue =
+                    case arg0 of
+                        Undefined _ ->
+                            Undefined (undefinedStack ++ trackStack (AssignmentToUndefined name))
+
+                        _ ->
+                            arg0
+            in
             Stateful
                 emptyState
-                (emptyState |> setVariable name ( inScope, arg0 ))
-                arg0
+                (emptyState |> setVariable name ( inScope, assignValue ))
+                assignValue
 
         Increment name ->
             let
