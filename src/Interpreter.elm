@@ -680,9 +680,12 @@ callFunction trackStack ( paramNames, functionBody ) args state =
                 |> Stateful.moveStateOutsideScope ( state, inState )
                 |> Stateful.map
                     (\result ->
-                        case result of
-                            ReturnValue val ->
+                        case ( result, removeTracking functionBody ) of
+                            ( ReturnValue val, _ ) ->
                                 val
+
+                            ( _, Block _ ) ->
+                                Undefined (trackStack VoidReturn)
 
                             _ ->
                                 result

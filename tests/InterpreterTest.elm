@@ -387,6 +387,10 @@ suite =
                     \_ ->
                         parseAndRun "fn = () => { if (true) { return 1 }; return 0 }; fn()"
                             |> isLastEq (Number 1)
+                , test "function without explicit return returns undefined" <|
+                    \_ ->
+                        parseAndRun "fn = () => { 0 }; fn()"
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 21 ) VoidReturn ])
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
