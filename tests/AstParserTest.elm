@@ -1062,6 +1062,16 @@ suite =
                                     (tracked ( 1, 5 ) (ObjectExpression Dict.empty))
                                 )
                             )
+            , test "gets property from object using dot notation" <|
+                \_ ->
+                    parse "a.foo"
+                        |> isEq
+                            (tracked ( 1, 2 )
+                                (Operation2 Member
+                                    (tracked ( 1, 1 ) (Variable "a"))
+                                    (Untracked (Value (String "foo")))
+                                )
+                            )
             ]
 
         --     , test "parses vector with expressions inside" <|

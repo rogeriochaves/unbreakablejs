@@ -195,6 +195,17 @@ members track expr =
         |. symbol "]"
 
 
+dot : Tracker -> Expression -> Parser Expression
+dot track expr =
+    succeed
+        (\pos key ->
+            track pos (Operation2 Member expr (Untracked (Value (String key))))
+        )
+        |= getPosition
+        |. symbol "."
+        |= identifier
+
+
 assignment : Tracker -> Parser Expression
 assignment track =
     oneOf
@@ -442,6 +453,8 @@ postfixOperators : Tracker -> Expression -> Parser Expression
 postfixOperators track expr =
     oneOf
         [ members track expr
+            |> andThen (postfixOperators track)
+        , dot track expr
             |> andThen (postfixOperators track)
         , functionCall track expr
             |> andThen (postfixOperators track)
