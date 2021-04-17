@@ -260,8 +260,8 @@ functionDeclaration track =
         )
         |= getPosition
         |. backtrackable (symbol "function")
-        |. spaces
-        |= identifier
+        |. backtrackable spaces
+        |= backtrackable identifier
         |. spaces
         |= sequence
             { start = "("
@@ -296,6 +296,29 @@ abstraction track =
         |. backtrackable (symbol "=>")
         |. spaces
         |= lazy (\_ -> expression_ track True True)
+
+
+anonymousFunction : Tracker -> Parser Expression
+anonymousFunction track =
+    succeed
+        (\pos params body ->
+            track pos (Value (Abstraction params body))
+        )
+        |= getPosition
+        |. backtrackable (symbol "function")
+        |. backtrackable spaces
+        |= backtrackable
+            (sequence
+                { start = "("
+                , separator = ","
+                , end = ")"
+                , spaces = spaces
+                , item = identifier
+                , trailing = Forbidden
+                }
+            )
+        |. spaces
+        |= lazy (\_ -> block track True)
 
 
 program : Tracker -> Parser Types.Program
@@ -376,6 +399,7 @@ expressionParsers track withReturn =
             [ objects track
             , block track withReturn
             , abstraction track
+            , anonymousFunction track
             , backtrackable <| parens <| lazy (\_ -> expression track)
             , not_ track
             , increment track
