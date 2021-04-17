@@ -93,6 +93,7 @@ type UndefinedReason
     | LoopNeverTrue
     | KeyNotInObject Value Value
     | AssignmentToUndefined String
+    | NotAFunction Value
 
 
 type State

@@ -122,15 +122,21 @@ eval expr state =
                         Stateful.run (eval fn)
                             >> Stateful.andThen
                                 (\abstraction ->
+                                    let
+                                        undefinedStack =
+                                            case abstraction of
+                                                Undefined stack ->
+                                                    stack
+
+                                                _ ->
+                                                    []
+                                    in
                                     case abstraction of
                                         Abstraction paramNames functionBody ->
                                             Stateful.run (callFunction trackStack ( paramNames, functionBody ) evaluatedArgs)
 
-                                        Undefined stacktrace ->
-                                            Stateful.run (\_ -> return (Undefined stacktrace))
-
                                         _ ->
-                                            Debug.todo "not implemented"
+                                            Stateful.run (\_ -> return (Undefined (undefinedStack ++ trackStack (NotAFunction abstraction))))
                                 )
                     )
 

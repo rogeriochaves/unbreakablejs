@@ -332,6 +332,9 @@ renderResult model index item =
 
                                             AssignmentToUndefined name ->
                                                 name ++ " got assigned to undefined"
+
+                                            NotAFunction val ->
+                                                encode val ++ " is not a function"
                                 in
                                 msgGotFrom
                                     ++ filename

@@ -344,7 +344,18 @@ suite =
                 , test "returns undefined if function is not defined" <|
                     \_ ->
                         parseAndRun "f(x)"
-                            |> isEq (Undefined [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f") ])
+                            |> isEq
+                                (Undefined
+                                    [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f")
+                                    , undefinedTrack ( 1, 2 )
+                                        (NotAFunction
+                                            (Undefined
+                                                [ undefinedTrack ( 1, 1 ) (VariableNotDefined "f")
+                                                ]
+                                            )
+                                        )
+                                    ]
+                                )
                 , test "accumulates undefined stack" <|
                     \_ ->
                         parseAndRun "f = (x, y) => x + y\nf(g, 1)"
@@ -360,6 +371,12 @@ suite =
                             |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g")
+                                    , undefinedTrack ( 2, 4 )
+                                        (NotAFunction
+                                            (Undefined
+                                                [ undefinedTrack ( 2, 3 ) (VariableNotDefined "g") ]
+                                            )
+                                        )
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
                                     ]
                                 )
@@ -369,6 +386,12 @@ suite =
                             |> isLastEq
                                 (Undefined
                                     [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g")
+                                    , undefinedTrack ( 2, 7 )
+                                        (NotAFunction
+                                            (Undefined
+                                                [ undefinedTrack ( 2, 6 ) (VariableNotDefined "g") ]
+                                            )
+                                        )
                                     , undefinedTrack ( 1, 17 ) (OperationWithUndefined "addition")
                                     ]
                                 )
@@ -392,6 +415,10 @@ suite =
                     \_ ->
                         parseAndRun "fn = () => { 0 }; fn()"
                             |> isLastEq (Undefined [ undefinedTrack ( 1, 21 ) VoidReturn ])
+                , test "returns undefined for non-functions" <|
+                    \_ ->
+                        parseAndRun "x = 5; x()"
+                            |> isLastEq (Undefined [ undefinedTrack ( 1, 9 ) (NotAFunction (Number 5)) ])
                 ]
 
             --     , test "return unapplied expression if function is not defined, but evaluate the params" <|
