@@ -202,6 +202,26 @@ suite =
                                 (Untracked (Value (Number 1)))
                             )
                         )
+        , test "ignore code comments" <|
+            \_ ->
+                parse "1 + 1 // this is making a sum of two numbers"
+                    |> isEq
+                        (tracked ( 1, 3 )
+                            (Operation2 Addition
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
+        , test "ignore code comments at the beginning" <|
+            \_ ->
+                parse "// this is making a sum of two numbers\n1 + 1"
+                    |> isEq
+                        (tracked ( 3, 3 )
+                            (Operation2 Addition
+                                (Untracked (Value (Number 1)))
+                                (Untracked (Value (Number 1)))
+                            )
+                        )
 
         -- , test "read double-arity symbolic function" <|
         --     \_ ->

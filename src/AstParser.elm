@@ -162,7 +162,9 @@ operators track =
       ]
     , [ infixOperator track Exponentiation (symb "**") AssocLeft ]
     , [ infixOperator track Multiplication (symb "*") AssocLeft
-      , infixOperator track Division (symb "/") AssocLeft
+
+      -- Extra space is a workaround to not conflict with comments
+      , infixOperator track Division (symb "/ ") AssocLeft
       ]
     , [ infixOperator track Remainder (symb "%") AssocLeft ]
     , [ infixOperator track Addition (symb "+") AssocLeft
@@ -340,8 +342,11 @@ program track =
 statementBreak : Parser ()
 statementBreak =
     succeed ()
-        |. chompWhile (\c -> c == ' ')
-        |. chompIf (\c -> c == '\n' || c == ';')
+        |. chompWhile (\c -> c == ' ' || c == '\t')
+        |. oneOf
+            [ chompIf (\c -> c == '\n' || c == ';')
+            , lineComment "//"
+            ]
         |. spaces
 
 
@@ -360,10 +365,12 @@ programLoop track expressions =
         [ succeed (Done (List.reverse expressions))
             |. backtrackable (chompWhile (\c -> c == ' ' || c == '\t' || c == '\n' || c == ';'))
             |. symbol "EOF"
-        , succeed appendExpr
-            |. chompWhile (\c -> c == ' ' || c == '\t' || c == '\n' || c == ';')
-            |= expression_ track True False
-            |. statementBreak
+        , oneOf
+            [ succeed appendExpr
+                |= expression_ track True False
+            , succeed (Loop expressions)
+                |. statementBreak
+            ]
         ]
 
 
