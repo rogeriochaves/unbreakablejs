@@ -151,10 +151,7 @@ operators track =
                 |= getPosition
                 |. symbol sign
     in
-    [ -- , [ infixOperator Exponentiation (symb "^") AssocLeft ]
-      -- , [ infixOperator Multiplication (symb "*") AssocLeft, infixOperator Division (symb "/") AssocLeft ]
-      -- , [ infixOperator Modulo (symb "\\mod") AssocLeft, infixOperator EuclideanDivision (symb "\\div") AssocLeft ]
-      [ Prefix
+    [ [ Prefix
             (succeed (\pos expr -> track pos (Operation Negative expr))
                 |= getPosition
                 |. symbol "-"

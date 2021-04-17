@@ -7,6 +7,7 @@ import Test exposing (..)
 import Types exposing (..)
 
 
+tracked : ( Int, Int ) -> UntrackedExp -> Expression
 tracked ( line, column ) =
     Tracked { line = line, column = column, filename = "test.us" }
 
@@ -16,6 +17,7 @@ undefinedTrack ( line, column ) reason =
     { line = line, column = column, filename = "test.us", reason = reason }
 
 
+parse : String -> Result Error Types.Program
 parse =
     AstParser.parse "test.us"
 
@@ -52,11 +54,6 @@ suite =
                                 )
                             )
                         )
-
-        -- , test "read single-arity symbolic function" <|
-        --     \_ ->
-        --         parse "\\sqrt{5}"
-        --             |> isEq (SingleArity Sqrt (Number 5))
         , test "parses variables" <|
             \_ ->
                 parse "x"
@@ -222,71 +219,6 @@ suite =
                                 (Untracked (Value (Number 1)))
                             )
                         )
-
-        -- , test "read double-arity symbolic function" <|
-        --     \_ ->
-        --         parse "\\frac{2}{3}"
-        --             |> isEq (DoubleArity Frac (Number 2) (Number 3))
-        -- -- https://www.overleaf.com/learn/latex/Integrals,_sums_and_limits#Sums_and_products
-        -- , test "read iterator functions" <|
-        --     \_ ->
-        --         parse "\\sum_{x = 1}^{3} 5"
-        --             |> isEq (TripleArity (Sum_ "x") (Number 1) (Number 3) (Number 5))
-        -- , test "read symbol function aplication with other expression" <|
-        --     \_ ->
-        --         parse "\\sqrt{9} + 2"
-        --             |> isEq
-        --                 (DoubleArity Addition
-        --                     (SingleArity Sqrt (Number 9))
-        --                     (Number 2)
-        --                 )
-        -- , test "read exponentiation" <|
-        --     \_ ->
-        --         parse "2 ^ 5"
-        --             |> isEq
-        --                 (DoubleArity Exponentiation
-        --                     (Number 2)
-        --                     (Number 5)
-        --                 )
-        -- , test "read modulo" <|
-        --     \_ ->
-        --         parse "2 \\mod 5"
-        --             |> isEq
-        --                 (DoubleArity Modulo
-        --                     (Number 2)
-        --                     (Number 5)
-        --                 )
-        -- , test "read integer div" <|
-        --     \_ ->
-        --         parse "5 \\div 2"
-        --             |> isEq
-        --                 (DoubleArity EuclideanDivision
-        --                     (Number 5)
-        --                     (Number 2)
-        --                 )
-        -- , test "read grouped exponentiation" <|
-        --     \_ ->
-        --         parse "2 ^ {5 + 1}"
-        --             |> isEq
-        --                 (DoubleArity Exponentiation
-        --                     (Number 2)
-        --                     (DoubleArity Addition
-        --                         (Number 5)
-        --                         (Number 1)
-        --                     )
-        --                 )
-        -- , test "parses factorial" <|
-        --     \_ ->
-        --         parse "5!"
-        --             |> isEq (SingleArity Factorial (Number 5))
-        -- , test "parses negation" <|
-        --     \_ ->
-        --         parse "-5"
-        --             |> isEq (SingleArity Negation (Number 5))
-        -- , test "parses cardinality" <|
-        --     \_ ->
-        --         parse "|\\vec{x}|"
-        --             |> isEq (SingleArity Cardinality (Variable (VectorIdentifier "x")))
         , describe "multiple lines"
             [ test "parses multiple expressions" <|
                 \_ ->
@@ -1113,109 +1045,10 @@ suite =
                                 )
                             )
             ]
-
-        --     , test "parses vector with expressions inside" <|
-        --         \_ ->
-        --             parse "(x, x + 1, x + 2)"
-        --                 |> isEq
-        --                     (Array
-        --                         [ Variable (ScalarIdentifier "x")
-        --                         , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 1)
-        --                         , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
-        --                         ]
-        --                     )
-        --     , test "parses vector assignment" <|
-        --         \_ ->
-        --             parse "\\vec{x} = (1, 2, 3)"
-        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Array[ Number 1, Number 2, Number 3 ]))
-        --     , test "vector variables can also use mathbf" <|
-        --         \_ ->
-        --             parse "\\mathbf{x} = (1, 2, 3)"
-        --                 |> isEq (SingleArity (Assignment (VectorIdentifier "x")) (Array[ Number 1, Number 2, Number 3 ]))
-        --     , test "parses expression with vector variable" <|
-        --         \_ ->
-        --             parse "\\vec{x} + 1"
-        --                 |> isEq (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
-        --     , test "parses function with vector as param" <|
-        --         \_ ->
-        --             parse "f(\\vec{x}) = \\vec{x} + 1"
-        --                 |> isEq
-        --                     (SingleArity
-        --                         (Assignment (ScalarIdentifier "f"))
-        --                         (Abstraction (VectorIdentifier "x")
-        --                             (DoubleArity Addition (Variable (VectorIdentifier "x")) (Number 1))
-        --                         )
-        --                     )
-        --     , test "parses vector index position" <|
-        --         \_ ->
-        --             parse "x_{3}"
-        --                 |> isEq
-        --                     (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
-        --     , test "parses vector index position and other operation" <|
-        --         \_ ->
-        --             parse "x_{3} + 1"
-        --                 |> isEq
-        --                     (DoubleArity Addition (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3)) (Number 1))
-        --     , test "parses vector index position inside function assignment" <|
-        --         \_ ->
-        --             parse "f(\\vec{x}) = x_{3}"
-        --                 |> isEq
-        --                     (SingleArity
-        --                         (Assignment (ScalarIdentifier "f"))
-        --                         (Abstraction (VectorIdentifier "x")
-        --                             (DoubleArity Index (Variable (ScalarIdentifier "x")) (Number 3))
-        --                         )
-        --                     )
-        --     , test "parses nested index" <|
-        --         \_ ->
-        --             parse "x_{y_{3}}"
-        --                 |> isEq
-        --                     (DoubleArity Index (Variable (ScalarIdentifier "x")) (DoubleArity Index (Variable (ScalarIdentifier "y")) (Number 3)))
-        --     ]
-        -- , describe "mapping function"
-        --     [ test "parses mapping function declaration" <|
-        --         \_ ->
-        --             parse "f(\\vec{x})_{i} = x_{i} + 1"
-        --                 |> isEq
-        --                     (SingleArity
-        --                         (Assignment (ScalarIdentifier "f"))
-        --                         (MapAbstraction "x"
-        --                             "i"
-        --                             (DoubleArity Addition
-        --                                 (DoubleArity Index (Variable (ScalarIdentifier "x")) (Variable (ScalarIdentifier "i")))
-        --                                 (Number 1)
-        --                             )
-        --                         )
-        --                     )
-        --     ]
-        -- , describe "blocks"
-        --     [ test "parses blocks" <|
-        --         \_ ->
-        --             parse "Test:\nx = 1\nx + 2"
-        --                 |> isEq
-        --                     (Block "Test"
-        --                         [ SingleArity (Assignment (ScalarIdentifier "x")) (Number 1)
-        --                         , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
-        --                         ]
-        --                     )
-        --     , test "parses multiple blocks" <|
-        --         \_ ->
-        --             parse "First\\ Block:\nx = 1\nx + 2\nSecond\\ Block:\n5"
-        --                 |> Expect.equal
-        --                     (Ok
-        --                         [ Block "First\\ Block"
-        --                             [ SingleArity (Assignment (ScalarIdentifier "x")) (Number 1)
-        --                             , DoubleArity Addition (Variable (ScalarIdentifier "x")) (Number 2)
-        --                             ]
-        --                         , Block "Second\\ Block"
-        --                             [ Number 5
-        --                             ]
-        --                         ]
-        --                     )
-        --     ]
         ]
 
 
+isErr : Result error value -> Bool
 isErr result =
     case result of
         Ok _ ->
@@ -1225,5 +1058,6 @@ isErr result =
             True
 
 
+isEq : a -> Result error (List a) -> Expect.Expectation
 isEq result =
     Expect.equal (Ok [ result ])
