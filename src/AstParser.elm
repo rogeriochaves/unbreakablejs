@@ -413,7 +413,8 @@ expressionParsers track withReturn =
                 ]
 
         expressions =
-            [ objects track
+            [ notSupported
+            , objects track
             , block track withReturn
             , abstraction track
             , anonymousFunction track
@@ -458,7 +459,8 @@ decrement track =
 postfixOperators : Tracker -> Expression -> Parser Expression
 postfixOperators track expr =
     oneOf
-        [ members track expr
+        [ notSupportedPostfix track
+        , members track expr
             |> andThen (postfixOperators track)
         , dot track expr
             |> andThen (postfixOperators track)
@@ -604,6 +606,55 @@ objects track =
     succeed (\pos dict -> track pos (ObjectExpression (Dict.fromList dict)))
         |= getPosition
         |= backtrackable (braces (many objectItem))
+
+
+notSupported =
+    oneOf
+        [ succeed "try/catch"
+            |. oneOf [ symbol "try ", symbol "try\n", symbol "try{" ]
+        , succeed "throw"
+            |. oneOf [ symbol "throw ", symbol "throw\n" ]
+        , succeed "switch"
+            |. oneOf [ symbol "switch ", symbol "switch\n", symbol "switch{" ]
+        , succeed "`null`"
+            |. oneOf [ symbol "null ", symbol "null;", symbol "null\n" ]
+        , succeed "`var`"
+            |. oneOf [ symbol "var ", symbol "try\n", symbol "try{" ]
+        , succeed "`const`"
+            |. oneOf [ symbol "const ", symbol "try\n", symbol "try{" ]
+        , succeed "console"
+            |. oneOf [ symbol "console." ]
+        , succeed "`this`"
+            |. oneOf [ symbol "this.", symbol "this ", symbol "this;", symbol "this\n" ]
+        ]
+        |> andThen
+            (\syntax ->
+                if syntax == "`var`" || syntax == "`const`" then
+                    problem ("sorry, " ++ syntax ++ " is not supported yet, use let instead")
+
+                else if syntax == "`null`" then
+                    problem ("sorry, " ++ syntax ++ " is not supported yet, use undefined instead")
+
+                else
+                    problem ("sorry, " ++ syntax ++ " is not supported yet")
+            )
+
+
+notSupportedPostfix track =
+    oneOf
+        [ succeed "array or object mutation"
+            |. backtrackable (symbol "[")
+            |. backtrackable (expression track)
+            |. backtrackable (symbol "]")
+            |. backtrackable spaces
+            |. symbol "="
+        , succeed "object mutation"
+            |. backtrackable (symbol ".")
+            |. backtrackable identifier
+            |. backtrackable spaces
+            |. symbol "="
+        ]
+        |> andThen (\syntax -> problem ("sorry, " ++ syntax ++ " is not supported yet"))
 
 
 parse : String -> String -> Result Error Types.Program
