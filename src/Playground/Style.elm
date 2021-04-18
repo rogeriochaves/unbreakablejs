@@ -1,4 +1,4 @@
-module Playground.Style exposing (card, cell, cellLabelInput, cellLabelOutput, errorMessage, footer, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon)
+module Playground.Style exposing (card, cell, cellLabelInput, cellLabelOutput, errorMessage, footer, general, header, menuLink, monospace, notebook, selectedCell, smallSubtitle, submenu, submenuItem, title, toolbarButton, utf8Icon, warnMessage)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -82,11 +82,17 @@ cellLabelInput =
 
 
 cellLabelOutput =
-    cellLabelInput ++ [ style "color" "#D84315" ]
+    cellLabelInput ++ [ style "color" "#298539" ]
 
 
 errorMessage =
     [ style "color" "#E75C58"
+    , monospace
+    ]
+
+
+warnMessage =
+    [ style "color" "#bd8d04"
     , monospace
     ]
 

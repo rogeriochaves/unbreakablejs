@@ -271,7 +271,7 @@ renderResult model index item =
                                     msgGotFrom =
                                         if i == 0 then
                                             if List.length stack > 1 then
-                                                "First I got undefined from "
+                                                "How come? First I got undefined from "
 
                                             else
                                                 "I got undefined from "
@@ -351,10 +351,13 @@ renderResult model index item =
                                     ++ "\n\n"
                             )
             in
-            column (Style.errorMessage ++ [ style "padding-top" "7px", style "padding-bottom" "10px" ])
-                [ cellLabelView Style.cellLabelOutput ""
-                , pre [ style "font-size" "14px", style "margin" "0" ]
-                    [ text <| "Undefined. How come?\n\n\n" ++ String.join "\n" stackMsgs
+            column []
+                [ cellLabelView (Style.cellLabelOutput ++ Style.warnMessage) "Output:"
+                , div [ style "padding-top" "7px", Style.monospace ]
+                    [ div [] [ text "undefined" ]
+                    , pre (Style.warnMessage ++ [ style "font-size" "14px", style "margin" "0", style "padding-top" "20px" ])
+                        [ text <| String.join "\n" stackMsgs
+                        ]
                     ]
                 ]
 
@@ -366,13 +369,6 @@ renderResult model index item =
 
         Ok Nothing ->
             div [] []
-
-
-breakLines : String -> List (Html Msg)
-breakLines msg =
-    String.split "\n" msg
-        |> List.map text
-        |> List.intersperse (br [] [])
 
 
 cellLabelView : List (Attribute Msg) -> String -> Html Msg
