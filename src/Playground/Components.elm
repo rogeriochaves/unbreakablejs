@@ -18,24 +18,14 @@ header =
     in
     column [ style "padding-top" "20px" ]
         [ row []
-            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "Rubber" ]
-            , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "Evaluate LaTeX math code (beta)" ]
+            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "Untypescript" ]
+            , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "JavaScript without runtime errors" ]
             ]
-        , column [ style "justify-content" "center", style "flex-grow" "1" ]
-            [ menuLink [ href "#", onClick ClearPlayground ] [ text "Playground" ]
-            , menuLink [ href "#", class "submenuLink" ]
-                [ text "Examples "
-                , span Style.utf8Icon [ text "▼" ]
-                , row (Style.submenu ++ [ style "position" "absolute", style "min-width" "150px", style "margin" "5px 0 0 -10px", class "submenu" ])
-                    [ submenuItem [ href "#", onClick (SetExample Basics) ] [ text "Basic Samples" ]
-                    , submenuItem [ href "#", onClick (SetExample Softmax) ] [ text "Softmax" ]
-                    , submenuItem [ href "#", onClick (SetExample Bitcoin) ] [ text "Bitcoin Paper Attack Chance" ]
-                    , submenuItem [ href "#", onClick (SetExample Statistics) ] [ text "Basic Statistics" ]
-                    ]
-                ]
-            , menuLink [ href "#about" ] [ text "About" ]
-            , menuLink [ href "https://rogeriochaves.gitbooks.io/rubber/?", target "_blank" ] [ text "Docs" ]
-            ]
+
+        -- , column [ style "justify-content" "center", style "flex-grow" "1" ]
+        --     [ menuLink [ href "#", onClick ClearPlayground ] [ text "Playground" ]
+        --     , menuLink [ href "#about" ] [ text "About" ]
+        --     ]
         ]
 
 

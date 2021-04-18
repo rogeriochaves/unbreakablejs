@@ -6,32 +6,13 @@ import Url.Parser exposing ((</>), Parser, fragment, map, oneOf, parse, string, 
 
 type Page
     = Playground
-    | About
 
 
 routes : Parser (Page -> a) a
 routes =
     oneOf
-        [ mapFragment About "about"
-        , map Playground top
+        [ map Playground top
         ]
-
-
-mapFragment : Page -> String -> Parser (Page -> c) c
-mapFragment page path =
-    map
-        (\frag ->
-            if Maybe.withDefault "" frag == path then
-                page
-
-            else
-                Playground
-        )
-        (oneOf
-            [ fragment identity
-            , map (\_ -> identity) (string </> fragment identity)
-            ]
-        )
 
 
 toPath : Page -> String
@@ -39,6 +20,3 @@ toPath page =
     case page of
         Playground ->
             "/"
-
-        About ->
-            "#about"

@@ -68,15 +68,12 @@ view model =
             (case model.page of
                 Playground ->
                     playground model
-
-                About ->
-                    about
             )
         , container (Style.footer ++ [ style "padding-top" "25px" ])
             [ text "Did you like this project? Drop me a message on "
             , a [ href "https://twitter.com/_rchaves_" ] [ text "twitter" ]
             ]
-        , a [ href "https://github.com/rogeriochaves/rubber/" ]
+        , a [ href "https://github.com/rogeriochaves/untypescript/" ]
             [ img
                 [ style "position" "fixed"
                 , style "top" "0"
@@ -89,66 +86,6 @@ view model =
             ]
         ]
     }
-
-
-about : List (Html Msg)
-about =
-    let
-        softmax =
-            "$$\n\\sigma(\\mathbf{z})_{j}=\\frac{e^{z_{j}}}{\\sum_{k=1}^{n} e^{z_{k}}}\n$$"
-    in
-    [ container Style.header
-        [ Playground.Components.header
-        ]
-    , container [ style "padding-top" "20px" ]
-        [ row (Style.card ++ [ style "padding" "20px" ])
-            [ Markdown.toHtml [ style "line-height" "1.5em" ]
-                """
-# Why Rubber?
-
-Rubber is a tool for interpreting a subset of LaTeX math formulas, it was born out of my own frustrations with math formulas.
-
-More often then not, academic papers uses a lot of math to describe its achieving, even in areas that relate a lot to Computer Science, such as Machine Learning, people don't show code, they show math, which is sometimes much harder to read, at least for me.
-
-For example, take the softmax formula, see how it looks mathematically:
-
-            """
-            , Html.Keyed.node "div"
-                []
-                [ ( softmax, div [ class "raw-math", style "padding-bottom" "10px" ] [ text <| softmax ] )
-                ]
-            , Markdown.toHtml [ style "line-height" "1.5em" ]
-                """
-
-Now the same thing, with python code:
-
-```python
-def softmax(vector):
-  vector_exp = [math.exp(i) for i in vector]
-  return [i / sum(vector_exp) for i in vector_exp]
-```
-
-Which one was easier for you to read? Personally, and I'm probably biased because I'm a dev, but code is much easier.
-
-If someone in my team was writing code like people write math, using all this weird symbols, one-letter meaningless variables, trying to be more abstract then clear all the time, I'd tell them to immediatly stop coding and go read the [Clean Code](https://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882) book because this is unmaintanable.
-
-More importantly, with the python code I can just copy and paste it and run on my machine, and debug for myself, and try to figure out the logic behind it. While with math I have to translate it, either with pen and paper, or to another programming language, but the problem is: I'm not a good interpreter as the computer is, it is too easy for me to make mistakes when computing or translating math formulas by myself and achieve the wrong conclusions about some genius formulas.
-
-So **Rubber** comes trying to change this, I want to be able to run and explore math formulas directly, and LaTeX is the ubiquitous language for that.
-
-There are a lot of popular math-focused languages out there, like [MATLAB](https://www.mathworks.com/products/matlab.html), [R](https://www.r-project.org/), [Julia](https://julialang.org/), but all of them have their own syntax, they don't use LaTeX so you are never sure if something is lost in translation.
-
-Other languages or tools do have a support for true math formulas, sometimes even some support to LaTeX code, but they are closed-source and very expensive, such as [Wolfram Mathematica](http://www.wolfram.com/mathematica) or [Maple](https://www.maplesoft.com).
-
-The goal of **Rubber** is to allow you to copy the same LaTeX code that was put in some paper, and run it. Ideally, paper authors would publish the LaTeX code as an attachment to every formula used, and they would had run it already on **Rubber** knowing it works, allowing people to copy and paste and explore on their own. To achieve that, this project has to be as open and free as possible.
-
-If you like this idea, and would like me to keep developing it, drop me a message on [twitter](https://twitter.com/_rchaves_), or at least [some stars on github](https://github.com/rogeriochaves/rubber/) because I have no trackings on this website so I have no way of knowing it unless you tell me.
-
-Thank you very much!
-                """
-            ]
-        ]
-    ]
 
 
 playground : Model -> List (Html Msg)
