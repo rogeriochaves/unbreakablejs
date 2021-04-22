@@ -11258,7 +11258,7 @@ var author$project$Playground$Components$header = function () {
 								])),
 						_List_fromArray(
 							[
-								elm$html$Html$text('Untypescript')
+								elm$html$Html$text('unbreakable.js')
 							])),
 						A2(
 						elm$html$Html$h2,
@@ -11383,7 +11383,7 @@ var author$project$Playground$view = function (model) {
 				elm$html$Html$a,
 				_List_fromArray(
 					[
-						elm$html$Html$Attributes$href('https://github.com/rogeriochaves/untypescript/')
+						elm$html$Html$Attributes$href('https://github.com/rogeriochaves/unbreakablejs/')
 					]),
 				_List_fromArray(
 					[
@@ -11401,7 +11401,7 @@ var author$project$Playground$view = function (model) {
 						_List_Nil)
 					]))
 			]),
-		title: 'Untypescript'
+		title: 'unbreakable.js'
 	};
 };
 var author$project$Playground$Types$OnUrlRequest = function (a) {
