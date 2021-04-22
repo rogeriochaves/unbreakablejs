@@ -18,7 +18,7 @@ header =
     in
     column [ style "padding-top" "20px" ]
         [ row []
-            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "Untypescript" ]
+            [ h1 (Style.title ++ [ style "margin" "0 0 5px -1px" ]) [ text "unbreakable.js" ]
             , h2 (Style.smallSubtitle ++ [ style "margin-top" "0", style "padding-bottom" "10px" ]) [ text "JavaScript without runtime errors" ]
             ]
 

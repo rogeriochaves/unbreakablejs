@@ -62,7 +62,7 @@ newCell index input =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Untypescript"
+    { title = "unbreakable.js"
     , body =
         [ row (Style.general ++ [ id "main", style "margin" "-8px", style "min-height" "90vh" ])
             (case model.page of
@@ -73,7 +73,7 @@ view model =
             [ text "Did you like this project? Drop me a message on "
             , a [ href "https://twitter.com/_rchaves_" ] [ text "twitter" ]
             ]
-        , a [ href "https://github.com/rogeriochaves/untypescript/" ]
+        , a [ href "https://github.com/rogeriochaves/unbreakablejs/" ]
             [ img
                 [ style "position" "fixed"
                 , style "top" "0"
